@@ -212,8 +212,7 @@
                             <field name="password" password="True" required="0"/>
                             <field name="x_phone"/>
                         </group>
-                        <group string="Ruxsatlar">
-                            <field name="groups_id" widget="many2many_tags" placeholder="Guruhlarni tanlang..."/>
+                        <group string="Kompaniya">
                             <field name="company_id" groups="base.group_multi_company"/>
                         </group>
                     </group>
