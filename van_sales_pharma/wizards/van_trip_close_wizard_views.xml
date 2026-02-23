@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Empty view for van_trip_close_wizard_views.xml to satisfy manifest -->
+    <record id="view_van_trip_close_wizard_empty" model="ir.ui.view">
+        <field name="name">van.trip.close.wizard.empty</field>
+        <field name="model">van.trip.close.wizard</field>
+        <field name="arch" type="xml"><form/></field>
+    </record>
+</odoo>

@@ -1,0 +1,48 @@
+.van-dashboard-wrapper {
+    background-color: #f8f9fa;
+}
+
+.van-dashboard-wrapper .card {
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    border-radius: 12px;
+}
+
+.van-dashboard-wrapper .card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.08) !important;
+}
+
+.van-dashboard-wrapper table th {
+    font-weight: 600;
+    color: #495057;
+}
+
+.van-dashboard-wrapper .badge {
+    font-size: 0.85em;
+    padding: 0.4em 0.8em;
+}
+
+/* Premium Card Gradients */
+.bg-gradient-info {
+    background: linear-gradient(135deg, #0dcaf0 0%, #0bacce 100%) !important;
+    color: #fff !important;
+}
+
+.bg-gradient-success {
+    background: linear-gradient(135deg, #198754 0%, #12633e 100%) !important;
+    color: #fff !important;
+}
+
+.bg-gradient-primary {
+    background: linear-gradient(135deg, #6f42c1 0%, #59359a 100%) !important;
+    color: #fff !important;
+}
+
+.bg-gradient-warning {
+    background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%) !important;
+    color: #212529 !important;
+}
+
+.text-white-50 {
+    color: rgba(255, 255, 255, 0.75) !important;
+}

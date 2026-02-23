@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Asosiy menyu -->
+    <menuitem id="menu_van_sales_root" name="Van Sales" web_icon="van_sales_pharma,static/description/icon.png" sequence="30"/>
+
+    <!-- Dashboard (Administrator) -->
+    <!-- Vaqtincha action yo'qligi sababli bo'sh -->
+
+    <!-- Bugungi Sayohatlar -->
+    <menuitem id="menu_van_trips_main" name="Sayohatlar" parent="menu_van_sales_root" sequence="10"/>
+    <menuitem id="menu_van_trips_all" name="Barcha Sayohatlar" parent="menu_van_trips_main" action="action_van_trip_all" sequence="10"/>
+    <menuitem id="menu_van_trips_mine" name="Mening Sayohatim" parent="menu_van_trips_main" action="action_van_trip_mine" sequence="20"/>
+
+    <!-- Sotuvlar -->
+    <menuitem id="menu_van_sales_main" name="Sotuvlar" parent="menu_van_sales_root" sequence="20"/>
+    <menuitem id="menu_van_sales_all" name="Barcha Sotuvlar" parent="menu_van_sales_main" action="action_van_sale_all" sequence="10"/>
+    <menuitem id="menu_van_sales_mine" name="Mening Sotuvlarim" parent="menu_van_sales_main" action="action_van_sale_mine" sequence="20"/>
+
+    <!-- Nasiya -->
+    <menuitem id="menu_van_nasiya_main" name="Nasiya Dafteri" parent="menu_van_sales_root" sequence="30"/>
+    <menuitem id="menu_van_nasiya_all" name="Barcha Nasiyalar" parent="menu_van_nasiya_main" action="action_van_nasiya_all" sequence="10"/>
+    <menuitem id="menu_van_nasiya_mine" name="Mening Nasiyalarim" parent="menu_van_nasiya_main" action="action_van_nasiya_mine" sequence="20"/>
+
+    <!-- Mijozlar (Customers) -->
+    <menuitem id="menu_van_customers_main" name="Mijozlar" parent="menu_van_sales_root" action="action_van_customers_v2" sequence="40"/>
+
+    <!-- Agentlar -->
+    <menuitem id="menu_van_agents_main" name="Agentlar" parent="menu_van_sales_root" action="action_van_agent_summary" sequence="50"/>
+</odoo>

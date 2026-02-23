@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Marja (Margin) maydonlarini POS order form ko'rinishidan yashirish -->
+    <record id="view_pos_order_form_hide_margin" model="ir.ui.view">
+        <field name="name">pos.order.form.hide.margin</field>
+        <field name="model">pos.order</field>
+        <field name="inherit_id" ref="point_of_sale.view_pos_pos_form"/>
+        <field name="arch" type="xml">
+            <!-- Mahsulotlar jadvalidagi marja ustunlari -->
+            <xpath expr="//field[@name='margin']" position="attributes">
+                <attribute name="column_invisible">1</attribute>
+                <attribute name="invisible">1</attribute>
+            </xpath>
+            <xpath expr="//field[@name='margin_percent']" position="attributes">
+                <attribute name="column_invisible">1</attribute>
+                <attribute name="invisible">1</attribute>
+            </xpath>
+            <!-- Pastki summadagi marja label va qiymatini olib tashlash -->
+            <xpath expr="//label[@for='margin']" position="replace"/>
+            <xpath expr="//group[@name='order_total']/div[hasclass('text-nowrap')]" position="replace"/>
+
+            <!-- Soliq (Tax) maydonlarini yashirish -->
+            <xpath expr="//field[@name='lines']/list//field[@name='tax_ids']" position="attributes">
+                <attribute name="column_invisible">1</attribute>
+            </xpath>
+            <xpath expr="//field[@name='lines']/list//field[@name='price_subtotal_incl']" position="attributes">
+                <attribute name="column_invisible">1</attribute>
+            </xpath>
+            <xpath expr="//field[@name='amount_tax']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+        </field>
+    </record>
+</odoo>

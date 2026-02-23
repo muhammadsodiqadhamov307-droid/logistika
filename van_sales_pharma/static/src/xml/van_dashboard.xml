@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="van_sales_pharma.DashboardView" owl="1">
+        <div class="o_action o_view_controller">
+            <div class="o_content bg-view h-100 overflow-auto p-4 van-dashboard-wrapper">
+                <div class="container-fluid">
+                    <div class="row mb-4">
+                        <div class="col-12 d-flex justify-content-between align-items-center">
+                            <h1 class="display-6 fw-bold text-primary">Moliya paneli</h1>
+                            <button class="btn btn-primary" t-on-click="fetchDashboardData">
+                                <i class="fa fa-refresh me-2"></i> Yangilash
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Kpi Cards -->
+                    <div class="row row-cols-1 row-cols-md-5 g-3 mb-4">
+                        <div class="col">
+                            <div class="card shadow-sm border-0 h-100" t-on-click="openTrips" style="cursor: pointer; background: linear-gradient(135deg, #0dcaf0 0%, #0bacce 100%);">
+                                <div class="card-body text-center p-3">
+                                    <h6 class="card-title fw-bold mb-2" style="color: white !important;">Bugungi Sotuvlar</h6>
+                                    <h3 class="fw-bold m-0" style="color: white !important;">
+                                        <t t-esc="state.active_trips_count"/> / <t t-esc="state.today_trips_count"/>
+                                    </h3>
+                                    <small style="color: rgba(255, 255, 255, 0.75) !important;">To'langan / Jami</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="card shadow-sm border-0 h-100" t-on-click="() =&gt; this.openSalesByMethod('cash')" style="cursor: pointer; background: linear-gradient(135deg, #198754 0%, #12633e 100%);">
+                                <div class="card-body text-center p-3">
+                                    <h6 class="card-title fw-bold mb-2" style="color: white !important;">Naqt Pul</h6>
+                                    <h3 class="fw-bold m-0" style="color: white !important;">
+                                        <t t-esc="state.total_cash.toLocaleString()"/>
+                                    </h3>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="card shadow-sm border-0 h-100" t-on-click="() =&gt; this.openSalesByMethod('card')" style="cursor: pointer; background: linear-gradient(135deg, #6f42c1 0%, #59359a 100%);">
+                                <div class="card-body text-center p-3">
+                                    <h6 class="card-title fw-bold mb-2" style="color: white !important;">Karta Orqali</h6>
+                                    <h3 class="fw-bold m-0" style="color: white !important;">
+                                        <t t-esc="state.total_card.toLocaleString()"/>
+                                    </h3>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="card shadow-sm border-0 h-100" t-on-click="() =&gt; this.openSalesByMethod('chiqim')" style="cursor: pointer; background: linear-gradient(135deg, #dc3545 0%, #a71d2a 100%);">
+                                <div class="card-body text-center p-3">
+                                    <h6 class="card-title fw-bold mb-2" style="color: white !important;">Chiqim (Bugun)</h6>
+                                    <h3 class="fw-bold m-0" style="color: white !important;">
+                                        <t t-esc="state.total_chiqim.toLocaleString()"/>
+                                    </h3>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="card shadow-sm border-0 h-100" t-on-click="() =&gt; this.openSalesByMethod('nasiya')" style="cursor: pointer; background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%);">
+                                <div class="card-body text-center p-3">
+                                    <h6 class="card-title fw-bold mb-2" style="color: #212529 !important;">Nasiya (Qarz)</h6>
+                                    <h3 class="fw-bold m-0" style="color: #212529 !important;">
+                                        <t t-esc="state.total_nasiya.toLocaleString()"/>
+                                    </h3>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Recent Sales Table -->
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="card shadow-sm border-0">
+                                <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center">
+                                    <h5 class="mb-0 text-secondary">Oxirgi Sotuvlar (Bugun)</h5>
+                                    <button class="btn btn-sm btn-outline-secondary" t-on-click="openSales">Barchasini Ko'rish</button>
+                                </div>
+                                <div class="card-body p-0 table-responsive">
+                                    <table class="table table-hover mb-0">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Sotuv Raqami</th>
+                                                <th>Mijoz</th>
+                                                <th>Usul</th>
+                                                <th>Summa</th>
+                                                <th>Holat</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <t t-foreach="state.recent_sales" t-as="sale" t-key="sale.id">
+                                                <tr t-on-click="() => this.openSale(sale.id)" style="cursor: pointer;" class="align-middle">
+                                                    <td><t t-esc="sale.name"/></td>
+                                                    <td><t t-esc="sale.partner_id ? sale.partner_id[1] : 'Noma\'lum'"/></td>
+                                                    <td>
+                                                        <span t-attf-class="badge rounded-pill {{ sale.payment_type === 'cash' ? 'bg-success' : (sale.payment_type === 'card' ? 'bg-primary' : 'bg-warning text-dark') }}">
+                                                            <t t-esc="sale.payment_method_display"/>
+                                                        </span>
+                                                    </td>
+                                                    <td class="fw-bold"><t t-esc="sale.amount_total.toLocaleString()"/></td>
+                                                    <td>
+                                                        <span t-attf-class="badge {{ sale.state === 'paid' ? 'bg-success' : 'bg-info' }}">
+                                                            <t t-esc="sale.state"/>
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                            </t>
+                                            <tr t-if="state.recent_sales.length === 0">
+                                                <td colspan="5" class="text-center text-muted py-4">Bugun hali sotuv amalga oshirilmadi.</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Recent Kirim / Chiqim Table Added Below Sales -->
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <div class="card shadow-sm border-0">
+                                <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center">
+                                    <h5 class="mb-0 text-secondary">Oxirgi Kirim va Chiqim (Bugun)</h5>
+                                </div>
+                                <div class="card-body p-0 table-responsive">
+                                    <table class="table table-hover mb-0">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Summa turi</th>
+                                                <th>Mijoz</th>
+                                                <th>To'lov Usuli</th>
+                                                <th>Summa</th>
+                                                <th>Izoh</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <t t-foreach="state.recent_kirims" t-as="kirim" t-key="kirim.id">
+                                                <tr class="align-middle">
+                                                    <td>
+                                                        <span t-attf-class="badge {{ kirim.type === 'in' ? 'bg-success' : 'bg-danger' }}">
+                                                            <t t-esc="kirim.type === 'in' ? 'Kirim (+)' : 'Chiqim (-)'"/>
+                                                        </span>
+                                                    </td>
+                                                    <td class="fw-bold"><t t-esc="kirim.partner_id ? kirim.partner_id[1] : 'Noma\'lum'"/></td>
+                                                    <td>
+                                                        <span class="badge rounded-pill bg-secondary text-white">
+                                                            <t t-esc="kirim.method_display"/>
+                                                        </span>
+                                                    </td>
+                                                    <td t-attf-class="fw-bold {{ kirim.type === 'in' ? 'text-success' : 'text-danger' }}">
+                                                        <t t-esc="kirim.amount.toLocaleString()"/>
+                                                    </td>
+                                                    <td class="text-muted"><t t-esc="kirim.note"/></td>
+                                                </tr>
+                                            </t>
+                                            <tr t-if="state.recent_kirims.length === 0">
+                                                <td colspan="5" class="text-center text-muted py-4">Bugun hali kirim yoki chiqim qilinmadi.</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </t>
+</templates>

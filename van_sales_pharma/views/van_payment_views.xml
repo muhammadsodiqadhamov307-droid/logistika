@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_van_payment_tree" model="ir.ui.view">
+        <field name="name">van.payment.tree</field>
+        <field name="model">van.payment</field>
+        <field name="arch" type="xml">
+            <list string="To'lovlar" create="0" edit="0" decoration-success="payment_type == 'in'" decoration-danger="payment_type == 'out'">
+                <field name="name"/>
+                <field name="agent_id"/>
+                <field name="partner_id" optional="show"/>
+                <field name="payment_type" widget="badge" decoration-success="payment_type == 'in'" decoration-danger="payment_type == 'out'"/>
+                <field name="sale_order_id" optional="hide"/>
+                <field name="payment_method"/>
+                <field name="date"/>
+                <field name="amount" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                <field name="note" optional="show"/>
+                <field name="currency_id" column_invisible="True"/>
+                <field name="state" widget="badge"/>
+            </list>
+        </field>
+    </record>
+</odoo>

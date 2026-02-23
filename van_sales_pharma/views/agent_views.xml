@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ============================================================
+         AGENT SUMMARY — LIST VIEW
+    ============================================================ -->
+    <record id="view_van_agent_summary_list" model="ir.ui.view">
+        <field name="name">van.agent.summary.list</field>
+        <field name="model">van.agent.summary</field>
+        <field name="arch" type="xml">
+            <list string="Agentlar Hisoboti"
+                  decoration-success="total_sales > 0"
+                  decoration-muted="total_sales == 0">
+                <field name="date"/>
+                <field name="agent_id"/>
+                <field name="pos_order_count" string="Sotuvlar"/>
+                <field name="total_sales"
+                       widget="monetary"
+                       options="{'currency_field': 'currency_id'}"
+                       decoration-bf="1"/>
+                <field name="total_cash"
+                       widget="monetary"
+                       options="{'currency_field': 'currency_id'}"/>
+                <field name="total_card"
+                       widget="monetary"
+                       options="{'currency_field': 'currency_id'}"/>
+                <field name="total_nasiya"
+                       widget="monetary"
+                       options="{'currency_field': 'currency_id'}"/>
+                <field name="currency_id" column_invisible="True"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- ============================================================
+         AGENT SUMMARY — FORM VIEW (rich profile)
+    ============================================================ -->
+    <record id="view_van_agent_summary_form" model="ir.ui.view">
+        <field name="name">van.agent.summary.form</field>
+        <field name="model">van.agent.summary</field>
+        <field name="arch" type="xml">
+            <form string="Agent Hisobot">
+                <sheet>
+                    <!-- Agent title -->
+                    <div class="oe_title">
+                        <h1>
+                            <field name="agent_id" readonly="1"/>
+                        </h1>
+                        <h4 class="text-muted">
+                            <field name="date" readonly="1"/>
+                        </h4>
+                    </div>
+
+                    <!-- KPI summary bar -->
+                    <div class="row mb-4 oe_kanban_colorpicker">
+                        <div class="col-md-2 col-6 text-center border-end">
+                            <small class="text-muted">Sotuvlar</small>
+                            <h4 class="fw-bold text-primary">
+                                <field name="pos_order_count" readonly="1"/>
+                            </h4>
+                        </div>
+                        <div class="col-md-2 col-6 text-center border-end">
+                            <small class="text-muted">Jami Sotuv</small>
+                            <h4 class="fw-bold text-success">
+                                <field name="total_sales"
+                                       widget="monetary"
+                                       options="{'currency_field': 'currency_id'}"
+                                       readonly="1"/>
+                            </h4>
+                        </div>
+                        <div class="col-md-2 col-6 text-center border-end">
+                            <small class="text-muted">💵 Naqt</small>
+                            <h4 class="fw-bold" style="color:#198754">
+                                <field name="total_cash"
+                                       widget="monetary"
+                                       options="{'currency_field': 'currency_id'}"
+                                       readonly="1"/>
+                            </h4>
+                        </div>
+                        <div class="col-md-2 col-6 text-center border-end">
+                            <small class="text-muted">💳 Karta</small>
+                            <h4 class="fw-bold" style="color:#6f42c1">
+                                <field name="total_card"
+                                       widget="monetary"
+                                       options="{'currency_field': 'currency_id'}"
+                                       readonly="1"/>
+                            </h4>
+                        </div>
+                        <div class="col-md-2 col-6 text-center">
+                            <small class="text-muted">📋 Nasiya</small>
+                            <h4 class="fw-bold" style="color:#e0a800">
+                                <field name="total_nasiya"
+                                       widget="monetary"
+                                       options="{'currency_field': 'currency_id'}"
+                                       readonly="1"/>
+                            </h4>
+                        </div>
+                    </div>
+
+                    <field name="currency_id" invisible="1"/>
+
+                    <notebook>
+                        <!-- Tab 1: Inventar -->
+                        <page string="Inventar (Mahsulotlar)" name="inventory">
+                            <field name="inventory_line_ids" readonly="1">
+                                <list decoration-warning="remaining_qty &lt;= 0"
+                                      decoration-success="sold_qty > 0">
+                                    <field name="product_id"/>
+                                    <field name="uom_id"/>
+                                    <field name="price_unit"
+                                           widget="monetary"
+                                           options="{'currency_field': 'currency_id'}"/>
+                                    <field name="loaded_qty" decoration-bf="1"/>
+                                    <field name="sold_qty" decoration-success="sold_qty > 0"/>
+                                    <field name="returned_qty"/>
+                                    <field name="remaining_qty"
+                                           decoration-warning="remaining_qty &lt;= 0"
+                                           decoration-bf="1"/>
+                                    <field name="subtotal_sold"
+                                           widget="monetary"
+                                           options="{'currency_field': 'currency_id'}"/>
+                                    <field name="currency_id" column_invisible="True"/>
+                                </list>
+                            </field>
+                        </page>
+
+                        <!-- Tab 2: POS Sotuvlar -->
+                        <page string="POS Sotuvlar" name="pos_orders">
+                            <button name="action_view_pos_orders"
+                                    string="Barchasini Ko'rish"
+                                    type="object"
+                                    class="btn-outline-primary mb-2"/>
+                            <field name="pos_order_ids" readonly="1">
+                                <list>
+                                    <field name="name"/>
+                                    <field name="partner_id"/>
+                                    <field name="date_order" widget="datetime"/>
+                                    <field name="amount_total" widget="monetary"/>
+                                    <field name="state"
+                                           widget="badge"
+                                           decoration-success="state == 'paid'"
+                                           decoration-info="state == 'done'"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- ============================================================
+         ACTION
+    ============================================================ -->
+    <record id="action_van_agent_summary" model="ir.actions.act_window">
+        <field name="name">Agentlar</field>
+        <field name="res_model">van.agent.summary</field>
+        <field name="view_mode">list,form</field>
+        <field name="view_ids" eval="[(5, 0, 0),
+            (0, 0, {'view_mode': 'list', 'view_id': ref('view_van_agent_summary_list')}),
+            (0, 0, {'view_mode': 'form', 'view_id': ref('view_van_agent_summary_form')})]"/>
+        <field name="context">{'search_default_today': 1}</field>
+    </record>
+</odoo>
