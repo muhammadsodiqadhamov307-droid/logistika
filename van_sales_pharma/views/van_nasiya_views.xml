@@ -32,8 +32,7 @@
                     <group class="oe_subtotal_footer oe_right" colspan="2">
                         <field name="amount_total" widget="monetary" options="{'currency_field': 'currency_id'}"/>
                         <field name="amount_paid" widget="monetary" options="{'currency_field': 'currency_id'}"/>
-                        <div class="oe_clear"/>
-                        <field name="amount_residual" class="text-danger" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                        <field name="amount_residual" class="oe_subtotal_footer_separator text-danger" widget="monetary" options="{'currency_field': 'currency_id'}"/>
                     </group>
                 </sheet>
             </form>

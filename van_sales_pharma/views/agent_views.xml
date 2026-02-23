@@ -85,10 +85,28 @@
                                        readonly="1"/>
                             </h4>
                         </div>
-                        <div class="col-md-2 col-6 text-center">
+                        <div class="col-md-2 col-6 text-center border-end">
                             <small class="text-muted">📋 Nasiya</small>
                             <h4 class="fw-bold" style="color:#e0a800">
                                 <field name="total_nasiya"
+                                       widget="monetary"
+                                       options="{'currency_field': 'currency_id'}"
+                                       readonly="1"/>
+                            </h4>
+                        </div>
+                        <div class="col-md-2 col-6 text-center border-end">
+                            <small class="text-muted">📉 Chiqim</small>
+                            <h4 class="fw-bold text-danger">
+                                <field name="total_chiqim"
+                                       widget="monetary"
+                                       options="{'currency_field': 'currency_id'}"
+                                       readonly="1"/>
+                            </h4>
+                        </div>
+                        <div class="col-md-2 col-6 text-center">
+                            <small class="text-muted">💰 Balans</small>
+                            <h4 class="fw-bold text-info">
+                                <field name="total_balance"
                                        widget="monetary"
                                        options="{'currency_field': 'currency_id'}"
                                        readonly="1"/>
@@ -152,12 +170,72 @@
          ACTION
     ============================================================ -->
     <record id="action_van_agent_summary" model="ir.actions.act_window">
-        <field name="name">Agentlar</field>
+        <field name="name">Agentlar Hisoboti</field>
         <field name="res_model">van.agent.summary</field>
         <field name="view_mode">list,form</field>
         <field name="view_ids" eval="[(5, 0, 0),
             (0, 0, {'view_mode': 'list', 'view_id': ref('view_van_agent_summary_list')}),
             (0, 0, {'view_mode': 'form', 'view_id': ref('view_van_agent_summary_form')})]"/>
         <field name="context">{'search_default_today': 1}</field>
+    </record>
+
+    <!-- ============================================================
+         AGENT MANAGEMENT (RES.USERS)
+    ============================================================ -->
+    <record id="view_van_agent_user_tree" model="ir.ui.view">
+        <field name="name">res.users.agent.tree</field>
+        <field name="model">res.users</field>
+        <field name="arch" type="xml">
+            <list string="Agentlar Ro'yxati">
+                <field name="name"/>
+                <field name="login"/>
+                <field name="x_phone"/>
+                <field name="x_commission_balance" widget="monetary" options="{'currency_field': 'x_currency_id'}"/>
+                <field name="x_currency_id" column_invisible="True"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_van_agent_user_form" model="ir.ui.view">
+        <field name="name">res.users.agent.form</field>
+        <field name="model">res.users</field>
+        <field name="arch" type="xml">
+            <form string="Agent">
+                <sheet>
+                    <div class="oe_title">
+                        <label for="name" class="oe_edit_only"/>
+                        <h1><field name="name" required="1"/></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="login"/>
+                            <field name="password" password="True" required="0"/>
+                            <field name="x_phone"/>
+                        </group>
+                        <group>
+                            <field name="x_commission_balance" readonly="1"/>
+                            <field name="x_currency_id" invisible="1"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_van_agents_list" model="ir.actions.act_window">
+        <field name="name">Agentlar</field>
+        <field name="res_model">res.users</field>
+        <field name="view_mode">list,form</field>
+        <field name="view_ids" eval="[(5, 0, 0),
+            (0, 0, {'view_mode': 'list', 'view_id': ref('view_van_agent_user_tree')}),
+            (0, 0, {'view_mode': 'form', 'view_id': ref('view_van_agent_user_form')})]"/>
+        <field name="domain">[('share', '=', False)]</field>
+        <field name="context" eval="{'default_share': False, 'default_groups_id': [(4, ref('base.group_user'))]}"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Yangi agent qo'shish.
+            </p>
+        </field>
     </record>
 </odoo>

@@ -12,6 +12,7 @@ class VanDashboardDetail(models.Model):
     name = fields.Char('Hujjat Raqami', readonly=True)
     date = fields.Datetime('Sana', readonly=True)
     partner_id = fields.Many2one('res.partner', 'Mijoz', readonly=True)
+    agent_id = fields.Many2one('res.users', 'Agent', readonly=True)
     amount = fields.Float('Summa', readonly=True)
     payment_method = fields.Selection([
         ('cash', 'Naqt'),
@@ -53,6 +54,7 @@ class VanDashboardDetail(models.Model):
                 SELECT 
                     pp.id + 1000000 AS id, 
                     po.name AS name,
+                    po.user_id AS agent_id,
                     pp.payment_date AS date,
                     po.partner_id AS partner_id,
                     pp.amount AS amount,
@@ -62,7 +64,8 @@ class VanDashboardDetail(models.Model):
                         ELSE 'card'
                     END AS payment_method,
                     'sale' AS transaction_type,
-                    '' AS note,
+                    -- Use order note if exists, or payment generic note
+                    COALESCE(po.general_customer_note, '') AS note,
                     po.company_id AS company_id,
                     rc.currency_id AS currency_id,
                     po.id AS res_id,
@@ -79,6 +82,7 @@ class VanDashboardDetail(models.Model):
                 SELECT 
                     vp.id + 2000000 AS id,
                     vp.name AS name,
+                    vp.agent_id AS agent_id,
                     vp.date AS date,
                     vp.partner_id AS partner_id,
                     vp.amount AS amount,

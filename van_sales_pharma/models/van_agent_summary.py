@@ -26,8 +26,13 @@ class VanAgentSummary(models.Model):
                                  compute='_compute_financials', store=True)
     total_nasiya = fields.Monetary(string='Nasiya (Qarz)', currency_field='currency_id',
                                    compute='_compute_financials', store=True)
+    total_chiqim = fields.Monetary(string='Chiqim (Xarajat)', currency_field='currency_id',
+                                  compute='_compute_financials', store=True)
     total_sales = fields.Monetary(string='Jami Sotuv', currency_field='currency_id',
                                   compute='_compute_financials', store=True)
+    total_balance = fields.Monetary(string='Sotuv Agenti Balansi', currency_field='currency_id',
+                                   compute='_compute_financials', store=True,
+                                   help="Naqt + Karta - Chiqim")
 
     # === Mahsulot inventariyasi ===
     inventory_line_ids = fields.One2many('van.agent.inventory.line', 'summary_id', string='Inventar')
@@ -37,10 +42,11 @@ class VanAgentSummary(models.Model):
     pos_order_count = fields.Integer(string='Sotuvlar Soni', compute='_compute_financials', store=True)
 
     @api.depends('trip_id', 'trip_id.pos_order_ids', 'trip_id.pos_order_ids.payment_ids',
-                 'trip_id.pos_order_ids.state', 'trip_id.pos_order_ids.amount_total')
+                 'trip_id.pos_order_ids.state', 'trip_id.pos_order_ids.amount_total',
+                 'trip_id.payment_ids', 'trip_id.payment_ids.amount', 'trip_id.payment_ids.payment_type')
     def _compute_financials(self):
         for rec in self:
-            cash = card = nasiya = total = count = 0
+            cash = card = nasiya = total = count = chiqim = 0
             orders = rec.trip_id.pos_order_ids.filtered(
                 lambda o: o.state in ['paid', 'done', 'invoiced']
             )
@@ -55,11 +61,19 @@ class VanAgentSummary(models.Model):
                         nasiya += payment.amount
                     else:
                         card += payment.amount
+            
+            # Count Chiqim from van.payments
+            for vp in rec.trip_id.payment_ids:
+                if vp.payment_type == 'out':
+                    chiqim += vp.amount
+
             rec.total_cash = cash
             rec.total_card = card
             rec.total_nasiya = nasiya
             rec.total_sales = total
             rec.pos_order_count = count
+            rec.total_chiqim = chiqim
+            rec.total_balance = (cash + card) - chiqim
 
     def action_view_pos_orders(self):
         self.ensure_one()
@@ -86,16 +100,32 @@ class VanAgentInventoryLine(models.Model):
     price_unit = fields.Float(string='Narx (So\'m)')
 
     loaded_qty = fields.Float(string='Yuklangan')
-    sold_qty = fields.Float(string='Sotilgan')
-    returned_qty = fields.Float(string='Qaytarilgan')
+    sold_qty = fields.Float(string='Sotilgan', compute='_compute_remaining', store=True)
+    returned_qty = fields.Float(string='Qaytarilgan', compute='_compute_remaining', store=True)
     remaining_qty = fields.Float(string='Qoldiq', compute='_compute_remaining', store=True)
 
     currency_id = fields.Many2one('res.currency', related='summary_id.currency_id')
     subtotal_sold = fields.Monetary(string='Sotuv Summasi', currency_field='currency_id',
                                     compute='_compute_remaining', store=True)
 
-    @api.depends('loaded_qty', 'sold_qty', 'returned_qty', 'price_unit')
+    @api.depends('loaded_qty', 'price_unit', 'summary_id.trip_id.pos_order_ids', 'summary_id.trip_id.pos_order_ids.state', 'summary_id.trip_id.pos_order_ids.lines')
     def _compute_remaining(self):
         for line in self:
-            line.remaining_qty = line.loaded_qty - line.sold_qty + line.returned_qty
-            line.subtotal_sold = line.sold_qty * line.price_unit
+            # Calculate Sold Qty from POS orders of the trip
+            # Note: POS lines refer to products. We sum qty for this product.
+            sold = 0.0
+            trip = line.summary_id.trip_id
+            if trip:
+                orders = trip.pos_order_ids.filtered(lambda o: o.state in ['paid', 'done', 'invoiced'])
+                for order in orders:
+                    for l in order.lines:
+                        if l.product_id == line.product_id:
+                            sold += l.qty
+            
+            # Returned qty for now 0 or if we have a way to track returns in trip
+            returned = 0.0 
+            
+            line.sold_qty = sold
+            line.returned_qty = returned
+            line.remaining_qty = line.loaded_qty - sold + returned
+            line.subtotal_sold = sold * line.price_unit
