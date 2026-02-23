@@ -207,17 +207,24 @@
                         <h1><field name="name" required="1"/></h1>
                     </div>
                     <group>
-                        <group>
+                        <group string="Ma'lumotlar">
                             <field name="login"/>
                             <field name="password" password="True" required="0"/>
                             <field name="x_phone"/>
                         </group>
-                        <group>
-                            <field name="x_commission_balance" readonly="1"/>
-                            <field name="x_currency_id" invisible="1"/>
+                        <group string="Ruxsatlar">
+                            <field name="groups_id" widget="many2many_tags" placeholder="Guruhlarni tanlang..."/>
                             <field name="company_id" groups="base.group_multi_company"/>
                         </group>
                     </group>
+                    <notebook>
+                        <page string="Kompansatsiyalar">
+                            <group>
+                                <field name="x_commission_balance" readonly="1"/>
+                                <field name="x_currency_id" invisible="1"/>
+                            </group>
+                        </page>
+                    </notebook>
                 </sheet>
             </form>
         </field>
