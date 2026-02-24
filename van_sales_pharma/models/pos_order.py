@@ -88,12 +88,14 @@ class PosOrder(models.Model):
             order.payment_ids.sudo().unlink()
 
             # Detach from session and other relational fields safely before deletion
-            # This prevents UI/Session errors that try to read the order after it's gone
-            order.write({
-                'state': 'draft',
-                'session_id': False,
-                'account_move': False,
-            })
+            # This prevents UI/Session errors that try to read the order after it's gone.
+            # We use raw SQL for this to completely bypass Odoo's protection in the `write` method
+            # which throws "Invalid Operation" if you try to modify a paid order.
+            self.env.cr.execute(
+                "UPDATE pos_order SET state='draft', session_id=NULL, account_move=NULL WHERE id=%s", 
+                (order.id,)
+            )
+            order.invalidate_recordset(['state', 'session_id', 'account_move'])
 
             # Forcefully remove lines so they don't block deletion
             if order.lines:
