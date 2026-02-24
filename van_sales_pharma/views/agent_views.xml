@@ -126,7 +126,7 @@
                     <notebook>
                         <!-- Tab 1: Inventar -->
                         <page string="Inventar (Mahsulotlar)" name="inventory">
-                            <field name="active_inventory_line_ids" readonly="1">
+                            <field name="active_inventory_line_ids" readonly="1" domain="[('product_id.type', '!=', 'service')]">
                                 <list decoration-warning="remaining_qty &lt;= 0"
                                       decoration-success="sold_qty > 0">
                                     <field name="product_id"/>

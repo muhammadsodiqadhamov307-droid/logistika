@@ -197,10 +197,11 @@ class VanAgentInventoryLine(models.Model):
     subtotal_sold = fields.Monetary(string='Sotuv Summasi', currency_field='currency_id',
                                     compute='_compute_remaining')
 
+    @api.depends('summary_id.date_from', 'summary_id.date_to', 'summary_id.agent_id', 'product_id', 'loaded_qty')
     def _compute_remaining(self):
         """
         Compute sold, returned and remaining quantities for each inventory line.
-        Uses direct SQL for performance. Not stored so it always reflects current POS state.
+        Uses optimized search to reflect current POS state.
         """
         for line in self:
             agent_id = line.summary_id.agent_id.id
@@ -208,19 +209,23 @@ class VanAgentInventoryLine(models.Model):
             date_to = line.summary_id.date_to
             product_id = line.product_id.id
 
-            # 1. All-time sold qty (used for remaining balance)
-            all_time_domain = [
+            # Common domain parts
+            base_domain = [
                 ('order_id.user_id', '=', agent_id),
                 ('order_id.state', 'in', ['paid', 'done', 'invoiced']),
                 ('product_id', '=', product_id),
             ]
-            all_lines = self.env['pos.order.line'].search(all_time_domain)
+
+            # 1. All-time sold qty (used for REAL remaining balance calculation)
+            # We don't filter by date here because 'loaded_qty' is cumulative all-time.
+            all_lines = self.env['pos.order.line'].search(base_domain)
             all_time_sold = sum(all_lines.mapped('qty'))
 
-            # 2. Period sold qty (shown in the Sotilgan column for the chosen date range)
+            # 2. Period sold qty (shown in the 'Sotilgan' column for the chosen date range)
+            period_sold = 0.0
             if date_from or date_to:
                 tz = pytz.timezone(self.env.user.tz or self.env.context.get('tz') or 'UTC')
-                period_domain = list(all_time_domain)
+                period_domain = list(base_domain)
                 if date_from:
                     local_start = tz.localize(datetime.combine(date_from, time.min))
                     utc_start = local_start.astimezone(pytz.UTC).replace(tzinfo=None)
@@ -229,11 +234,8 @@ class VanAgentInventoryLine(models.Model):
                     local_end = tz.localize(datetime.combine(date_to, time.max))
                     utc_end = local_end.astimezone(pytz.UTC).replace(tzinfo=None)
                     period_domain.append(('order_id.date_order', '<=', utc_end))
+                
                 period_lines = self.env['pos.order.line'].search(period_domain)
-                period_sold = sum(period_lines.mapped('qty'))
-            else:
-                period_sold = all_time_sold
-
             line.sold_qty = period_sold
             line.returned_qty = 0.0
             line.remaining_qty = max(0.0, line.loaded_qty - all_time_sold)
