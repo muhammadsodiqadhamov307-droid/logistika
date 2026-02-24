@@ -1,17 +1,18 @@
 from odoo import api, models
 
 
-class ProductProduct(models.Model):
-    _inherit = 'product.product'
+class ProductTemplate(models.Model):
+    _inherit = 'product.template'
 
     @api.model
     def _load_pos_data_domain(self, data, config):
         """
         Override to filter POS products by agent van inventory.
-        Each agent should only see the products they have loaded onto their van.
-        If the current user has no active trip or no inventory, fall back to default products.
+        Each agent should only see the products they have loaded onto their van
+        with remaining quantity > 0.
+        Falls back to showing all POS products if no active trip is found.
         """
-        # Get base domain from parent
+        # Get base domain from parent (includes available_in_pos, sale_ok, company checks)
         base_domain = super()._load_pos_data_domain(data, config)
 
         current_user = self.env.user
@@ -23,7 +24,7 @@ class ProductProduct(models.Model):
         ], limit=1)
 
         if not active_trip:
-            # No active trip — fallback to default POS product list
+            # No active trip — show all available POS products
             return base_domain
 
         # Find the agent summary (permanent profile) for this agent
@@ -34,13 +35,13 @@ class ProductProduct(models.Model):
         if not summary:
             return base_domain
 
-        # Get product IDs that have remaining qty > 0 in the van
-        van_product_ids = summary.inventory_line_ids.filtered(
+        # Get product.template IDs that have remaining_qty > 0 in the van
+        van_product_tmpl_ids = summary.inventory_line_ids.filtered(
             lambda l: l.remaining_qty > 0
-        ).mapped('product_id').ids
+        ).mapped('product_id.product_tmpl_id').ids
 
-        if not van_product_ids:
+        if not van_product_tmpl_ids:
             return base_domain
 
-        # Restrict the product.product domain to only van inventory IDs
-        return base_domain + [('id', 'in', van_product_ids)]
+        # Restrict the product.template domain to only van inventory product templates
+        return base_domain + [('id', 'in', van_product_tmpl_ids)]
