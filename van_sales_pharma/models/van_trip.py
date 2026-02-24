@@ -281,4 +281,5 @@ class VanTrip(models.Model):
             'recent_sales': recent_sales,
             'recent_kirims': recent_kirims,
             'detail_view_id': detail_view.id if detail_view else False,
+            'currency_id': self.env.company.currency_id.id,
         }
