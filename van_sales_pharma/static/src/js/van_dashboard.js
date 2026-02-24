@@ -16,9 +16,9 @@ export class VanSalesDashboard extends Component {
             total_card: 0,
             total_chiqim: 0,
             total_nasiya: 0,
-            recent_sales: [],
             recent_kirims: [],
             detail_view_id: false,
+            currency_symbol: '',
         });
 
         onWillStart(async () => {
@@ -37,6 +37,7 @@ export class VanSalesDashboard extends Component {
         this.state.recent_sales = data.recent_sales;
         this.state.recent_kirims = data.recent_kirims;
         this.state.detail_view_id = data.detail_view_id;
+        this.state.currency_symbol = data.currency_symbol;
     }
 
     openTrips() {
