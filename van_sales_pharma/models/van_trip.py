@@ -57,9 +57,11 @@ class VanTrip(models.Model):
 
     def unlink(self):
         for trip in self:
-            # Safety Check: Prevent deletion if sales or payments exist
-            if trip.pos_order_ids or trip.payment_ids:
-                raise UserError(_("Sotuvlari yoki to'lovlari mavjud sayohatni o'chirib bo'lmaydi! (%s)") % trip.name)
+            # Instead of preventing deletion, forcefully cascade delete associated records
+            if trip.pos_order_ids:
+                trip.pos_order_ids.sudo().unlink()
+            if trip.payment_ids:
+                trip.payment_ids.sudo().unlink()
             
             # If trip has already affected agent summary inventory
             if trip.state in ['loaded', 'in_progress', 'closed']:
