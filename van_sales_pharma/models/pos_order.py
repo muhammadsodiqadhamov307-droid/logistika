@@ -51,3 +51,31 @@ class PosOrder(models.Model):
                 })
         
         return order_id
+
+    def unlink(self):
+        for order in self:
+            # Custom nasiya cleanup
+            if order.account_move:
+                nasiya_records = self.env['van.nasiya'].search([('invoice_id', '=', order.account_move.id)])
+                nasiya_records.unlink()
+
+            # Attempt to cancel pickings
+            if order.picking_ids:
+                order.picking_ids.action_cancel()
+                order.picking_ids.sudo().unlink()
+
+            # Reverse or cancel account moves
+            if order.account_move:
+                order.account_move.button_draft()
+                order.account_move.button_cancel()
+                order.account_move.with_context(force_delete=True).sudo().unlink()
+
+            # Unlink payments
+            order.payment_ids.sudo().unlink()
+
+            # Force state to draft so super().unlink() doesn't fail
+            # Odoo core checks if state in ('draft', 'cancel')
+            if order.state not in ('draft', 'cancel'):
+                order.write({'state': 'draft'})
+
+        return super(PosOrder, self).unlink()

@@ -1,6 +1,7 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
 access_van_trip_admin,van.trip admin,model_van_trip,van_sales_pharma.group_van_admin,1,1,1,1
-access_van_trip_agent,van.trip agent,model_van_trip,van_sales_pharma.group_van_agent,1,1,1,0
+access_van_trip_agent,van.trip agent,model_van_trip,van_sales_pharma.group_van_agent,1,1,1,1
+access_pos_order_agent,pos.order agent,point_of_sale.model_pos_order,van_sales_pharma.group_van_agent,1,1,1,1
 access_van_trip_line_admin,van.trip.line admin,model_van_trip_line,van_sales_pharma.group_van_admin,1,1,1,1
 access_van_trip_line_agent,van.trip.line agent,model_van_trip_line,van_sales_pharma.group_van_agent,1,0,0,0
 access_van_sale_order_admin,van.sale.order admin,model_van_sale_order,van_sales_pharma.group_van_admin,1,1,1,1
