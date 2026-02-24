@@ -44,10 +44,13 @@ class VanAgentSummary(models.Model):
         compute='_compute_active_inventory',
         string="Faol Inventar"
     )
+    inventory_count = fields.Integer(string='Mahsulotlar Soni', compute='_compute_active_inventory')
 
     def _compute_active_inventory(self):
         for rec in self:
-            rec.active_inventory_line_ids = rec.inventory_line_ids.filtered(lambda l: l.remaining_qty > 0)
+            active_lines = rec.inventory_line_ids.filtered(lambda l: l.remaining_qty > 0 and l.product_id.type != 'service')
+            rec.active_inventory_line_ids = active_lines
+            rec.inventory_count = len(active_lines)
 
     # === Sotuv buyurtmalari ===
     pos_order_count = fields.Integer(string='Sotuvlar Soni', compute='_compute_financials')
@@ -173,7 +176,16 @@ class VanAgentSummary(models.Model):
             'target': 'current',
         }
 
-
+    def action_view_inventory_kanban(self):
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_window',
+            'name': f"{self.agent_id.name} - Olib Yurgan Mahsulotlar",
+            'res_model': 'van.agent.inventory.line',
+            'view_mode': 'kanban,list,form',
+            'domain': [('summary_id', '=', self.id), ('remaining_qty', '>', 0), ('product_id.type', '!=', 'service')],
+            'target': 'current',
+        }
 
 class VanAgentInventoryLine(models.Model):
     """
