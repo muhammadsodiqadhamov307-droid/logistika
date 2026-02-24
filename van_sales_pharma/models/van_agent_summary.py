@@ -126,45 +126,48 @@ class VanAgentInventoryLine(models.Model):
     price_unit = fields.Float(string='Narx (So\'m)')
 
     loaded_qty = fields.Float(string='Yuklangan')
-    sold_qty = fields.Float(string='Sotilgan', compute='_compute_remaining', store=True)
-    returned_qty = fields.Float(string='Qaytarilgan', compute='_compute_remaining', store=True)
-    remaining_qty = fields.Float(string='Qoldiq', compute='_compute_remaining', store=True)
+    # Not stored — always recomputes live so sold/remaining values reflect new POS orders immediately
+    sold_qty = fields.Float(string='Sotilgan', compute='_compute_remaining')
+    returned_qty = fields.Float(string='Qaytarilgan', compute='_compute_remaining')
+    remaining_qty = fields.Float(string='Qoldiq', compute='_compute_remaining')
 
     currency_id = fields.Many2one('res.currency', related='summary_id.currency_id')
     subtotal_sold = fields.Monetary(string='Sotuv Summasi', currency_field='currency_id',
-                                    compute='_compute_remaining', store=True)
+                                    compute='_compute_remaining')
 
-    @api.depends('summary_id.date_from', 'summary_id.date_to', 'loaded_qty', 'price_unit')
     def _compute_remaining(self):
+        """
+        Compute sold, returned and remaining quantities for each inventory line.
+        Uses direct SQL for performance. Not stored so it always reflects current POS state.
+        """
         for line in self:
             agent_id = line.summary_id.agent_id.id
             date_from = line.summary_id.date_from
             date_to = line.summary_id.date_to
+            product_id = line.product_id.id
 
-            # 1. Barcha vaqtlardagi umumiy sotilgan miqdor (Qoldiq uchun)
-            all_orders = self.env['pos.order'].search([
-                ('user_id', '=', agent_id),
-                ('state', 'in', ['paid', 'done', 'invoiced'])
-            ])
-            all_time_sold = sum(l.qty for o in all_orders for l in o.lines if l.product_id.id == line.product_id.id)
-            
-            # 2. Barcha vaqtlardagi qaytarilgan miqdor
-            all_time_returned = 0.0 # Buni keyin Sayohat Yopishdan olamiz
-            
-            # Period (Filter) bo'yicha sotuv
-            period_orders = all_orders
+            # 1. All-time sold qty (used for remaining balance)
+            all_time_domain = [
+                ('order_id.user_id', '=', agent_id),
+                ('order_id.state', 'in', ['paid', 'done', 'invoiced']),
+                ('product_id', '=', product_id),
+            ]
+            all_lines = self.env['pos.order.line'].search(all_time_domain)
+            all_time_sold = sum(all_lines.mapped('qty'))
+
+            # 2. Period sold qty (shown in the Sotilgan column for the chosen date range)
             if date_from or date_to:
-                domain = [('id', 'in', all_orders.ids)]
+                period_domain = list(all_time_domain)
                 if date_from:
-                    domain.append(('date_order', '>=', datetime.combine(date_from, time.min)))
+                    period_domain.append(('order_id.date_order', '>=', datetime.combine(date_from, time.min)))
                 if date_to:
-                    domain.append(('date_order', '<=', datetime.combine(date_to, time.max)))
-                period_orders = self.env['pos.order'].search(domain)
-                
-            period_sold = sum(l.qty for o in period_orders for l in o.lines if l.product_id.id == line.product_id.id)
-            period_returned = 0.0 # Buni keyin Sayohat Yopishdan olamiz
+                    period_domain.append(('order_id.date_order', '<=', datetime.combine(date_to, time.max)))
+                period_lines = self.env['pos.order.line'].search(period_domain)
+                period_sold = sum(period_lines.mapped('qty'))
+            else:
+                period_sold = all_time_sold
 
             line.sold_qty = period_sold
-            line.returned_qty = period_returned
-            line.remaining_qty = line.loaded_qty - all_time_sold + all_time_returned
+            line.returned_qty = 0.0
+            line.remaining_qty = max(0.0, line.loaded_qty - all_time_sold)
             line.subtotal_sold = period_sold * line.price_unit
