@@ -18,10 +18,10 @@
                                 <button class="btn btn-primary btn-sm shadow-sm" t-on-click="applyFilter">
                                     <i class="fa fa-search me-1"></i> Filtrlash
                                 </button>
-                                <button class="btn btn-outline-secondary btn-sm shadow-sm bg-white" t-on-click="clearFilter">
+                                <button class="btn btn-outline-secondary btn-sm shadow-sm" t-on-click="clearFilter">
                                     <i class="fa fa-times me-1"></i> Tozalash
                                 </button>
-                                <button class="btn btn-outline-primary btn-sm shadow-sm bg-white ms-2" t-on-click="fetchDashboardData">
+                                <button class="btn btn-outline-primary btn-sm shadow-sm ms-2" t-on-click="fetchDashboardData">
                                     <i class="fa fa-refresh me-1"></i> Yangilash
                                 </button>
                             </div>
