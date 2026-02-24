@@ -129,30 +129,6 @@
                     <field name="currency_id" invisible="1"/>
 
                     <notebook>
-                        <!-- Tab 1: Inventar -->
-                        <page string="Inventar (Mahsulotlar)" name="inventory">
-                            <field name="active_inventory_line_ids" readonly="1" domain="[('product_id.type', '!=', 'service')]">
-                                <list decoration-warning="remaining_qty &lt;= 0"
-                                      decoration-success="sold_qty > 0">
-                                    <field name="product_id"/>
-                                    <field name="uom_id"/>
-                                    <field name="price_unit"
-                                           widget="monetary"
-                                           options="{'currency_field': 'currency_id'}"/>
-                                    <field name="loaded_qty" decoration-bf="1"/>
-                                    <field name="sold_qty" decoration-success="sold_qty > 0"/>
-                                    <field name="returned_qty"/>
-                                    <field name="remaining_qty"
-                                           decoration-warning="remaining_qty &lt;= 0"
-                                           decoration-bf="1"/>
-                                    <field name="subtotal_sold"
-                                           widget="monetary"
-                                           options="{'currency_field': 'currency_id'}"/>
-                                    <field name="currency_id" column_invisible="True"/>
-                                </list>
-                            </field>
-                        </page>
-
                         <page string="POS Sotuvlar" name="pos_orders">
                             <field name="pos_order_ids" readonly="1">
                                 <list>
