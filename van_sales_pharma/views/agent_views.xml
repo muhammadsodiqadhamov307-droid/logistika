@@ -144,6 +144,24 @@
                             </field>
                         </page>
 
+                        <page string="Kirimlar" name="kirimlar">
+                            <div class="mb-2">
+                                <button string="Kirimlar Ro'yxati" type="object" name="action_view_kirimlar" class="btn btn-sm btn-outline-success" icon="fa-arrow-down"/>
+                            </div>
+                            <field name="kirim_ids" readonly="1">
+                                <list string="Kirimlar" decoration-success="1">
+                                    <field name="name"/>
+                                    <field name="date"/>
+                                    <field name="partner_id" optional="show"/>
+                                    <field name="payment_method"/>
+                                    <field name="amount" widget="monetary" options="{'currency_field': 'currency_id'}" sum="Jami Kirim"/>
+                                    <field name="note" optional="show"/>
+                                    <field name="state" widget="badge"/>
+                                    <field name="currency_id" column_invisible="True"/>
+                                </list>
+                            </field>
+                        </page>
+
                         <page string="Chiqimlar" name="chiqimlar">
                             <div class="mb-2">
                                 <button string="Chiqimlarni Boshqarish (O'chirish)" type="object" name="action_view_chiqimlar" class="btn btn-sm btn-outline-danger" icon="fa-trash"/>

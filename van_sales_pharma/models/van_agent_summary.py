@@ -62,6 +62,13 @@ class VanAgentSummary(models.Model):
         compute='_compute_chiqim_ids',
         string='Chiqimlar',
     )
+    
+    # === Kirimlar ro'yxati (computed, for tab display) ===
+    kirim_ids = fields.Many2many(
+        'van.payment',
+        compute='_compute_kirim_ids',
+        string='Kirimlar',
+    )
 
     @api.depends('date_from', 'date_to', 'agent_id')
     def _compute_chiqim_ids(self):
@@ -76,6 +83,20 @@ class VanAgentSummary(models.Model):
                 domain.append(('date', '<=', rec.date_to))
             chiqims = self.env['van.payment'].search(domain)
             rec.chiqim_ids = chiqims
+
+    @api.depends('date_from', 'date_to', 'agent_id')
+    def _compute_kirim_ids(self):
+        for rec in self:
+            domain = [
+                ('agent_id', '=', rec.agent_id.id),
+                ('payment_type', '=', 'in'),
+            ]
+            if rec.date_from:
+                domain.append(('date', '>=', rec.date_from))
+            if rec.date_to:
+                domain.append(('date', '<=', rec.date_to))
+            kirims = self.env['van.payment'].search(domain)
+            rec.kirim_ids = kirims
 
     @api.depends('date_from', 'date_to', 'agent_id')
     def _compute_financials(self):
@@ -170,6 +191,22 @@ class VanAgentSummary(models.Model):
         return {
             'type': 'ir.actions.act_window',
             'name': f'{self.agent_id.name} - Chiqimlar',
+            'res_model': 'van.payment',
+            'view_mode': 'list,form',
+            'domain': domain,
+            'target': 'current',
+        }
+
+    def action_view_kirimlar(self):
+        self.ensure_one()
+        domain = [('agent_id', '=', self.agent_id.id), ('payment_type', '=', 'in')]
+        if self.date_from:
+            domain.append(('date', '>=', str(self.date_from)))
+        if self.date_to:
+            domain.append(('date', '<=', str(self.date_to)))
+        return {
+            'type': 'ir.actions.act_window',
+            'name': f'{self.agent_id.name} - Kirimlar',
             'res_model': 'van.payment',
             'view_mode': 'list,form',
             'domain': domain,
