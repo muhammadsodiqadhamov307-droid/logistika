@@ -55,6 +55,35 @@ class VanTrip(models.Model):
                 vals['name'] = self.env['ir.sequence'].next_by_code('van.trip') or _('Yangi')
         return super().create(vals_list)
 
+    def unlink(self):
+        for trip in self:
+            # Safety Check: Prevent deletion if sales or payments exist
+            if trip.pos_order_ids or trip.payment_ids:
+                raise UserError(_("Sotuvlari yoki to'lovlari mavjud sayohatni o'chirib bo'lmaydi! (%s)") % trip.name)
+            
+            # If trip has already affected agent summary inventory
+            if trip.state in ['loaded', 'in_progress', 'closed']:
+                summary = self.env['van.agent.summary'].search([
+                    ('agent_id', '=', trip.agent_id.id),
+                ], limit=1)
+                
+                if summary:
+                    for line in trip.trip_line_ids:
+                        inv_line = self.env['van.agent.inventory.line'].search([
+                            ('summary_id', '=', summary.id),
+                            ('product_id', '=', line.product_id.id)
+                        ], limit=1)
+                        
+                        if inv_line:
+                            # Reverse the 'action_start' addition
+                            inv_line.loaded_qty -= line.loaded_qty
+                            
+                            # Reverse the 'action_close' subtraction (if it was closed)
+                            if trip.state == 'closed':
+                                inv_line.loaded_qty += line.returned_qty
+
+        return super().unlink()
+
     @api.depends('pos_order_ids.state', 'pos_order_ids.payment_ids.amount', 'pos_order_ids.amount_total')
     def _compute_financials(self):
         for trip in self:
