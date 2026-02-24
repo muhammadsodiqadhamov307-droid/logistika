@@ -47,18 +47,6 @@ class VanTrip(models.Model):
 
     note = fields.Text(string='Izoh')
 
-    @api.constrains('agent_id', 'date', 'state')
-    def _check_single_active_trip(self):
-        for trip in self:
-            if trip.state in ['draft', 'loaded', 'in_progress']:
-                active_trips = self.search([
-                    ('agent_id', '=', trip.agent_id.id),
-                    ('date', '=', trip.date),
-                    ('state', 'in', ['draft', 'loaded', 'in_progress']),
-                    ('id', '!=', trip.id)
-                ])
-                if active_trips:
-                    raise ValidationError(_("Bir kunda bir agent uchun faqat bitta faol sayohat bo'lishi mumkin!"))
 
     @api.model_create_multi
     def create(self, vals_list):
