@@ -39,8 +39,15 @@ class VanAgentSummary(models.Model):
 
     # === Mahsulot inventariyasi ===
     inventory_line_ids = fields.One2many('van.agent.inventory.line', 'summary_id', string='Inventar')
+    active_inventory_line_ids = fields.Many2many(
+        'van.agent.inventory.line',
+        compute='_compute_active_inventory',
+        string="Faol Inventar"
+    )
 
-    # === Sotuv buyurtmalari ===
+    def _compute_active_inventory(self):
+        for rec in self:
+            rec.active_inventory_line_ids = rec.inventory_line_ids.filtered(lambda l: l.remaining_qty > 0)    # === Sotuv buyurtmalari ===
     pos_order_count = fields.Integer(string='Sotuvlar Soni', compute='_compute_financials')
 
     @api.depends('date_from', 'date_to', 'agent_id')

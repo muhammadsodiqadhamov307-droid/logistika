@@ -61,3 +61,49 @@ class ProductTemplate(models.Model):
 
         # Always restrict to van inventory — even if empty (show nothing rather than everything)
         return base_domain + [('id', 'in', van_product_tmpl_ids)]
+
+    def get_product_info_pos(self, price, quantity, pos_config_id, product_variant_id=False):
+        """
+        Override to show the agent's van inventory (Qoldiq) instead of global
+        warehouse stock when they click the 'info' button in POS.
+        """
+        res = super().get_product_info_pos(price, quantity, pos_config_id, product_variant_id)
+
+        config = self.env['pos.config'].browse(pos_config_id)
+        session = config.current_session_id
+        cashier = session.user_id if session else self.env.user
+
+        if not cashier or cashier.id == 1:
+            return res
+
+        # Check if this cashier is an agent with an active trip
+        active_trip = self.env['van.trip'].search([
+            ('agent_id', '=', cashier.id),
+            ('state', 'in', ['loaded', 'in_progress'])
+        ], limit=1)
+
+        if active_trip:
+            summary = self.env['van.agent.summary'].search([
+                ('agent_id', '=', cashier.id),
+            ], limit=1)
+
+            if summary:
+                # Find the inventory line for this product template
+                inv_lines = summary.inventory_line_ids.filtered(
+                    lambda l: l.product_id.product_tmpl_id.id == self.id
+                )
+                
+                remaining = sum(inv_lines.mapped('remaining_qty'))
+                
+                # Replace the entire warehouse list with just the Agent's Van Inventory
+                # so the info dialog only shows the Qoldiq
+                res['warehouses'] = [{
+                    'id': 99999, # Fake ID to avoid errors
+                    'name': f"{cashier.name} - Mashina Ombori",
+                    'available_quantity': remaining,
+                    'free_qty': remaining,
+                    'forecasted_quantity': remaining,
+                    'uom': self.uom_name,
+                }]
+
+        return res
