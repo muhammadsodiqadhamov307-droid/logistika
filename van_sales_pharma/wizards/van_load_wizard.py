@@ -71,7 +71,6 @@ class VanLoadWizard(models.TransientModel):
                 picking = self.env['stock.picking'].create(picking_vals)
                 for line in self.load_line_ids:
                     self.env['stock.move'].create({
-                        'name': line.product_id.name,
                         'description_picking': line.product_id.name,
                         'product_id': line.product_id.id,
                         'product_uom_qty': line.qty,

@@ -65,9 +65,9 @@ class VanTripCloseWizard(models.TransientModel):
             
             picking_type = self.env['stock.picking.type'].search([
                 ('code', '=', 'internal'), 
-                ('warehouse_id', '=', warehouse.id),
-                ('company_id', '=', self.company_id.id)
-            ], limit=1)
+                ('company_id', '=', self.company_id.id),
+                ('active', '=', True)
+            ], order='sequence, id', limit=1)
 
             if main_location and van_location and picking_type:
                 picking_vals = {
@@ -83,7 +83,6 @@ class VanTripCloseWizard(models.TransientModel):
                         picking = self.env['stock.picking'].create(picking_vals)
                         for r_line in return_moves:
                             self.env['stock.move'].create({
-                                'name': r_line.product_id.name,
                                 'description_picking': r_line.product_id.name,
                                 'product_id': r_line.product_id.id,
                                 'product_uom_qty': r_line.actual_return,
