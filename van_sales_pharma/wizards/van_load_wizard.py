@@ -94,12 +94,6 @@ class VanLoadWizard(models.TransientModel):
                         'company_id': self.company_id.id,
                     }
                     
-                    # Odoo 19 uses uom_id instead of product_uom
-                    if 'uom_id' in self.env['stock.move']._fields:
-                        move_vals['uom_id'] = line.product_id.uom_id.id
-                    else:
-                        move_vals['product_uom'] = line.product_id.uom_id.id
-                        
                     # Odoo 19 removed the name field from stock.move
                     if 'name' in self.env['stock.move']._fields:
                         move_vals['name'] = line.product_id.name

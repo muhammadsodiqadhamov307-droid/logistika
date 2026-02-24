@@ -104,11 +104,6 @@ class VanTripCloseWizard(models.TransientModel):
                                 'company_id': self.company_id.id,
                             }
                             
-                            if 'uom_id' in self.env['stock.move']._fields:
-                                move_vals['uom_id'] = r_line.product_id.uom_id.id
-                            else:
-                                move_vals['product_uom'] = r_line.product_id.uom_id.id
-                                
                             if 'name' in self.env['stock.move']._fields:
                                 move_vals['name'] = r_line.product_id.name
                             if 'description_picking' in self.env['stock.move']._fields:
