@@ -31,7 +31,7 @@
                                 <div class="card-body text-center p-3">
                                     <h6 class="card-title fw-bold mb-2" style="color: white !important;">Naqt Pul</h6>
                                     <h3 class="fw-bold m-0" style="color: white !important;">
-                                        <t t-esc="state.total_cash.toLocaleString()"/>
+                                        <t t-esc="formatPrice(state.total_cash)"/>
                                     </h3>
                                 </div>
                             </div>
@@ -41,7 +41,7 @@
                                 <div class="card-body text-center p-3">
                                     <h6 class="card-title fw-bold mb-2" style="color: white !important;">Karta Orqali</h6>
                                     <h3 class="fw-bold m-0" style="color: white !important;">
-                                        <t t-esc="state.total_card.toLocaleString()"/>
+                                        <t t-esc="formatPrice(state.total_card)"/>
                                     </h3>
                                 </div>
                             </div>
@@ -51,7 +51,7 @@
                                 <div class="card-body text-center p-3">
                                     <h6 class="card-title fw-bold mb-2" style="color: white !important;">Chiqim (Bugun)</h6>
                                     <h3 class="fw-bold m-0" style="color: white !important;">
-                                        <t t-esc="state.total_chiqim.toLocaleString()"/>
+                                        <t t-esc="formatPrice(state.total_chiqim)"/>
                                     </h3>
                                 </div>
                             </div>
@@ -61,7 +61,7 @@
                                 <div class="card-body text-center p-3">
                                     <h6 class="card-title fw-bold mb-2" style="color: #212529 !important;">Nasiya (Qarz)</h6>
                                     <h3 class="fw-bold m-0" style="color: #212529 !important;">
-                                        <t t-esc="state.total_nasiya.toLocaleString()"/>
+                                        <t t-esc="formatPrice(state.total_nasiya)"/>
                                     </h3>
                                 </div>
                             </div>
@@ -97,7 +97,7 @@
                                                             <t t-esc="sale.payment_method_display"/>
                                                         </span>
                                                     </td>
-                                                    <td class="fw-bold"><t t-esc="sale.amount_total.toLocaleString()"/></td>
+                                                    <td class="fw-bold"><t t-esc="formatPrice(sale.amount_total)"/></td>
                                                     <td>
                                                         <span t-attf-class="badge {{ sale.state === 'paid' ? 'bg-success' : 'bg-info' }}">
                                                             <t t-esc="sale.state"/>
@@ -148,7 +148,7 @@
                                                         </span>
                                                     </td>
                                                     <td t-attf-class="fw-bold {{ kirim.type === 'in' ? 'text-success' : 'text-danger' }}">
-                                                        <t t-esc="kirim.amount.toLocaleString()"/>
+                                                        <t t-esc="formatPrice(kirim.amount)"/>
                                                     </td>
                                                     <td class="text-muted"><t t-esc="kirim.note"/></td>
                                                 </tr>

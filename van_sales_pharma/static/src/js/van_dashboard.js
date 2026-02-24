@@ -3,6 +3,7 @@
 import { Component, useState, onWillStart } from "@odoo/owl";
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
+import { formatMonetary } from "@web/views/fields/formatters";
 
 export class VanSalesDashboard extends Component {
     setup() {
@@ -19,6 +20,7 @@ export class VanSalesDashboard extends Component {
             recent_sales: [],
             recent_kirims: [],
             detail_view_id: false,
+            currency_id: false,
         });
 
         onWillStart(async () => {
@@ -37,6 +39,13 @@ export class VanSalesDashboard extends Component {
         this.state.recent_sales = data.recent_sales;
         this.state.recent_kirims = data.recent_kirims;
         this.state.detail_view_id = data.detail_view_id;
+        this.state.currency_id = data.currency_id;
+    }
+
+    formatPrice(amount) {
+        return formatMonetary(amount, {
+            currencyId: this.state.currency_id,
+        });
     }
 
     openTrips() {
