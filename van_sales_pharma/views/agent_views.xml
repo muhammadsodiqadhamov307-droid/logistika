@@ -8,6 +8,7 @@
         <field name="model">van.agent.summary</field>
         <field name="arch" type="xml">
             <list string="Agentlar Hisoboti"
+                  create="0" edit="0"
                   decoration-success="total_sales > 0"
                   decoration-muted="total_sales == 0">
                 <field name="date"/>
@@ -38,7 +39,7 @@
         <field name="name">van.agent.summary.form</field>
         <field name="model">van.agent.summary</field>
         <field name="arch" type="xml">
-            <form string="Agent Hisobot">
+            <form string="Agent Hisobot" create="0" edit="0">
                 <sheet>
                     <!-- Agent title -->
                     <div class="oe_title">
