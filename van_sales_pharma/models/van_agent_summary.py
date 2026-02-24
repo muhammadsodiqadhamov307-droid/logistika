@@ -1,4 +1,4 @@
-from odoo import models, fields, api
+from odoo import models, fields, api, _
 from datetime import datetime, time
 import pytz
 
@@ -47,8 +47,11 @@ class VanAgentSummary(models.Model):
 
     def _compute_active_inventory(self):
         for rec in self:
-            rec.active_inventory_line_ids = rec.inventory_line_ids.filtered(lambda l: l.remaining_qty > 0)    # === Sotuv buyurtmalari ===
+            rec.active_inventory_line_ids = rec.inventory_line_ids.filtered(lambda l: l.remaining_qty > 0)
+
+    # === Sotuv buyurtmalari ===
     pos_order_count = fields.Integer(string='Sotuvlar Soni', compute='_compute_financials')
+    pos_order_ids = fields.Many2many('pos.order', compute='_compute_financials', string="Sotuvlar Ro'yxati")
 
     @api.depends('date_from', 'date_to', 'agent_id')
     def _compute_financials(self):
@@ -60,10 +63,18 @@ class VanAgentSummary(models.Model):
                 ('user_id', '=', rec.agent_id.id),
                 ('state', 'in', ['paid', 'done', 'invoiced'])
             ]
+            
+            # Use proper timezone localization for date conversion to UTC
+            tz = pytz.timezone(self.env.user.tz or self.env.context.get('tz') or 'UTC')
+            
             if rec.date_from:
-                order_domain.append(('date_order', '>=', datetime.combine(rec.date_from, time.min)))
+                local_start = tz.localize(datetime.combine(rec.date_from, time.min))
+                utc_start = local_start.astimezone(pytz.UTC).replace(tzinfo=None)
+                order_domain.append(('date_order', '>=', utc_start))
             if rec.date_to:
-                order_domain.append(('date_order', '<=', datetime.combine(rec.date_to, time.max)))
+                local_end = tz.localize(datetime.combine(rec.date_to, time.max))
+                utc_end = local_end.astimezone(pytz.UTC).replace(tzinfo=None)
+                order_domain.append(('date_order', '<=', utc_end))
                 
             orders = self.env['pos.order'].search(order_domain)
             count = len(orders)
@@ -97,6 +108,7 @@ class VanAgentSummary(models.Model):
             rec.total_nasiya = nasiya
             rec.total_sales = total
             rec.pos_order_count = count
+            rec.pos_order_ids = [(6, 0, orders.ids)]
             rec.total_chiqim = chiqim
             rec.total_balance = (cash + card) - chiqim
 
@@ -164,11 +176,16 @@ class VanAgentInventoryLine(models.Model):
 
             # 2. Period sold qty (shown in the Sotilgan column for the chosen date range)
             if date_from or date_to:
+                tz = pytz.timezone(self.env.user.tz or self.env.context.get('tz') or 'UTC')
                 period_domain = list(all_time_domain)
                 if date_from:
-                    period_domain.append(('order_id.date_order', '>=', datetime.combine(date_from, time.min)))
+                    local_start = tz.localize(datetime.combine(date_from, time.min))
+                    utc_start = local_start.astimezone(pytz.UTC).replace(tzinfo=None)
+                    period_domain.append(('order_id.date_order', '>=', utc_start))
                 if date_to:
-                    period_domain.append(('order_id.date_order', '<=', datetime.combine(date_to, time.max)))
+                    local_end = tz.localize(datetime.combine(date_to, time.max))
+                    utc_end = local_end.astimezone(pytz.UTC).replace(tzinfo=None)
+                    period_domain.append(('order_id.date_order', '<=', utc_end))
                 period_lines = self.env['pos.order.line'].search(period_domain)
                 period_sold = sum(period_lines.mapped('qty'))
             else:

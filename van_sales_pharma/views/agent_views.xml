@@ -148,13 +148,19 @@
                             </field>
                         </page>
 
-                        <!-- Tab 2: POS Sotuvlar -->
                         <page string="POS Sotuvlar" name="pos_orders">
-                            <button name="action_view_pos_orders"
-                                    string="Barchasini Ko'rish"
-                                    type="object"
-                                    class="btn-outline-primary mb-2"/>
-                            <!-- Sotuvlar dinamik hisoblanadi, tugma orqali ko'riladi -->
+                            <field name="pos_order_ids" readonly="1">
+                                <list>
+                                    <field name="name"/>
+                                    <field name="date_order"/>
+                                    <field name="partner_id"/>
+                                    <field name="amount_total" sum="Jami Sotuv" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                                    <field name="state" widget="badge" 
+                                           decoration-info="state == 'draft'" 
+                                           decoration-success="state in ('paid', 'done', 'invoiced')"/>
+                                    <field name="currency_id" column_invisible="True"/>
+                                </list>
+                            </field>
                         </page>
                     </notebook>
                 </sheet>
