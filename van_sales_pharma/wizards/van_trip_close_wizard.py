@@ -66,8 +66,21 @@ class VanTripCloseWizard(models.TransientModel):
             picking_type = self.env['stock.picking.type'].search([
                 ('code', '=', 'internal'), 
                 ('company_id', '=', self.company_id.id),
-                ('active', '=', True)
+                '|', ('active', '=', True), ('active', '=', False)
             ], order='sequence, id', limit=1)
+            
+            if picking_type and not picking_type.active:
+                picking_type.active = True
+                
+            if not picking_type:
+                picking_type = self.env['stock.picking.type'].create({
+                    'name': 'Ichki Ko\'chirish (Avto)',
+                    'sequence_code': 'INT',
+                    'code': 'internal',
+                    'company_id': self.company_id.id,
+                    'warehouse_id': warehouse.id,
+                    'show_operations': True,
+                })
 
             if main_location and van_location and picking_type:
                 picking_vals = {
