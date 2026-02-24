@@ -55,9 +55,25 @@ class PosOrder(models.Model):
     def unlink(self):
         for order in self:
             # Custom nasiya cleanup
+            # First clean up by invoice if it exists
             if order.account_move:
                 nasiya_records = self.env['van.nasiya'].search([('invoice_id', '=', order.account_move.id)])
                 nasiya_records.unlink()
+            
+            # Then aggressively clean up by matching the exact nasiya payments created by this order
+            # (Because POS Nasiya often doesn't create invoices immediately)
+            for payment in order.payment_ids:
+                if payment.payment_method_id.split_transactions and order.partner_id:
+                    orphan_nasiyas = self.env['van.nasiya'].search([
+                        ('partner_id', '=', order.partner_id.id),
+                        ('agent_id', '=', order.user_id.id),
+                        ('amount_total', '=', payment.amount),
+                        ('date', '=', order.date_order.date() if order.date_order else False)
+                    ])
+                    # We might find multiple if they did the exact same sale amount on the same day, 
+                    # but deleting one of them is the correct mathematical reversal.
+                    if orphan_nasiyas:
+                        orphan_nasiyas[0].unlink()
 
             # Attempt to cancel pickings gracefully, or force if needed
             if order.picking_ids:
