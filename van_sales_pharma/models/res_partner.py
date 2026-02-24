@@ -127,18 +127,17 @@ class ResPartner(models.Model):
             ])
             total_nasiya = sum(n.amount_total for n in nasiyas)
             
-            # Mijozdan kelgan barcha qarz uzish to'lovlari (Kirimlar)
-            # POSdan kelgan yoki to'g'ridan to'g'ri qabul qilingan 'in' turidagi to'lovlar
-            kirims = self.env['van.payment'].search([
-                ('partner_id', '=', partner.id),
-                ('payment_type', '=', 'in')
+            # Mijozdan kelgan barcha qarz uzish to'lovlari (Kirimlar) va Mijozga qaytarilgan pullar (Chiqimlar)
+            payments = self.env['van.payment'].search([
+                ('partner_id', '=', partner.id)
             ])
-            total_kirim = sum(k.amount for k in kirims)
+            total_kirim = sum(p.amount for p in payments if p.payment_type == 'in')
+            total_chiqim = sum(p.amount for p in payments if p.payment_type == 'out')
             
-            # Sof Qarzdorlik (Balans) = Jami olingan qarz - Jami to'langan kirimlar
-            # Agar balance musbat bo'lsa -> Qarzdor
-            # Agar balance manfiy bo'lsa -> Mijoz haqdori (avans to'lagan)
-            balance_due = total_nasiya - total_kirim
+            # Sof hamyon xisobi (Wallet Balance)
+            # Mijoz pul to'lasa (Kirim) -> Balans ko'payadi (+)
+            # Mijozga pul qaytarilsa (Chiqim) yki Nasiyaga mahsulot olsa -> Balans kamayadi (-)
+            wallet_balance = total_kirim - total_chiqim - total_nasiya
             
             # Eski method: Overdue hisoblash
             overdue_amount = 0.0
@@ -148,8 +147,9 @@ class ResPartner(models.Model):
                     # Approximation for overdue. 
                     overdue_amount += n.amount_residual if hasattr(n, 'amount_residual') else n.amount_total
 
-            partner.x_van_total_due = max(0.0, balance_due) # Faqat qarzi qismi
-            partner.x_van_balance = balance_due
+            # Agar hamyon balansi manfiy bo'lsa (0 dan kichik), demak u qarzdor. Qarz summasi balansning moduli.
+            partner.x_van_total_due = abs(wallet_balance) if wallet_balance < 0 else 0.0
+            partner.x_van_balance = wallet_balance
             partner.x_van_total_overdue = overdue_amount
             partner.x_van_nasiya_count = len([n for n in nasiyas if n.state in ['open', 'partial']])
 

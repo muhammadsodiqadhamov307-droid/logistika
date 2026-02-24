@@ -34,7 +34,7 @@
                     <div name="button_box" class="oe_button_box">
                         <button name="action_view_van_balance_details" type="object" class="oe_stat_button" icon="fa-money" invisible="x_van_balance == 0">
                             <div class="o_stat_info">
-                                <span class="o_stat_value" decoration-danger="x_van_balance &gt; 0" decoration-success="x_van_balance &lt; 0">
+                                <span class="o_stat_value" decoration-success="x_van_balance &gt; 0" decoration-danger="x_van_balance &lt; 0">
                                     <field name="x_van_balance" widget="monetary" options="{'currency_field': 'currency_id'}"/>
                                 </span>
                                 <span class="o_stat_text">Balans</span>
@@ -57,8 +57,8 @@
                             </div>
                         </button>
                     </div>
-                    <widget name="web_ribbon" title="Qarzdor" bg_color="bg-danger" invisible="x_van_balance &lt;= 0"/>
-                    <widget name="web_ribbon" title="Haqdor" bg_color="bg-success" invisible="x_van_balance &gt;= 0"/>
+                    <widget name="web_ribbon" title="Haqdor" bg_color="bg-success" invisible="x_van_balance &lt;= 0"/>
+                    <widget name="web_ribbon" title="Qarzdor" bg_color="bg-danger" invisible="x_van_balance &gt;= 0"/>
                     <field name="currency_id" invisible="1"/>
                     
                     <field name="image_1920" widget="image" class="oe_avatar" options="{'preview_image': 'avatar_128'}"/>

@@ -204,9 +204,9 @@ class VanTrip(models.Model):
         today_start = tz.localize(datetime.combine(today_local, time.min)).astimezone(pytz.UTC).replace(tzinfo=None)
         
         # 1. Total Global Nasiya
-        # We find all partners and sum up x_van_balance where it is > 0
+        # We find all partners and sum up x_van_total_due (which represents their actual debt)
         partners = self.env['res.partner'].search([('x_is_van_customer', '=', True)])
-        total_global_nasiya = sum(p.x_van_balance for p in partners if p.x_van_balance > 0)
+        total_global_nasiya = sum(p.x_van_total_due for p in partners)
 
         # 2. Today's POS Cash & Card
         pos_orders = self.env['pos.order'].search([
