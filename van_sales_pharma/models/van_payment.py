@@ -14,7 +14,7 @@ class VanPayment(models.Model):
 
     trip_id = fields.Many2one('van.trip', string='Sayohat')
     partner_id = fields.Many2one('res.partner', string='Kirim Qilgan Mijoz', help="POSdan qilingan mijoz qarzi to'lovi")
-    agent_id = fields.Many2one('res.users', string='Agent', required=True)
+    agent_id = fields.Many2one('res.users', string='Agent', required=True, default=lambda self: self.env.user)
     sale_order_id = fields.Many2one('van.sale.order', string='Sotuv', ondelete='cascade')
 
     payment_type = fields.Selection([
