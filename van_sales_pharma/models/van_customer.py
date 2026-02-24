@@ -34,8 +34,8 @@ class ResPartnerVanCustomer(models.Model):
 
     @api.model
     def _load_pos_data_domain(self, data, config):
-        """POS faqat Van Sales mijozlarini yuklashi kerak."""
-        return [('x_is_van_customer', '=', True)]
+        """POS faqat Van Sales mijozlarini yuklashi kerak, hamda joriy foydalanuvchini."""
+        return ['|', ('x_is_van_customer', '=', True), ('id', '=', self.env.user.partner_id.id)]
 
     @api.model
     def _load_pos_data_fields(self, config):

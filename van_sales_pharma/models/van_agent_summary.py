@@ -53,6 +53,21 @@ class VanAgentSummary(models.Model):
     pos_order_count = fields.Integer(string='Sotuvlar Soni', compute='_compute_financials')
     pos_order_ids = fields.Many2many('pos.order', compute='_compute_financials', string="Sotuvlar Ro'yxati")
 
+    # === Chiqimlar ro'yxati (computed, for tab display & deletion) ===
+    chiqim_ids = fields.Many2many(
+        'van.payment',
+        compute='_compute_chiqim_ids',
+        string='Chiqimlar',
+    )
+
+    def _compute_chiqim_ids(self):
+        for rec in self:
+            chiqims = self.env['van.payment'].search([
+                ('agent_id', '=', rec.agent_id.id),
+                ('payment_type', '=', 'out'),
+            ])
+            rec.chiqim_ids = chiqims
+
     @api.depends('date_from', 'date_to', 'agent_id')
     def _compute_financials(self):
         for rec in self:
@@ -90,40 +105,24 @@ class VanAgentSummary(models.Model):
                     else:
                         card += payment.amount
             
-            # --- Integrate POS Cash Moves (Kirim/Chiqim from POS) ---
-            # We look for statement lines linked to sessions of this agent
-            session_ids = self.env['pos.session'].search([('user_id', '=', rec.agent_id.id)]).ids
-            if session_ids:
-                st_line_domain = [('pos_session_id', 'in', session_ids)]
-                if rec.date_from:
-                    st_line_domain.append(('date', '>=', rec.date_from))
-                if rec.date_to:
-                    st_line_domain.append(('date', '<=', rec.date_to))
-                
-                # We skip lines created by payments (those have payment_ref matching session name usually, 
-                # but POS cash moves have specific refs or are identified by NOT being linked to an order)
-                # Odoo POS cash moves for Kirim/Chiqim are bank statement lines with pos_session_id.
-                st_lines = self.env['account.bank.statement.line'].search(st_line_domain)
-                for st_line in st_lines:
-                    # Positive amount is Kirim (Cash In)
-                    if st_line.amount > 0:
-                        cash += st_line.amount
-                    # Negative amount is Chiqim (Cash Out / Expense)
-                    elif st_line.amount < 0:
-                        chiqim += abs(st_line.amount)
-
-            # --- Integrate van.payments (Manual Chiqim) ---
+            # --- Integrate van.payments (POS Kirim/Chiqim tracked via our custom pos_session override) ---
             payment_domain = [
                 ('agent_id', '=', rec.agent_id.id),
-                ('payment_type', '=', 'out')
             ]
             if rec.date_from:
                 payment_domain.append(('date', '>=', rec.date_from))
             if rec.date_to:
                 payment_domain.append(('date', '<=', rec.date_to))
-                
+
             van_payments = self.env['van.payment'].search(payment_domain)
-            chiqim += sum(van_payments.mapped('amount'))
+            for vp in van_payments:
+                if vp.payment_type == 'in':
+                    if vp.payment_method == 'cash':
+                        cash += vp.amount
+                    else:
+                        card += vp.amount
+                elif vp.payment_type == 'out':
+                    chiqim += vp.amount
 
             rec.total_cash = cash
             rec.total_card = card
@@ -149,6 +148,22 @@ class VanAgentSummary(models.Model):
             'res_model': 'pos.order',
             'view_mode': 'list,form',
             'domain': [('id', 'in', orders.ids)],
+            'target': 'current',
+        }
+
+    def action_view_chiqimlar(self):
+        self.ensure_one()
+        domain = [('agent_id', '=', self.agent_id.id), ('payment_type', '=', 'out')]
+        if self.date_from:
+            domain.append(('date', '>=', str(self.date_from)))
+        if self.date_to:
+            domain.append(('date', '<=', str(self.date_to)))
+        return {
+            'type': 'ir.actions.act_window',
+            'name': f'{self.agent_id.name} - Chiqimlar',
+            'res_model': 'van.payment',
+            'view_mode': 'list,form',
+            'domain': domain,
             'target': 'current',
         }
 

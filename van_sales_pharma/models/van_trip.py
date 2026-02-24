@@ -231,7 +231,9 @@ class VanTrip(models.Model):
                 elif vp.payment_method == 'card': t_card += vp.amount
             elif vp.payment_type == 'out':
                 t_chiqim += vp.amount
-                # Note: We don't subtract chiqim from cash/card cards as user wants "money that was received"
+                # Chiqim decreases the agent's cash balance
+                t_cash -= vp.amount
+
 
         # 4. Recent POS Sales
         recent_sales = []

@@ -4,10 +4,13 @@ import { CashMovePopup } from "@point_of_sale/app/components/popups/cash_move_po
 import { patch } from "@web/core/utils/patch";
 import { useState, onWillStart } from "@odoo/owl";
 import { useService } from "@web/core/utils/hooks";
+import { PosStore } from "@point_of_sale/app/services/pos_store";
 
 patch(CashMovePopup.prototype, {
     get partnerId() {
-        return (this.pos.user && this.pos.user.partner_id) ? this.pos.user.partner_id.id : null;
+        if (!this.pos.user) return null;
+        const partner_id = this.pos.user.partner_id;
+        return (partner_id && typeof partner_id === 'object') ? partner_id.id : (typeof partner_id === 'number' ? partner_id : null);
     },
     setup() {
         super.setup(...arguments);
@@ -64,5 +67,24 @@ patch(CashMovePopup.prototype, {
     // Override the validation so "Sabab" (reason) is no longer strictly required
     isValidCashMove() {
         return this.env.utils.isValidFloat(this.state.amount);
+    }
+});
+
+patch(PosStore.prototype, {
+    async logEmployeeMessage(action, message) {
+        if (this.user && (!this.user.partner_id || typeof this.user.partner_id !== "object")) {
+            const partnerId = typeof this.user.partner_id === 'number'
+                ? this.user.partner_id
+                : (this.user.partner_id ? this.user.partner_id.id : null);
+            await this.data.call(
+                "pos.session",
+                "log_partner_message",
+                [this.session.id, partnerId, action, message],
+                {},
+                true
+            );
+            return;
+        }
+        return super.logEmployeeMessage(...arguments);
     }
 });

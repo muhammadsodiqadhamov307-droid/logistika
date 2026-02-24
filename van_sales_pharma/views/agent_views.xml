@@ -162,6 +162,24 @@
                                 </list>
                             </field>
                         </page>
+
+                        <page string="Chiqimlar" name="chiqimlar">
+                            <div class="mb-2">
+                                <button string="Chiqimlarni Boshqarish (O'chirish)" type="object" name="action_view_chiqimlar" class="btn btn-sm btn-outline-danger" icon="fa-trash"/>
+                            </div>
+                            <field name="chiqim_ids" readonly="1">
+                                <list string="Chiqimlar" decoration-danger="1">
+                                    <field name="name"/>
+                                    <field name="date"/>
+                                    <field name="partner_id" optional="show"/>
+                                    <field name="payment_method"/>
+                                    <field name="amount" widget="monetary" options="{'currency_field': 'currency_id'}" sum="Jami Chiqim"/>
+                                    <field name="note" optional="show"/>
+                                    <field name="state" widget="badge"/>
+                                    <field name="currency_id" column_invisible="True"/>
+                                </list>
+                            </field>
+                        </page>
                     </notebook>
                 </sheet>
             </form>
