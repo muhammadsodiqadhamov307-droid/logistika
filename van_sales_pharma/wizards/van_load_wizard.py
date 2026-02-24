@@ -42,20 +42,15 @@ class VanLoadWizard(models.TransientModel):
                 })
 
         # Step 2: Create a Stock Picking from Main Warehouse to Van Location
+        # Find ANY active internal transfer picking type for this company
         picking_type = self.env['stock.picking.type'].search([
             ('code', '=', 'internal'), 
-            ('warehouse_id', '=', self.warehouse_id.id),
-            ('company_id', '=', self.company_id.id)
-        ], limit=1)
-        
-        if not picking_type:
-            picking_type = self.env['stock.picking.type'].search([
-                ('code', '=', 'internal'),
-                ('company_id', '=', self.company_id.id)
-            ], limit=1)
+            ('company_id', '=', self.company_id.id),
+            ('active', '=', True)
+        ], order='sequence, id', limit=1)
             
         if not picking_type:
-            raise UserError(_("Tizimda 'Internal Transfer' operatsiya turi topilmadi. Iltimos ombor sozlamalarini tekshiring."))
+            raise UserError(_("Tizimda 'Internal Transfer' (Ichki Ko'chirish) operatsiya turi topilmadi. Iltimos, Inventar > Konfiguratsiya > Operatsiya Turlari qismini tekshiring."))
         
         main_location = self.warehouse_id.lot_stock_id
         van_location = self.trip_id.location_id
