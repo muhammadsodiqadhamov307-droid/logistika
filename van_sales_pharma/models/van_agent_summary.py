@@ -183,7 +183,7 @@ class VanAgentSummary(models.Model):
             'name': f"{self.agent_id.name} - Olib Yurgan Mahsulotlar",
             'res_model': 'van.agent.inventory.line',
             'view_mode': 'kanban,list,form',
-            'domain': [('summary_id', '=', self.id), ('remaining_qty', '>', 0), ('product_id.type', '!=', 'service')],
+            'domain': [('id', 'in', self.active_inventory_line_ids.ids)],
             'target': 'current',
         }
 
