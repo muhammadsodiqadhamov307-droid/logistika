@@ -60,12 +60,18 @@ class VanAgentSummary(models.Model):
         string='Chiqimlar',
     )
 
+    @api.depends('date_from', 'date_to', 'agent_id')
     def _compute_chiqim_ids(self):
         for rec in self:
-            chiqims = self.env['van.payment'].search([
+            domain = [
                 ('agent_id', '=', rec.agent_id.id),
                 ('payment_type', '=', 'out'),
-            ])
+            ]
+            if rec.date_from:
+                domain.append(('date', '>=', rec.date_from))
+            if rec.date_to:
+                domain.append(('date', '<=', rec.date_to))
+            chiqims = self.env['van.payment'].search(domain)
             rec.chiqim_ids = chiqims
 
     @api.depends('date_from', 'date_to', 'agent_id')
