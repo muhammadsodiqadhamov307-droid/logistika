@@ -95,16 +95,26 @@ class VanTripCloseWizard(models.TransientModel):
                     with self.env.cr.savepoint():
                         picking = self.env['stock.picking'].create(picking_vals)
                         for r_line in return_moves:
-                            self.env['stock.move'].create({
-                                'description_picking': r_line.product_id.name,
+                            move_vals = {
                                 'product_id': r_line.product_id.id,
                                 'product_uom_qty': r_line.actual_return,
-                                'uom_id': r_line.product_id.uom_id.id,
                                 'picking_id': picking.id,
                                 'location_id': van_location.id,
                                 'location_dest_id': main_location.id,
                                 'company_id': self.company_id.id,
-                            })
+                            }
+                            
+                            if 'uom_id' in self.env['stock.move']._fields:
+                                move_vals['uom_id'] = r_line.product_id.uom_id.id
+                            else:
+                                move_vals['product_uom'] = r_line.product_id.uom_id.id
+                                
+                            if 'name' in self.env['stock.move']._fields:
+                                move_vals['name'] = r_line.product_id.name
+                            if 'description_picking' in self.env['stock.move']._fields:
+                                move_vals['description_picking'] = r_line.product_id.name
+                                
+                            self.env['stock.move'].create(move_vals)
                         picking.action_confirm()
                         picking.button_validate()
                         _logger.info("Yopilish Ombor yozuvi tasdiqlandi: %s", picking.name)

@@ -85,16 +85,28 @@ class VanLoadWizard(models.TransientModel):
             with self.env.cr.savepoint():
                 picking = self.env['stock.picking'].create(picking_vals)
                 for line in self.load_line_ids:
-                    self.env['stock.move'].create({
-                        'description_picking': line.product_id.name,
+                    move_vals = {
                         'product_id': line.product_id.id,
                         'product_uom_qty': line.qty,
-                        'uom_id': line.product_id.uom_id.id,
                         'picking_id': picking.id,
                         'location_id': main_location.id,
                         'location_dest_id': van_location.id,
                         'company_id': self.company_id.id,
-                    })
+                    }
+                    
+                    # Odoo 19 uses uom_id instead of product_uom
+                    if 'uom_id' in self.env['stock.move']._fields:
+                        move_vals['uom_id'] = line.product_id.uom_id.id
+                    else:
+                        move_vals['product_uom'] = line.product_id.uom_id.id
+                        
+                    # Odoo 19 removed the name field from stock.move
+                    if 'name' in self.env['stock.move']._fields:
+                        move_vals['name'] = line.product_id.name
+                    if 'description_picking' in self.env['stock.move']._fields:
+                        move_vals['description_picking'] = line.product_id.name
+                        
+                    self.env['stock.move'].create(move_vals)
                 picking.action_confirm()
                 picking.button_validate()  # Automate the transfer
                 _logger.info("Ombor ko'chirish yozuvi tasdiqlandi: %s", picking.name)
