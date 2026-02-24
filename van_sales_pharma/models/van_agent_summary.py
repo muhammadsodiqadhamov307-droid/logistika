@@ -90,7 +90,29 @@ class VanAgentSummary(models.Model):
                     else:
                         card += payment.amount
             
-            # Domain for van.payments (Chiqim)
+            # --- Integrate POS Cash Moves (Kirim/Chiqim from POS) ---
+            # We look for statement lines linked to sessions of this agent
+            session_ids = self.env['pos.session'].search([('user_id', '=', rec.agent_id.id)]).ids
+            if session_ids:
+                st_line_domain = [('pos_session_id', 'in', session_ids)]
+                if rec.date_from:
+                    st_line_domain.append(('date', '>=', rec.date_from))
+                if rec.date_to:
+                    st_line_domain.append(('date', '<=', rec.date_to))
+                
+                # We skip lines created by payments (those have payment_ref matching session name usually, 
+                # but POS cash moves have specific refs or are identified by NOT being linked to an order)
+                # Odoo POS cash moves for Kirim/Chiqim are bank statement lines with pos_session_id.
+                st_lines = self.env['account.bank.statement.line'].search(st_line_domain)
+                for st_line in st_lines:
+                    # Positive amount is Kirim (Cash In)
+                    if st_line.amount > 0:
+                        cash += st_line.amount
+                    # Negative amount is Chiqim (Cash Out / Expense)
+                    elif st_line.amount < 0:
+                        chiqim += abs(st_line.amount)
+
+            # --- Integrate van.payments (Manual Chiqim) ---
             payment_domain = [
                 ('agent_id', '=', rec.agent_id.id),
                 ('payment_type', '=', 'out')
@@ -101,7 +123,7 @@ class VanAgentSummary(models.Model):
                 payment_domain.append(('date', '<=', rec.date_to))
                 
             van_payments = self.env['van.payment'].search(payment_domain)
-            chiqim = sum(van_payments.mapped('amount'))
+            chiqim += sum(van_payments.mapped('amount'))
 
             rec.total_cash = cash
             rec.total_card = card

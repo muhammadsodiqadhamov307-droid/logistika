@@ -6,6 +6,9 @@ import { useState, onWillStart } from "@odoo/owl";
 import { useService } from "@web/core/utils/hooks";
 
 patch(CashMovePopup.prototype, {
+    get partnerId() {
+        return (this.pos.user && this.pos.user.partner_id) ? this.pos.user.partner_id.id : null;
+    },
     setup() {
         super.setup(...arguments);
         this.orm = useService("orm");
