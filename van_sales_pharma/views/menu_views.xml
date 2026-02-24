@@ -12,6 +12,10 @@
     <!-- Sotuvlar -->
     <menuitem id="menu_van_sales_main" name="Sotuvlar" parent="menu_van_sales_root" action="point_of_sale.action_pos_pos_form" sequence="20"/>
 
+    <!-- Moliya: Kirimlar va Chiqimlar -->
+    <menuitem id="menu_van_kirimlar_main" name="Kirimlar" parent="menu_van_sales_root" action="action_van_kirimlar_global" sequence="25"/>
+    <menuitem id="menu_van_chiqimlar_main" name="Chiqimlar" parent="menu_van_sales_root" action="action_van_chiqimlar_global" sequence="26"/>
+
     <!-- Mijozlar (Customers) -->
     <menuitem id="menu_van_customers_main" name="Mijozlar" parent="menu_van_sales_root" action="action_van_customers_v2" sequence="40"/>
 
