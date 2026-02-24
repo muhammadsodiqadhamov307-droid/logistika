@@ -68,14 +68,13 @@ class ResPartner(models.Model):
     def action_van_kirim(self):
         self.ensure_one()
         return {
-            'name': "Kirim (Qarzni To'lash)",
+            'name': "Kirim (Qarzni Undirish)",
             'type': 'ir.actions.act_window',
-            'res_model': 'account.payment',
+            'res_model': 'van.payment',
             'view_mode': 'form',
             'context': {
                 'default_partner_id': self.id,
-                'default_payment_type': 'inbound',
-                'default_partner_type': 'customer',
+                'default_payment_type': 'in',
                 'default_amount': self.x_van_total_due if self.x_van_total_due > 0 else 0.0,
             },
             'target': 'new',
