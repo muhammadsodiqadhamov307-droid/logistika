@@ -66,95 +66,89 @@
                                 </div>
                             </div>
                         </div>
+                        <div class="col">
+                            <div class="card shadow-sm border-0 h-100" style="background: linear-gradient(135deg, #20c997 0%, #158b68 100%);">
+                                <div class="card-body text-center p-3">
+                                    <h6 class="card-title fw-bold mb-2" style="color: white !important;">Sof Foyda (Bugun)</h6>
+                                    <h3 class="fw-bold m-0" style="color: white !important;">
+                                        <t t-esc="formatPrice(state.margin_today)"/>
+                                    </h3>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
-                    <!-- Recent Sales Table -->
+                    <!-- Monthly Sales Chart -->
                     <div class="row">
                         <div class="col-12">
-                            <div class="card shadow-sm border-0">
-                                <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center">
-                                    <h5 class="mb-0 text-secondary">Oxirgi Sotuvlar (Bugun)</h5>
-                                    <button class="btn btn-sm btn-outline-secondary" t-on-click="openSales">Barchasini Ko'rish</button>
+                            <div class="card shadow-sm border-0 mb-4">
+                                <div class="card-header bg-white border-bottom">
+                                    <h5 class="mb-0 text-secondary fw-bold" style="color: #0bacce !important;">Oylik Sotuvlar</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div style="height: 300px; width: 100%;">
+                                        <canvas t-ref="monthlySalesChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Top Lists: Customers and Agents -->
+                    <div class="row">
+                        <!-- Top Customers -->
+                        <div class="col-md-6 mb-4">
+                            <div class="card shadow-sm border-0 h-100">
+                                <div class="card-header bg-white border-bottom">
+                                    <h5 class="mb-0 text-secondary fw-bold" style="color: #12633e !important;">Top Mijozlar (Shu Oy)</h5>
                                 </div>
                                 <div class="card-body p-0 table-responsive">
-                                    <table class="table table-hover mb-0">
+                                    <table class="table table-hover table-borderless mb-0">
                                         <thead class="table-light">
                                             <tr>
-                                                <th>Sotuv Raqami</th>
-                                                <th>Mijoz</th>
-                                                <th>Usul</th>
-                                                <th>Summa</th>
-                                                <th>Holat</th>
+                                                <th class="ps-4">Mijoz</th>
+                                                <th class="text-end pe-4">Tushum</th>
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            <t t-foreach="state.recent_sales" t-as="sale" t-key="sale.id">
-                                                <tr t-on-click="() => this.openSale(sale.id)" style="cursor: pointer;" class="align-middle">
-                                                    <td><t t-esc="sale.name"/></td>
-                                                    <td><t t-esc="sale.partner_id ? sale.partner_id[1] : 'Noma\'lum'"/></td>
-                                                    <td>
-                                                        <span t-attf-class="badge rounded-pill {{ sale.payment_type === 'cash' ? 'bg-success' : (sale.payment_type === 'card' ? 'bg-primary' : 'bg-warning text-dark') }}">
-                                                            <t t-esc="sale.payment_method_display"/>
-                                                        </span>
-                                                    </td>
-                                                    <td class="fw-bold"><t t-esc="formatPrice(sale.amount_total)"/></td>
-                                                    <td>
-                                                        <span t-attf-class="badge {{ sale.state === 'paid' ? 'bg-success' : 'bg-info' }}">
-                                                            <t t-esc="sale.state"/>
-                                                        </span>
-                                                    </td>
+                                            <t t-foreach="state.top_customers" t-as="cust" t-key="cust.name">
+                                                <tr class="align-middle border-bottom">
+                                                    <td class="ps-4 fw-bold text-dark"><t t-esc="cust.name"/></td>
+                                                    <td class="text-end pe-4 fw-bold text-success"><t t-esc="formatPrice(cust.total)"/></td>
                                                 </tr>
                                             </t>
-                                            <tr t-if="state.recent_sales.length === 0">
-                                                <td colspan="5" class="text-center text-muted py-4">Bugun hali sotuv amalga oshirilmadi.</td>
+                                            <tr t-if="state.top_customers.length === 0">
+                                                <td colspan="2" class="text-center text-muted py-4">Hali sotuvlar yo'q</td>
                                             </tr>
                                         </tbody>
                                     </table>
                                 </div>
                             </div>
                         </div>
-                    </div>
 
-                    <!-- Recent Kirim / Chiqim Table Added Below Sales -->
-                    <div class="row mt-4">
-                        <div class="col-12">
-                            <div class="card shadow-sm border-0">
-                                <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center">
-                                    <h5 class="mb-0 text-secondary">Oxirgi Kirim va Chiqim (Bugun)</h5>
+                        <!-- Top Agents -->
+                        <div class="col-md-6 mb-4">
+                            <div class="card shadow-sm border-0 h-100">
+                                <div class="card-header bg-white border-bottom">
+                                    <h5 class="mb-0 text-secondary fw-bold" style="color: #12633e !important;">Top Agentlar (Shu Oy)</h5>
                                 </div>
                                 <div class="card-body p-0 table-responsive">
-                                    <table class="table table-hover mb-0">
+                                    <table class="table table-hover table-borderless mb-0">
                                         <thead class="table-light">
                                             <tr>
-                                                <th>Summa turi</th>
-                                                <th>Mijoz</th>
-                                                <th>To'lov Usuli</th>
-                                                <th>Summa</th>
-                                                <th>Izoh</th>
+                                                <th class="ps-4">Agent</th>
+                                                <th class="text-end pe-4">Tushum</th>
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            <t t-foreach="state.recent_kirims" t-as="kirim" t-key="kirim.id">
-                                                <tr class="align-middle">
-                                                    <td>
-                                                        <span t-attf-class="badge {{ kirim.type === 'in' ? 'bg-success' : 'bg-danger' }}">
-                                                            <t t-esc="kirim.type === 'in' ? 'Kirim (+)' : 'Chiqim (-)'"/>
-                                                        </span>
-                                                    </td>
-                                                    <td class="fw-bold"><t t-esc="kirim.partner_id ? kirim.partner_id[1] : 'Noma\'lum'"/></td>
-                                                    <td>
-                                                        <span class="badge rounded-pill bg-secondary text-white">
-                                                            <t t-esc="kirim.method_display"/>
-                                                        </span>
-                                                    </td>
-                                                    <td t-attf-class="fw-bold {{ kirim.type === 'in' ? 'text-success' : 'text-danger' }}">
-                                                        <t t-esc="formatPrice(kirim.amount)"/>
-                                                    </td>
-                                                    <td class="text-muted"><t t-esc="kirim.note"/></td>
+                                            <t t-foreach="state.top_agents" t-as="agent" t-key="agent.name">
+                                                <tr class="align-middle border-bottom">
+                                                    <td class="ps-4 fw-bold text-dark"><i class="fa fa-user-circle me-2 text-muted"/> <t t-esc="agent.name"/></td>
+                                                    <td class="text-end pe-4 fw-bold text-primary"><t t-esc="formatPrice(agent.total)"/></td>
                                                 </tr>
                                             </t>
-                                            <tr t-if="state.recent_kirims.length === 0">
-                                                <td colspan="5" class="text-center text-muted py-4">Bugun hali kirim yoki chiqim qilinmadi.</td>
+                                            <tr t-if="state.top_agents.length === 0">
+                                                <td colspan="2" class="text-center text-muted py-4">Hali sotuvlar yo'q</td>
                                             </tr>
                                         </tbody>
                                     </table>

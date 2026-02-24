@@ -237,38 +237,81 @@ class VanTrip(models.Model):
                 t_cash -= vp.amount
 
 
-        # 4. Recent POS Sales
-        recent_sales = []
-        for o in pos_orders.sorted(key=lambda x: x.date_order, reverse=True)[:10]:
-            methods = []
-            for p in o.payment_ids:
-                if p.payment_method_id.is_cash_count: methods.append('Naqt')
-                elif p.payment_method_id.split_transactions: methods.append('Nasiya')
-                else: methods.append('Karta')
-            
-            p_type = 'nasiya' if 'Nasiya' in methods else ('card' if 'Karta' in methods else 'cash')
-            recent_sales.append({
-                'id': o.id,
-                'name': o.name,
-                'partner_id': [o.partner_id.id, o.partner_id.name] if o.partner_id else False,
-                'amount_total': o.amount_total,
-                'state': 'To\'langan' if o.state in ['paid', 'done', 'invoiced'] else 'Qoralama',
-                'payment_method_display': ' / '.join(set(methods)) or "Noma'lum",
-                'payment_type': p_type
-            })
+        # 4. Calculate Margin (Foyda) for today's sales
+        # Margin = Total Price - Standard Price * quantity
+        margin_today = 0.0
+        for order in pos_orders.filtered(lambda o: o.state in ['paid', 'done', 'invoiced']):
+            for line in order.lines:
+                # Odoo's default margin calculation (if pos_margin is installed) or fallback
+                if hasattr(line, 'margin'):
+                    margin_today += line.margin
+                else:
+                    # Fallback to standard_price or 0 if missing
+                    # Some versions use `cost_price` or `standard_price`
+                    cost_unit = getattr(line.product_id, 'standard_price', 0.0) or 0.0
+                    cost = cost_unit * line.qty
+                    margin_today += (line.price_subtotal_incl - cost)
 
-        # 5. Recent Kirim & Chiqim
-        recent_kirims = []
-        for vp in today_van_payments.sorted(key=lambda x: x.date, reverse=True)[:15]:
-            recent_kirims.append({
-                'id': vp.id,
-                'name': vp.name,
-                'partner_id': [vp.partner_id.id, vp.partner_id.name] if vp.partner_id else False,
-                'amount': vp.amount,
-                'type': vp.payment_type, # 'in' or 'out'
-                'method_display': 'Naqt' if vp.payment_method == 'cash' else 'Karta',
-                'note': vp.note or ''
-            })
+        # 5. Top Mijozlar va Agentlar (For the Current Month)
+        first_day_of_month = today_local.replace(day=1)
+        start_of_month = tz.localize(datetime.combine(first_day_of_month, time.min)).astimezone(pytz.UTC).replace(tzinfo=None)
+        
+        monthly_orders = self.env['pos.order'].search([
+            ('date_order', '>=', start_of_month),
+            ('state', 'in', ['paid', 'done', 'invoiced'])
+        ])
+
+        customer_totals = {}
+        agent_totals = {}
+        
+        for mo in monthly_orders:
+            # Customers
+            if mo.partner_id:
+                c_id = mo.partner_id.id
+                c_name = mo.partner_id.name
+                if c_id not in customer_totals:
+                    customer_totals[c_id] = {'name': c_name, 'total': 0.0}
+                customer_totals[c_id]['total'] += mo.amount_total
+                
+            # Agents
+            a_id = mo.user_id.id
+            a_name = mo.user_id.name
+            if a_id not in agent_totals:
+                agent_totals[a_id] = {'name': a_name, 'total': 0.0}
+            agent_totals[a_id]['total'] += mo.amount_total
+
+        # Sort and take top 5
+        top_customers = sorted(customer_totals.values(), key=lambda x: x['total'], reverse=True)[:5]
+        top_agents = sorted(agent_totals.values(), key=lambda x: x['total'], reverse=True)[:5]
+
+        # 6. Monthly Sales Chart Data (Last 6 Months)
+        from dateutil.relativedelta import relativedelta
+        import calendar
+        
+        chart_labels = []
+        chart_data = []
+        
+        uzbek_months = {
+            1: "Yanvar", 2: "Fevral", 3: "Mart", 4: "Aprel", 5: "May", 6: "Iyun",
+            7: "Iyul", 8: "Avgust", 9: "Sentabr", 10: "Oktabr", 11: "Noyabr", 12: "Dekabr"
+        }
+
+        # Going back 5 months + current month = 6 months total
+        for i in range(5, -1, -1):
+            target_date = today_local - relativedelta(months=i)
+            first_day = target_date.replace(day=1)
+            last_day = target_date.replace(day=calendar.monthrange(target_date.year, target_date.month)[1])
+            
+            s_date = tz.localize(datetime.combine(first_day, time.min)).astimezone(pytz.UTC).replace(tzinfo=None)
+            e_date = tz.localize(datetime.combine(last_day, time.max)).astimezone(pytz.UTC).replace(tzinfo=None)
+            
+            # Calculate sum using standard search and mapped to avoid read_group API changes
+            domain = [('date_order', '>=', s_date), ('date_order', '<=', e_date), ('state', 'in', ['paid', 'done', 'invoiced'])]
+            orders = self.env['pos.order'].search(domain)
+            month_total = sum(orders.mapped('amount_total'))
+            
+            chart_labels.append(f"{uzbek_months[target_date.month]} {target_date.year}")
+            chart_data.append(month_total)
 
         # Get view_id for explicitly opening the list view
         detail_view = self.env.ref('van_sales_pharma.view_van_dashboard_detail_list', raise_if_not_found=False)
@@ -280,8 +323,11 @@ class VanTrip(models.Model):
             'total_card': t_card,
             'total_chiqim': t_chiqim,
             'total_global_nasiya': total_global_nasiya,
-            'recent_sales': recent_sales,
-            'recent_kirims': recent_kirims,
+            'margin_today': margin_today,
+            'top_customers': top_customers,
+            'top_agents': top_agents,
+            'chart_labels': chart_labels,
+            'chart_data': chart_data,
             'detail_view_id': detail_view.id if detail_view else False,
             'currency_id': self.env.company.currency_id.id,
         }
