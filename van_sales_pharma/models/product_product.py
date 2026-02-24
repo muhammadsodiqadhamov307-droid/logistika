@@ -15,11 +15,25 @@ class ProductTemplate(models.Model):
         # Get base domain from parent (includes available_in_pos, sale_ok, company checks)
         base_domain = super()._load_pos_data_domain(data, config)
 
-        current_user = self.env.user
+        # IMPORTANT: self.env.user during POS data loading runs in the server context (OdooBot),
+        # NOT as the actual POS cashier. We must get the real cashier from the current session.
+        cashier = False
+        session = config.current_session_id
+        if session:
+            # The cashier is the user who opened the session
+            cashier = session.user_id
+
+        # Fallback to env.user if no session found
+        if not cashier:
+            cashier = self.env.user
+
+        if not cashier or cashier.id == 1:
+            # No real cashier identified (still showing as OdooBot/Admin) — show all products
+            return base_domain
 
         # Find the agent's active trip (loaded or in_progress)
         active_trip = self.env['van.trip'].search([
-            ('agent_id', '=', current_user.id),
+            ('agent_id', '=', cashier.id),
             ('state', 'in', ['loaded', 'in_progress'])
         ], limit=1)
 
@@ -29,7 +43,7 @@ class ProductTemplate(models.Model):
 
         # Find the agent summary (permanent profile) for this agent
         summary = self.env['van.agent.summary'].search([
-            ('agent_id', '=', current_user.id),
+            ('agent_id', '=', cashier.id),
         ], limit=1)
 
         if not summary:
