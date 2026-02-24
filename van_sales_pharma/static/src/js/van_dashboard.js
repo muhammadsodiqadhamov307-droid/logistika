@@ -11,6 +11,7 @@ export class VanSalesDashboard extends Component {
         this.orm = useService("orm");
         this.action = useService("action");
         this.chartRef = useRef("monthlySalesChart");
+        this.chartInstance = null;
 
         this.state = useState({
             today_trips_count: 0,
@@ -25,7 +26,10 @@ export class VanSalesDashboard extends Component {
             chart_labels: [],
             chart_data: [],
             detail_view_id: false,
+            margin_view_id: false,
             currency_id: false,
+            date_from: false,
+            date_to: false,
         });
 
         onWillStart(async () => {
@@ -39,7 +43,11 @@ export class VanSalesDashboard extends Component {
     }
 
     async fetchDashboardData() {
-        const data = await this.orm.call("van.trip", "get_van_dashboard_data", []);
+        const kwargs = {};
+        if (this.state.date_from) kwargs.date_from = this.state.date_from;
+        if (this.state.date_to) kwargs.date_to = this.state.date_to;
+
+        const data = await this.orm.call("van.trip", "get_van_dashboard_data", [], kwargs);
         this.state.today_trips_count = data.today_trips_count;
         this.state.active_trips_count = data.active_trips_count;
         this.state.total_cash = data.total_cash;
@@ -52,14 +60,19 @@ export class VanSalesDashboard extends Component {
         this.state.chart_labels = data.chart_labels;
         this.state.chart_data = data.chart_data;
         this.state.detail_view_id = data.detail_view_id;
+        this.state.margin_view_id = data.margin_view_id;
         this.state.currency_id = data.currency_id;
     }
 
     renderChart() {
         if (!this.chartRef.el) return;
 
+        if (this.chartInstance) {
+            this.chartInstance.destroy();
+        }
+
         const ctx = this.chartRef.el.getContext('2d');
-        new Chart(ctx, {
+        this.chartInstance = new Chart(ctx, {
             type: 'line',
             data: {
                 labels: this.state.chart_labels,
@@ -97,6 +110,18 @@ export class VanSalesDashboard extends Component {
         });
     }
 
+    async applyFilter() {
+        await this.fetchDashboardData();
+        this.renderChart();
+    }
+
+    async clearFilter() {
+        this.state.date_from = false;
+        this.state.date_to = false;
+        await this.fetchDashboardData();
+        this.renderChart();
+    }
+
     formatPrice(amount) {
         return formatMonetary(amount, {
             currencyId: this.state.currency_id,
@@ -112,6 +137,25 @@ export class VanSalesDashboard extends Component {
             view_mode: 'list,form',
             views: [[false, 'list'], [false, 'form']],
             domain: [['date_order', '>=', today + ' 00:00:00']],
+            target: 'current',
+        });
+    }
+
+    openMarginDetails() {
+        let domain = [['order_id.state', 'in', ['paid', 'done', 'invoiced']]];
+        if (this.state.date_from) {
+            domain.push(['order_id.date_order', '>=', this.state.date_from + ' 00:00:00']);
+        }
+        if (this.state.date_to) {
+            domain.push(['order_id.date_order', '<=', this.state.date_to + ' 23:59:59']);
+        }
+        this.action.doAction({
+            type: 'ir.actions.act_window',
+            name: `Sof Foyda Detallari`,
+            res_model: 'pos.order.line',
+            view_mode: 'list,form',
+            views: [[this.state.margin_view_id, 'list'], [false, 'form']],
+            domain: domain,
             target: 'current',
         });
     }

@@ -193,8 +193,8 @@ class VanTrip(models.Model):
         }
 
     @api.model
-    def get_van_dashboard_data(self):
-        """ Dashboard uchun moliya paneli ma'lumotlarini hisoblash RPC metodi """
+    def get_van_dashboard_data(self, date_from=False, date_to=False):
+        """ Dashboard uchun moliya paneli ma'lumotlarini hisoblash RPC metodi. Date filtrlarni qo'llab quvvatlaydi. """
         import pytz
         from datetime import datetime, time
         
@@ -203,15 +203,29 @@ class VanTrip(models.Model):
         today_local = datetime.now(tz).date()
         today_start = tz.localize(datetime.combine(today_local, time.min)).astimezone(pytz.UTC).replace(tzinfo=None)
         
+        # Date Logic
+        domain_pos = []
+        domain_vp = []
+        
+        if date_from:
+            dt_from = datetime.strptime(date_from, "%Y-%m-%d")
+            s_date = tz.localize(datetime.combine(dt_from, time.min)).astimezone(pytz.UTC).replace(tzinfo=None)
+            domain_pos.append(('date_order', '>=', s_date))
+            domain_vp.append(('date', '>=', s_date))
+            
+        if date_to:
+            dt_to = datetime.strptime(date_to, "%Y-%m-%d")
+            e_date = tz.localize(datetime.combine(dt_to, time.max)).astimezone(pytz.UTC).replace(tzinfo=None)
+            domain_pos.append(('date_order', '<=', e_date))
+            domain_vp.append(('date', '<=', e_date))
+        
         # 1. Total Global Nasiya
         # We find all partners and sum up x_van_total_due (which represents their actual debt)
         partners = self.env['res.partner'].search([('x_is_van_customer', '=', True)])
         total_global_nasiya = sum(p.x_van_total_due for p in partners)
 
-        # 2. Today's POS Cash & Card
-        pos_orders = self.env['pos.order'].search([
-            ('date_order', '>=', today_start)
-        ])
+        # 2. POS Cash & Card (Filtered by Date or All-Time)
+        pos_orders = self.env['pos.order'].search(domain_pos)
         t_cash = 0.0
         t_card = 0.0
         t_chiqim = 0.0
@@ -223,11 +237,10 @@ class VanTrip(models.Model):
                 elif not payment.payment_method_id.split_transactions:
                     t_card += payment.amount
 
-        # 3. Add Today's Kirim / Track Chiqim (van.payments)
-        today_van_payments = self.env['van.payment'].search([
-            ('date', '>=', today_start)
-        ])
-        for vp in today_van_payments:
+        # 3. Add Kirim / Track Chiqim (Filtered by Date or All-Time)
+        van_payments = self.env['van.payment'].search(domain_vp)
+        
+        for vp in van_payments:
             if vp.payment_type == 'in':
                 if vp.payment_method == 'cash': t_cash += vp.amount
                 elif vp.payment_method == 'card': t_card += vp.amount
@@ -237,7 +250,7 @@ class VanTrip(models.Model):
                 t_cash -= vp.amount
 
 
-        # 4. Calculate Margin (Foyda) for today's sales
+        # 4. Calculate Margin (Foyda) for Filtered sales
         # Margin = Total Price - Standard Price * quantity
         margin_today = 0.0
         for order in pos_orders.filtered(lambda o: o.state in ['paid', 'done', 'invoiced']):
@@ -252,14 +265,9 @@ class VanTrip(models.Model):
                     cost = cost_unit * line.qty
                     margin_today += (line.price_subtotal_incl - cost)
 
-        # 5. Top Mijozlar va Agentlar (For the Current Month)
-        first_day_of_month = today_local.replace(day=1)
-        start_of_month = tz.localize(datetime.combine(first_day_of_month, time.min)).astimezone(pytz.UTC).replace(tzinfo=None)
-        
-        monthly_orders = self.env['pos.order'].search([
-            ('date_order', '>=', start_of_month),
-            ('state', 'in', ['paid', 'done', 'invoiced'])
-        ])
+        # 5. Top Mijozlar va Agentlar (Filtered by Date, or All-Time if no date)
+        # Using the same pos_orders variable as it's already filtered properly based on date_from/date_to
+        monthly_orders = pos_orders.filtered(lambda o: o.state in ['paid', 'done', 'invoiced'])
 
         customer_totals = {}
         agent_totals = {}
@@ -313,8 +321,9 @@ class VanTrip(models.Model):
             chart_labels.append(f"{uzbek_months[target_date.month]} {target_date.year}")
             chart_data.append(month_total)
 
-        # Get view_id for explicitly opening the list view
+        # Get view_ids for explicitly opening list views
         detail_view = self.env.ref('van_sales_pharma.view_van_dashboard_detail_list', raise_if_not_found=False)
+        margin_view = self.env.ref('van_sales_pharma.view_van_pos_margin_list', raise_if_not_found=False)
 
         return {
             'today_trips_count': len(pos_orders),
@@ -329,5 +338,6 @@ class VanTrip(models.Model):
             'chart_labels': chart_labels,
             'chart_data': chart_data,
             'detail_view_id': detail_view.id if detail_view else False,
+            'margin_view_id': margin_view.id if margin_view else False,
             'currency_id': self.env.company.currency_id.id,
         }

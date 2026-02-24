@@ -5,27 +5,31 @@
             <div class="o_content bg-view h-100 overflow-auto p-4 van-dashboard-wrapper">
                 <div class="container-fluid">
                     <div class="row mb-4">
-                        <div class="col-12 d-flex justify-content-between align-items-center">
-                            <h1 class="display-6 fw-bold text-primary">Moliya paneli</h1>
-                            <button class="btn btn-primary" t-on-click="fetchDashboardData">
-                                <i class="fa fa-refresh me-2"></i> Yangilash
-                            </button>
+                        <div class="col-12 d-flex flex-wrap justify-content-between align-items-center gap-3">
+                            <h1 class="display-6 fw-bold text-primary mb-0">Moliya paneli</h1>
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="input-group input-group-sm bg-white rounded shadow-sm">
+                                    <span class="input-group-text bg-light border-0"><i class="fa fa-calendar text-muted"></i></span>
+                                    <input type="date" class="form-control border-0" t-model="state.date_from"/>
+                                    <span class="input-group-text bg-light border-0 text-muted">dan</span>
+                                    <input type="date" class="form-control border-0" t-model="state.date_to"/>
+                                    <span class="input-group-text bg-light border-0 text-muted">gacha</span>
+                                </div>
+                                <button class="btn btn-primary btn-sm shadow-sm" t-on-click="applyFilter">
+                                    <i class="fa fa-search me-1"></i> Filtrlash
+                                </button>
+                                <button class="btn btn-outline-secondary btn-sm shadow-sm bg-white" t-on-click="clearFilter">
+                                    <i class="fa fa-times me-1"></i> Tozalash
+                                </button>
+                                <button class="btn btn-outline-primary btn-sm shadow-sm bg-white ms-2" t-on-click="fetchDashboardData">
+                                    <i class="fa fa-refresh me-1"></i> Yangilash
+                                </button>
+                            </div>
                         </div>
                     </div>
 
                     <!-- Kpi Cards -->
                     <div class="row row-cols-1 row-cols-md-5 g-3 mb-4">
-                        <div class="col">
-                            <div class="card shadow-sm border-0 h-100" t-on-click="openTrips" style="cursor: pointer; background: linear-gradient(135deg, #0dcaf0 0%, #0bacce 100%);">
-                                <div class="card-body text-center p-3">
-                                    <h6 class="card-title fw-bold mb-2" style="color: white !important;">Bugungi Sotuvlar</h6>
-                                    <h3 class="fw-bold m-0" style="color: white !important;">
-                                        <t t-esc="state.active_trips_count"/> / <t t-esc="state.today_trips_count"/>
-                                    </h3>
-                                    <small style="color: rgba(255, 255, 255, 0.75) !important;">To'langan / Jami</small>
-                                </div>
-                            </div>
-                        </div>
                         <div class="col">
                             <div class="card shadow-sm border-0 h-100" t-on-click="() =&gt; this.openSalesByMethod('cash')" style="cursor: pointer; background: linear-gradient(135deg, #198754 0%, #12633e 100%);">
                                 <div class="card-body text-center p-3">
@@ -49,7 +53,7 @@
                         <div class="col">
                             <div class="card shadow-sm border-0 h-100" t-on-click="() =&gt; this.openSalesByMethod('chiqim')" style="cursor: pointer; background: linear-gradient(135deg, #dc3545 0%, #a71d2a 100%);">
                                 <div class="card-body text-center p-3">
-                                    <h6 class="card-title fw-bold mb-2" style="color: white !important;">Chiqim (Bugun)</h6>
+                                    <h6 class="card-title fw-bold mb-2" style="color: white !important;">Chiqim</h6>
                                     <h3 class="fw-bold m-0" style="color: white !important;">
                                         <t t-esc="formatPrice(state.total_chiqim)"/>
                                     </h3>
@@ -67,9 +71,9 @@
                             </div>
                         </div>
                         <div class="col">
-                            <div class="card shadow-sm border-0 h-100" style="background: linear-gradient(135deg, #20c997 0%, #158b68 100%);">
+                            <div class="card shadow-sm border-0 h-100" t-on-click="openMarginDetails" style="cursor: pointer; background: linear-gradient(135deg, #20c997 0%, #158b68 100%);">
                                 <div class="card-body text-center p-3">
-                                    <h6 class="card-title fw-bold mb-2" style="color: white !important;">Sof Foyda (Bugun)</h6>
+                                    <h6 class="card-title fw-bold mb-2" style="color: white !important;">Sof Foyda</h6>
                                     <h3 class="fw-bold m-0" style="color: white !important;">
                                         <t t-esc="formatPrice(state.margin_today)"/>
                                     </h3>
@@ -100,7 +104,7 @@
                         <div class="col-md-6 mb-4">
                             <div class="card shadow-sm border-0 h-100">
                                 <div class="card-header bg-white border-bottom">
-                                    <h5 class="mb-0 text-secondary fw-bold" style="color: #12633e !important;">Top Mijozlar (Shu Oy)</h5>
+                                    <h5 class="mb-0 text-secondary fw-bold" style="color: #12633e !important;">Top Mijozlar</h5>
                                 </div>
                                 <div class="card-body p-0 table-responsive">
                                     <table class="table table-hover table-borderless mb-0">
@@ -130,7 +134,7 @@
                         <div class="col-md-6 mb-4">
                             <div class="card shadow-sm border-0 h-100">
                                 <div class="card-header bg-white border-bottom">
-                                    <h5 class="mb-0 text-secondary fw-bold" style="color: #12633e !important;">Top Agentlar (Shu Oy)</h5>
+                                    <h5 class="mb-0 text-secondary fw-bold" style="color: #12633e !important;">Top Agentlar</h5>
                                 </div>
                                 <div class="card-body p-0 table-responsive">
                                     <table class="table table-hover table-borderless mb-0">
