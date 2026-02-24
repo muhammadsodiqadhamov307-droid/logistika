@@ -76,6 +76,7 @@ class VanLoadWizard(models.TransientModel):
                 picking = self.env['stock.picking'].create(picking_vals)
                 for line in self.load_line_ids:
                     self.env['stock.move'].create({
+                        'name': line.product_id.name,
                         'description_picking': line.product_id.name,
                         'product_id': line.product_id.id,
                         'product_uom_qty': line.qty,
@@ -95,15 +96,13 @@ class VanLoadWizard(models.TransientModel):
         # Step 3: Change Trip State
         self.trip_id.state = 'loaded'
         
-        # Odoo returns a notification or action to print PDF report
+        # Return to the trip form to refresh the state and close popup
         return {
-            'type': 'ir.actions.client',
-            'tag': 'display_notification',
-            'params': {
-                'title': _("Muvaffaqiyatli"),
-                'message': _("Mashinaga yuklash amalga oshirildi."),
-                'sticky': False,
-            }
+            'type': 'ir.actions.act_window',
+            'res_model': 'van.trip',
+            'res_id': self.trip_id.id,
+            'view_mode': 'form',
+            'target': 'main',
         }
 
 

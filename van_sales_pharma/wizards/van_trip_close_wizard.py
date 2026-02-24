@@ -83,6 +83,7 @@ class VanTripCloseWizard(models.TransientModel):
                         picking = self.env['stock.picking'].create(picking_vals)
                         for r_line in return_moves:
                             self.env['stock.move'].create({
+                                'name': r_line.product_id.name,
                                 'description_picking': r_line.product_id.name,
                                 'product_id': r_line.product_id.id,
                                 'product_uom_qty': r_line.actual_return,
@@ -99,6 +100,20 @@ class VanTripCloseWizard(models.TransientModel):
                     _logger.error("Dori Qoldiqlarini bazaga qaytarishda xatolik: %s", str(e))
                     raise UserError(_("Ombor moduliga ulanishda xato: Mashinadan tovar qaytmadi!\n(%s)") % str(e))
 
+        # Agent doimiy profilidan qaytarilganlarni ayirib tashlash
+        summary = self.env['van.agent.summary'].search([
+            ('agent_id', '=', self.trip_id.agent_id.id),
+        ], limit=1)
+        if summary:
+            for r_line in return_moves:
+                if r_line.actual_return > 0:
+                    inv_line = self.env['van.agent.inventory.line'].search([
+                        ('summary_id', '=', summary.id),
+                        ('product_id', '=', r_line.product_id.id)
+                    ], limit=1)
+                    if inv_line:
+                        inv_line.loaded_qty -= r_line.actual_return
+
         # Step 2: Pul Yozuvlarini Kiritish
         self.trip_id.x_cash_received = self.cash_received
         self.trip_id.x_card_received = self.card_received
@@ -112,16 +127,13 @@ class VanTripCloseWizard(models.TransientModel):
         # Step 3: Holatni Yopilgan ga o'zgartirish
         self.trip_id.state = 'closed'
 
-        # Xabarnoma
+        # Return to the trip form to refresh the state and close popup
         return {
-            'type': 'ir.actions.client',
-            'tag': 'display_notification',
-            'params': {
-                'title': _("Kun Yopildi"),
-                'message': _("Jarayon muvaffaqiyatli topshirildi va hisobot formati yopildi."),
-                'type': 'success',
-                'sticky': False,
-            }
+            'type': 'ir.actions.act_window',
+            'res_model': 'van.trip',
+            'res_id': self.trip_id.id,
+            'view_mode': 'form',
+            'target': 'main',
         }
 
 class VanTripCloseLine(models.TransientModel):

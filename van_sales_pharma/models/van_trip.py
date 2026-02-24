@@ -123,32 +123,36 @@ class VanTrip(models.Model):
                 raise UserError(_("Sayohatni boshlash uchun u avval yuklangan bo'lishi kerak!"))
             trip.state = 'in_progress'
 
-            # Agent uchun hisobot yozuvini yaratamiz yoki yangilaymiz
+            # Agent doimiy hisoboti profilini qidiramiz
             summary = self.env['van.agent.summary'].search([
                 ('agent_id', '=', trip.agent_id.id),
-                ('date', '=', trip.date),
             ], limit=1)
 
             if not summary:
                 summary = self.env['van.agent.summary'].create({
                     'agent_id': trip.agent_id.id,
-                    'date': trip.date,
-                    'trip_id': trip.id,
                 })
-            else:
-                summary.trip_id = trip.id
 
-            # Mavjud inventar satrlarini tozalab, yangidan to'ldirish
-            summary.inventory_line_ids.unlink()
+            # Inventar satrlarini yangilash (ochirib yubormasdan)
             for line in trip.trip_line_ids:
-                self.env['van.agent.inventory.line'].create({
-                    'summary_id': summary.id,
-                    'product_id': line.product_id.id,
-                    'price_unit': line.price_unit,
-                    'loaded_qty': line.loaded_qty,
-                    'sold_qty': 0.0,
-                    'returned_qty': 0.0,
-                })
+                existing_inv_line = self.env['van.agent.inventory.line'].search([
+                    ('summary_id', '=', summary.id),
+                    ('product_id', '=', line.product_id.id)
+                ], limit=1)
+
+                if existing_inv_line:
+                    # Doimiy profilga yangi yuklangan miqdorni qo'shamiz +=
+                    existing_inv_line.loaded_qty += line.loaded_qty
+                    existing_inv_line.price_unit = line.price_unit
+                else:
+                    self.env['van.agent.inventory.line'].create({
+                        'summary_id': summary.id,
+                        'product_id': line.product_id.id,
+                        'price_unit': line.price_unit,
+                        'loaded_qty': line.loaded_qty,
+                        'sold_qty': 0.0,
+                        'returned_qty': 0.0,
+                    })
         return True
 
     def action_close(self):

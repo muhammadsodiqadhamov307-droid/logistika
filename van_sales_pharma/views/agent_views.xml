@@ -11,8 +11,9 @@
                   create="0" edit="0"
                   decoration-success="total_sales > 0"
                   decoration-muted="total_sales == 0">
-                <field name="date"/>
                 <field name="agent_id"/>
+                <field name="date_from" optional="show"/>
+                <field name="date_to" optional="show"/>
                 <field name="pos_order_count" string="Sotuvlar"/>
                 <field name="total_sales"
                        widget="monetary"
@@ -39,16 +40,21 @@
         <field name="name">van.agent.summary.form</field>
         <field name="model">van.agent.summary</field>
         <field name="arch" type="xml">
-            <form string="Agent Hisobot" create="0" edit="0">
+            <form string="Agent Hisobot" create="0">
                 <sheet>
                     <!-- Agent title -->
                     <div class="oe_title">
                         <h1>
                             <field name="agent_id" readonly="1"/>
                         </h1>
-                        <h4 class="text-muted">
-                            <field name="date" readonly="1"/>
-                        </h4>
+                        <div class="row mt-3">
+                            <div class="col-md-6">
+                                <group>
+                                    <field name="date_from" widget="date"/>
+                                    <field name="date_to" widget="date"/>
+                                </group>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- KPI summary bar -->
@@ -148,22 +154,52 @@
                                     string="Barchasini Ko'rish"
                                     type="object"
                                     class="btn-outline-primary mb-2"/>
-                            <field name="pos_order_ids" readonly="1">
-                                <list>
-                                    <field name="name"/>
-                                    <field name="partner_id"/>
-                                    <field name="date_order" widget="datetime"/>
-                                    <field name="amount_total" widget="monetary"/>
-                                    <field name="state"
-                                           widget="badge"
-                                           decoration-success="state == 'paid'"
-                                           decoration-info="state == 'done'"/>
-                                </list>
-                            </field>
+                            <!-- Sotuvlar dinamik hisoblanadi, tugma orqali ko'riladi -->
                         </page>
                     </notebook>
                 </sheet>
             </form>
+        </field>
+    </record>
+
+    <!-- ============================================================
+         AGENT SUMMARY — KANBAN VIEW (Beautiful Cards)
+    ============================================================ -->
+    <record id="view_van_agent_summary_kanban" model="ir.ui.view">
+        <field name="name">van.agent.summary.kanban</field>
+        <field name="model">van.agent.summary</field>
+        <field name="arch" type="xml">
+            <kanban class="o_kanban_mobile" create="0">
+                <field name="agent_id"/>
+                <field name="total_sales"/>
+                <field name="total_balance"/>
+                <field name="pos_order_count"/>
+                <field name="currency_id"/>
+                <templates>
+                    <t t-name="card" class="flex-row">
+                        <aside class="o_kanban_aside_full" style="width: 85px; text-align: center; padding-top: 15px;">
+                            <img t-attf-src="/web/image?model=res.users&amp;id={{record.agent_id.raw_value}}&amp;field=avatar_128" alt="Avatar" style="width: 64px; height: 64px; border-radius: 50%; object-fit: cover; margin: 0 auto; display: block;"/>
+                        </aside>
+                        <main class="ms-3 pe-2 w-100">
+                            <strong class="o_kanban_record_title" style="font-size: 1.2em; font-weight:bold;">
+                                <field name="agent_id"/>
+                            </strong>
+                            <div class="mt-2">
+                                <span class="text-muted"><i class="fa fa-shopping-cart me-1"/> Sotuvlar: </span>
+                                <span class="fw-bold"><field name="pos_order_count"/></span>
+                            </div>
+                            <div>
+                                <span class="text-muted"><i class="fa fa-money me-1"/> Jami Sotuv: </span>
+                                <span class="fw-bold text-success"><field name="total_sales" widget="monetary"/></span>
+                            </div>
+                            <div class="mt-2 pt-2 border-top">
+                                <span class="text-muted"><i class="fa fa-bank me-1"/> Balans: </span>
+                                <span class="fw-bold text-primary" style="font-size: 1.1em;"><field name="total_balance" widget="monetary"/></span>
+                            </div>
+                        </main>
+                    </t>
+                </templates>
+            </kanban>
         </field>
     </record>
 
@@ -173,11 +209,12 @@
     <record id="action_van_agent_summary" model="ir.actions.act_window">
         <field name="name">Agentlar Hisoboti</field>
         <field name="res_model">van.agent.summary</field>
-        <field name="view_mode">list,form</field>
+        <field name="view_mode">kanban,list,form</field>
         <field name="view_ids" eval="[(5, 0, 0),
+            (0, 0, {'view_mode': 'kanban', 'view_id': ref('view_van_agent_summary_kanban')}),
             (0, 0, {'view_mode': 'list', 'view_id': ref('view_van_agent_summary_list')}),
             (0, 0, {'view_mode': 'form', 'view_id': ref('view_van_agent_summary_form')})]"/>
-        <field name="context">{'search_default_today': 1}</field>
+        <field name="context">{}</field>
     </record>
 
     <!-- ============================================================
@@ -256,8 +293,7 @@
         <field name="arch" type="xml">
             <xpath expr="//page[@name='access_rights']//group" position="inside">
                 <group string="Van Sales">
-                    <field name="groups_id" widget="many2many_tags" 
-                           domain="[('category_id', '=', ref('van_sales_pharma.module_category_van_sales'))]" 
+                    <field name="group_ids" widget="many2many_tags" 
                            options="{'no_create': True}"
                            placeholder="Role tanlang..."/>
                 </group>

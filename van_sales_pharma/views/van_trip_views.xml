@@ -72,7 +72,6 @@
                         <field name="x_cash_expected" widget="monetary" options="{'currency_field': 'currency_id'}"/>
                         <field name="x_card_expected" widget="monetary" options="{'currency_field': 'currency_id'}"/>
                         <field name="x_nasiya_total" widget="monetary" options="{'currency_field': 'currency_id'}"/>
-                        <div class="oe_clear"/>
                         <field name="x_cash_received" widget="monetary" options="{'currency_field': 'currency_id'}" invisible="state not in ['closed']"/>
                         <field name="x_card_received" widget="monetary" options="{'currency_field': 'currency_id'}" invisible="state not in ['closed']"/>
                         <field name="x_difference" widget="monetary" options="{'currency_field': 'currency_id'}" decoration-danger="x_difference &gt; 0" decoration-success="x_difference &lt;= 0" invisible="state not in ['closed']"/>
