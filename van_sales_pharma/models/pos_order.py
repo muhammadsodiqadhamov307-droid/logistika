@@ -59,10 +59,24 @@ class PosOrder(models.Model):
                 nasiya_records = self.env['van.nasiya'].search([('invoice_id', '=', order.account_move.id)])
                 nasiya_records.unlink()
 
-            # Attempt to cancel pickings
+            # Attempt to cancel pickings gracefully, or force if needed
             if order.picking_ids:
-                order.picking_ids.action_cancel()
-                order.picking_ids.sudo().unlink()
+                for picking in order.picking_ids:
+                    if picking.state == 'done':
+                        # Forcefully revert state to draft via SQL to avoid UserError
+                        self.env.cr.execute("UPDATE stock_picking SET state='draft' WHERE id=%s", (picking.id,))
+                        for move in picking.move_ids:
+                            self.env.cr.execute("UPDATE stock_move SET state='draft' WHERE id=%s", (move.id,))
+                            for move_line in move.move_line_ids:
+                                self.env.cr.execute("UPDATE stock_move_line SET state='draft' WHERE id=%s", (move_line.id,))
+                        
+                        # Invalidate cache so ORM sees the draft state
+                        picking.invalidate_recordset(['state'])
+                        picking.move_ids.invalidate_recordset(['state'])
+                        picking.move_ids.move_line_ids.invalidate_recordset(['state'])
+                    
+                    picking.sudo().action_cancel()
+                    picking.sudo().unlink()
 
             # Reverse or cancel account moves
             if order.account_move:
@@ -73,9 +87,16 @@ class PosOrder(models.Model):
             # Unlink payments
             order.payment_ids.sudo().unlink()
 
-            # Force state to draft so super().unlink() doesn't fail
-            # Odoo core checks if state in ('draft', 'cancel')
-            if order.state not in ('draft', 'cancel'):
-                order.write({'state': 'draft'})
+            # Detach from session and other relational fields safely before deletion
+            # This prevents UI/Session errors that try to read the order after it's gone
+            order.write({
+                'state': 'draft',
+                'session_id': False,
+                'account_move': False,
+            })
+
+            # Forcefully remove lines so they don't block deletion
+            if order.lines:
+                order.lines.sudo().unlink()
 
         return super(PosOrder, self).unlink()
