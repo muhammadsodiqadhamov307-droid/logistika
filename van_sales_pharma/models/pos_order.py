@@ -27,7 +27,6 @@ class PosOrder(models.Model):
             # Agent hisobotini ham topamiz
             summary = self.env['van.agent.summary'].search([
                 ('agent_id', '=', order.user_id.id),
-                ('date', '=', order_date),
             ], limit=1)
             order.x_agent_summary_id = summary.id if summary else False
 

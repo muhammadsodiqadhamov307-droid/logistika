@@ -7,6 +7,7 @@ from . import van_nasiya
 from . import res_partner
 from . import res_users
 from . import pos_order
+from . import product_product
 from . import van_agent_summary
 from . import van_customer
 from . import pos_session
