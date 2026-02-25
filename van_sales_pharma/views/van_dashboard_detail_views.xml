@@ -30,7 +30,7 @@
                 <field name="agent_id" widget="many2one_avatar_user"/>
                 <field name="transaction_type" widget="badge" decoration-success="transaction_type == 'kirim'" decoration-danger="transaction_type == 'chiqim'" decoration-info="transaction_type == 'sale'"/>
                 <field name="payment_method" widget="badge" decoration-warning="payment_method == 'nasiya'" decoration-info="payment_method == 'card'" decoration-success="payment_method == 'cash'"/>
-                <field name="amount" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                <field name="amount" widget="monetary" options="{'currency_field': 'currency_id'}" sum="Jami"/>
                 <field name="note" optional="show"/>
                 <field name="res_id" column_invisible="1"/>
                 <field name="res_model" column_invisible="1"/>
