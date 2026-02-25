@@ -23,6 +23,7 @@ export class VanSalesDashboard extends Component {
             margin_today: 0,
             top_customers: [],
             top_agents: [],
+            top_products: [],
             chart_labels: [],
             chart_data: [],
             detail_view_id: false,
@@ -57,6 +58,7 @@ export class VanSalesDashboard extends Component {
         this.state.margin_today = data.margin_today || 0;
         this.state.top_customers = data.top_customers;
         this.state.top_agents = data.top_agents;
+        this.state.top_products = data.top_products;
         this.state.chart_labels = data.chart_labels;
         this.state.chart_data = data.chart_data;
         this.state.detail_view_id = data.detail_view_id;

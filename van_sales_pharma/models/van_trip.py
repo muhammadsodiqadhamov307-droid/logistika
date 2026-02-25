@@ -271,8 +271,17 @@ class VanTrip(models.Model):
 
         customer_totals = {}
         agent_totals = {}
+        product_totals = {}
         
         for mo in monthly_orders:
+            # Products
+            for line in mo.lines:
+                if line.product_id:
+                    p_id = line.product_id.id
+                    p_name = line.product_id.name
+                    if p_id not in product_totals:
+                        product_totals[p_id] = {'name': p_name, 'total': 0.0}
+                    product_totals[p_id]['total'] += line.price_subtotal_incl
             # Customers (Aggregate by Name to merge duplicate partner records like "Yangi apteka")
             if mo.partner_id:
                 c_name = mo.partner_id.name or "Noma'lum"
@@ -291,6 +300,7 @@ class VanTrip(models.Model):
         # Sort and take top 5
         top_customers = sorted(customer_totals.values(), key=lambda x: x['total'], reverse=True)[:5]
         top_agents = sorted(agent_totals.values(), key=lambda x: x['total'], reverse=True)[:5]
+        top_products = sorted(product_totals.values(), key=lambda x: x['total'], reverse=True)[:5]
 
         # 6. Monthly Sales Chart Data (Last 6 Months)
         from dateutil.relativedelta import relativedelta
@@ -335,6 +345,7 @@ class VanTrip(models.Model):
             'margin_today': margin_today,
             'top_customers': top_customers,
             'top_agents': top_agents,
+            'top_products': top_products,
             'chart_labels': chart_labels,
             'chart_data': chart_data,
             'detail_view_id': detail_view.id if detail_view else False,

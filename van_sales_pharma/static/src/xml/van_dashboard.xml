@@ -101,7 +101,7 @@
                     <!-- Top Lists: Customers and Agents -->
                     <div class="row">
                         <!-- Top Customers -->
-                        <div class="col-md-6 mb-4">
+                        <div class="col-md-4 mb-4">
                             <div class="card shadow-sm border-0 h-100">
                                 <div class="card-header bg-white border-bottom">
                                     <h5 class="mb-0 text-secondary fw-bold" style="color: #12633e !important;">Top Mijozlar</h5>
@@ -131,7 +131,7 @@
                         </div>
 
                         <!-- Top Agents -->
-                        <div class="col-md-6 mb-4">
+                        <div class="col-md-4 mb-4">
                             <div class="card shadow-sm border-0 h-100">
                                 <div class="card-header bg-white border-bottom">
                                     <h5 class="mb-0 text-secondary fw-bold" style="color: #12633e !important;">Top Agentlar</h5>
@@ -152,6 +152,37 @@
                                                 </tr>
                                             </t>
                                             <tr t-if="state.top_agents.length === 0">
+                                                <td colspan="2" class="text-center text-muted py-4">Hali sotuvlar yo'q</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                        </div>
+
+                        <!-- Top Products -->
+                        <div class="col-md-4 mb-4">
+                            <div class="card shadow-sm border-0 h-100">
+                                <div class="card-header bg-white border-bottom">
+                                    <h5 class="mb-0 text-secondary fw-bold" style="color: #12633e !important;">Top Mahsulotlar</h5>
+                                </div>
+                                <div class="card-body p-0 table-responsive">
+                                    <table class="table table-hover table-borderless mb-0">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th class="ps-4">Mahsulot</th>
+                                                <th class="text-end pe-4">Tushum</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <t t-foreach="state.top_products" t-as="prod" t-key="prod.name">
+                                                <tr class="align-middle border-bottom">
+                                                    <td class="ps-4 fw-bold text-dark"><i class="fa fa-cubes me-2 text-muted"/> <t t-esc="prod.name"/></td>
+                                                    <td class="text-end pe-4 fw-bold text-info"><t t-esc="formatPrice(prod.total)"/></td>
+                                                </tr>
+                                            </t>
+                                            <tr t-if="state.top_products.length === 0">
                                                 <td colspan="2" class="text-center text-muted py-4">Hali sotuvlar yo'q</td>
                                             </tr>
                                         </tbody>
