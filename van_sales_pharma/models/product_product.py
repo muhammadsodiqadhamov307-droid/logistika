@@ -1,8 +1,8 @@
 from odoo import api, models
 
 
-class ProductTemplate(models.Model):
-    _inherit = 'product.template'
+class ProductProduct(models.Model):
+    _inherit = 'product.product'
 
     @api.model
     def _load_pos_data_domain(self, data, config):
@@ -38,12 +38,12 @@ class ProductTemplate(models.Model):
             # If a strict Agent is logged in but hasn't been set up yet, they can't sell anything.
             return base_domain + [('id', 'in', [])]
 
-        # Get product.template IDs that have remaining_qty > 0 in the van
-        van_product_tmpl_ids = summary.inventory_line_ids.filtered(
+        # Get strict product.product IDs that have remaining_qty > 0 in the van
+        van_product_ids = summary.inventory_line_ids.filtered(
             lambda l: l.remaining_qty > 0
-        ).mapped('product_id.product_tmpl_id').ids
+        ).mapped('product_id').ids
 
-        if not van_product_tmpl_ids:
+        if not van_product_ids:
             return [('id', 'in', [])]
 
         # Return a custom domain that entirely ignores 'available_in_pos' but ensures basic access
@@ -51,7 +51,7 @@ class ProductTemplate(models.Model):
         return [
             ('sale_ok', '=', True),
             ('company_id', 'in', [self.env.company.id, False]),
-            ('id', 'in', van_product_tmpl_ids)
+            ('id', 'in', van_product_ids)
         ]
 
     def get_product_info_pos(self, price, quantity, pos_config_id, product_variant_id=False):
@@ -80,9 +80,9 @@ class ProductTemplate(models.Model):
             ], limit=1)
 
             if summary:
-                # Find the inventory line for this product template
+                # Find the inventory line for this product variant
                 inv_lines = summary.inventory_line_ids.filtered(
-                    lambda l: l.product_id.product_tmpl_id.id == self.id
+                    lambda l: l.product_id.id == self.id
                 )
                 
                 remaining = sum(inv_lines.mapped('remaining_qty'))
