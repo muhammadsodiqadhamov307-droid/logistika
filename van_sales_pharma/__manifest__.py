@@ -46,6 +46,7 @@
             'van_sales_pharma/static/src/js/material_request_popup.js',
             'van_sales_pharma/static/src/js/navbar_material_request.js',
             'van_sales_pharma/static/src/js/product_template_patch.js',
+            'van_sales_pharma/static/src/js/payment_screen_patch.js',
         ],
     },
     'installable': True,
