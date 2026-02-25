@@ -175,17 +175,26 @@ export class VanSalesDashboard extends Component {
     }
 
     openSalesByMethod(method) {
-        const today = new Date().toISOString().slice(0, 10);
         let domain = [];
 
         if (method === 'cash') {
-            domain = [['payment_method', '=', 'cash'], ['transaction_type', 'in', ['sale', 'kirim']], ['date', '>=', today + " 00:00:00"]];
+            domain = [['payment_method', '=', 'cash'], ['transaction_type', 'in', ['sale', 'kirim']]];
         } else if (method === 'nasiya') {
             domain = [['payment_method', '=', 'nasiya']]; // Global nasiya, filter off date
         } else if (method === 'chiqim') {
-            domain = [['transaction_type', '=', 'chiqim'], ['date', '>=', today + " 00:00:00"]];
+            domain = [['transaction_type', '=', 'chiqim']];
         } else {
-            domain = [['payment_method', '=', 'card'], ['transaction_type', 'in', ['sale', 'kirim']], ['date', '>=', today + " 00:00:00"]];
+            domain = [['payment_method', '=', 'card'], ['transaction_type', 'in', ['sale', 'kirim']]];
+        }
+
+        // Apply date filters if they exist, and leave all-time if they don't
+        if (method !== 'nasiya') {
+            if (this.state.date_from) {
+                domain.push(['date', '>=', this.state.date_from + ' 00:00:00']);
+            }
+            if (this.state.date_to) {
+                domain.push(['date', '<=', this.state.date_to + ' 23:59:59']);
+            }
         }
 
         const methodNames = {
