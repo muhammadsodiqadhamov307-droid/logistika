@@ -57,21 +57,24 @@ class VanSaleOrder(models.Model):
 
     def action_confirm(self):
         for order in self:
-            if order.trip_id.state in ['draft', 'closed']:
-                raise UserError(_("Faqat jarayonda bo'lgan yoki yuklangan sayohatlarda sotuvni tasdiqlash mumkin!"))
+            if order.trip_id.state == 'draft':
+                raise UserError(_("Faqat tasdiqlangan sayohatlarda sotuvni tasdiqlash mumkin!"))
                 
-            # Ombor qoldiqlarini tekshirish
+            # Ombor qoldiqlarini tekshirish (Agent Summary orqali)
+            summary = self.env['van.agent.summary'].search([('agent_id', '=', order.agent_id.id)], limit=1)
             for line in order.line_ids:
-                trip_line = self.env['van.trip.line'].search([
-                    ('trip_id', '=', order.trip_id.id),
+                inv_line = self.env['van.agent.inventory.line'].search([
+                    ('summary_id', '=', summary.id),
                     ('product_id', '=', line.product_id.id)
                 ], limit=1)
                 
-                if not trip_line:
-                    raise UserError(_("Mahsulot '%s' mashina yukida mavjud emas!") % line.product_id.display_name)
-                if trip_line.remaining_qty < line.qty:
-                    raise UserError(_("Mashinada '%s' dan faqat %s ta qolgan. Siz %s ta sotmoqchisiz!") % 
-                                    (line.product_id.display_name, trip_line.remaining_qty, line.qty))
+                if not inv_line:
+                    raise UserError(_("Mahsulot '%s' agent qoldig'ida mavjud emas!") % line.product_id.display_name)
+                
+                rem_qty = inv_line.loaded_qty - inv_line.sold_qty + inv_line.returned_qty
+                if rem_qty < line.qty:
+                    raise UserError(_("Agent qoldig'ida '%s' dan faqat %s ta qolgan. Siz %s ta sotmoqchisiz!") % 
+                                    (line.product_id.display_name, rem_qty, line.qty))
                                     
             order.state = 'confirmed'
         return True
@@ -125,7 +128,6 @@ class VanSaleOrder(models.Model):
             # Step 4: To'lov/Nasiya ob'ektlarini ro'yxatdan o'tkazish
             if order.payment_method in ['cash', 'card']:
                 self.env['van.payment'].create({
-                    'trip_id': order.trip_id.id,
                     'agent_id': order.agent_id.id,
                     'payment_method': order.payment_method,
                     'amount': order.amount_total,

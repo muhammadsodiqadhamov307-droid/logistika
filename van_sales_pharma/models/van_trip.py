@@ -20,30 +20,13 @@ class VanTrip(models.Model):
     
     state = fields.Selection([
         ('draft', 'Qoralama'),
-        ('loaded', 'Yuklangan'),
-        ('in_progress', 'Jarayonda'),
-        ('closed', 'Yopilgan')
+        ('validated', 'Tasdiqlangan')
     ], string='Holat', default='draft', required=True, copy=False, tracking=True)
 
     trip_line_ids = fields.One2many('van.trip.line', 'trip_id', string='Yuklangan Mahsulotlar')
-    pos_order_ids = fields.One2many('pos.order', 'x_trip_id', string='POS Sotuvlar')
-    payment_ids = fields.One2many('van.payment', 'trip_id', string='To\'lovlar')
-
-    # Financials
-    x_cash_expected = fields.Monetary(string='Kutilgan Naqt', compute='_compute_financials', store=True, currency_field='currency_id')
-    x_card_expected = fields.Monetary(string='Kutilgan Karta', compute='_compute_financials', store=True, currency_field='currency_id')
-    x_nasiya_total = fields.Monetary(string='Jami Nasiya', compute='_compute_financials', store=True, currency_field='currency_id')
-    
-    x_cash_received = fields.Monetary(string='Topshirilgan Naqt', copy=False, currency_field='currency_id')
-    x_card_received = fields.Monetary(string='Topshirilgan Karta', copy=False, currency_field='currency_id')
-    
-    x_difference = fields.Monetary(string='Farq', compute='_compute_difference', store=True, currency_field='currency_id')
 
     # Quantities
     x_loaded_qty = fields.Float(string='Yuklangan Miqdor', compute='_compute_quantities')
-    x_sold_qty = fields.Float(string='Sotilgan Miqdor', compute='_compute_quantities')
-    x_returned_qty = fields.Float(string='Qaytarilgan Miqdor', compute='_compute_quantities')
-    x_remaining_qty = fields.Float(string='Mashina Qoldig\'i', compute='_compute_quantities')
 
     note = fields.Text(string='Izoh')
 
@@ -57,90 +40,43 @@ class VanTrip(models.Model):
 
     def unlink(self):
         for trip in self:
-            # Instead of preventing deletion, forcefully cascade delete associated records
-            if trip.pos_order_ids:
-                trip.pos_order_ids.sudo().unlink()
-            if trip.payment_ids:
-                trip.payment_ids.sudo().unlink()
-            
             # If trip has already affected agent summary inventory
-            if trip.state in ['loaded', 'in_progress', 'closed']:
+            if trip.state == 'validated':
                 summary = self.env['van.agent.summary'].search([
                     ('agent_id', '=', trip.agent_id.id),
                 ], limit=1)
                 
                 if summary:
+                    product_dict = {}
                     for line in trip.trip_line_ids:
+                        product_dict[line.product_id.id] = product_dict.get(line.product_id.id, 0.0) + line.loaded_qty
+                        
+                    for p_id, qty in product_dict.items():
                         inv_line = self.env['van.agent.inventory.line'].search([
                             ('summary_id', '=', summary.id),
-                            ('product_id', '=', line.product_id.id)
+                            ('product_id', '=', p_id)
                         ], limit=1)
                         
                         if inv_line:
-                            # Reverse the 'action_start' addition
-                            inv_line.loaded_qty -= line.loaded_qty
-                            
-                            # Reverse the 'action_close' subtraction (if it was closed)
-                            if trip.state == 'closed':
-                                inv_line.loaded_qty += line.returned_qty
+                            # Reverse the addition
+                            inv_line.loaded_qty -= qty
 
         return super().unlink()
 
-    @api.depends('pos_order_ids.state', 'pos_order_ids.payment_ids.amount', 'pos_order_ids.amount_total')
-    def _compute_financials(self):
-        for trip in self:
-            cash_expected = 0.0
-            card_expected = 0.0
-            nasiya_total = 0.0
-
-            # POS to'lov turlariga qarab ajratamiz
-            for order in trip.pos_order_ids.filtered(lambda o: o.state in ['paid', 'done', 'invoiced']):
-                for payment in order.payment_ids:
-                    method = payment.payment_method_id
-                    if method.is_cash_count:
-                        cash_expected += payment.amount
-                    elif method.split_transactions: # Nasiya (Customer Account)
-                        nasiya_total += payment.amount
-                    else: # Boshqa (Karta va h.k)
-                        card_expected += payment.amount
-
-            trip.x_cash_expected = cash_expected
-            trip.x_card_expected = card_expected
-            trip.x_nasiya_total = nasiya_total
-
-    @api.depends('x_cash_expected', 'x_cash_received')
-    def _compute_difference(self):
-        for trip in self:
-            trip.x_difference = trip.x_cash_received - trip.x_cash_expected
-
-    @api.depends('trip_line_ids.loaded_qty', 'trip_line_ids.sold_qty', 'trip_line_ids.returned_qty', 'trip_line_ids.remaining_qty')
+    @api.depends('trip_line_ids.loaded_qty')
     def _compute_quantities(self):
         for trip in self:
             trip.x_loaded_qty = sum(trip.trip_line_ids.mapped('loaded_qty'))
-            trip.x_sold_qty = sum(trip.trip_line_ids.mapped('sold_qty'))
-            trip.x_returned_qty = sum(trip.trip_line_ids.mapped('returned_qty'))
-            trip.x_remaining_qty = sum(trip.trip_line_ids.mapped('remaining_qty'))
 
-    def action_load(self):
-        """ Ochadi yuklash wizardini """
-        self.ensure_one()
-        if self.state != 'draft':
-            raise UserError(_("Faqat Qoralama holatdagi sayohatga yuklash mumkin!"))
-        
-        return {
-            'name': _('Mashinaga Yuklash'),
-            'type': 'ir.actions.act_window',
-            'res_model': 'van.load.wizard',
-            'view_mode': 'form',
-            'target': 'new',
-            'context': {'default_trip_id': self.id}
-        }
-
-    def action_start(self):
+    def action_validate(self):
         for trip in self:
-            if trip.state != 'loaded':
-                raise UserError(_("Sayohatni boshlash uchun u avval yuklangan bo'lishi kerak!"))
-            trip.state = 'in_progress'
+            if trip.state != 'draft':
+                raise UserError(_("Sayohatni tasdiqlash uchun u 'Qoralama' holatda bo'lishi kerak!"))
+            
+            if not trip.trip_line_ids:
+                raise UserError(_("Hech qanday mahsulot qo'shilmagan! Iltimos, oldin mahsulot qo'shing."))
+                
+            trip.state = 'validated'
 
             # Agent doimiy hisoboti profilini qidiramiz
             summary = self.env['van.agent.summary'].search([
@@ -152,45 +88,96 @@ class VanTrip(models.Model):
                     'agent_id': trip.agent_id.id,
                 })
 
-            # Inventar satrlarini yangilash (ochirib yubormasdan)
+            # Mahsulotlarni guruhlash (bir xil mahsulot 2 marta kiritilsa qo'shiladi)
+            product_dict = {}
             for line in trip.trip_line_ids:
+                if line.product_id.id not in product_dict:
+                    product_dict[line.product_id.id] = {
+                        'qty': 0.0,
+                        'price': line.price_unit
+                    }
+                product_dict[line.product_id.id]['qty'] += line.loaded_qty
+                # Oxirgi narxni saqlaymiz
+                product_dict[line.product_id.id]['price'] = line.price_unit
+
+            # Inventar satrlarini yangilash
+            for p_id, data in product_dict.items():
                 existing_inv_line = self.env['van.agent.inventory.line'].search([
                     ('summary_id', '=', summary.id),
-                    ('product_id', '=', line.product_id.id)
+                    ('product_id', '=', p_id)
                 ], limit=1)
 
                 if existing_inv_line:
-                    # Doimiy profilga yangi yuklangan miqdorni qo'shamiz +=
-                    existing_inv_line.loaded_qty += line.loaded_qty
-                    existing_inv_line.price_unit = line.price_unit
+                    existing_inv_line.loaded_qty += data['qty']
+                    existing_inv_line.price_unit = data['price']
                 else:
                     self.env['van.agent.inventory.line'].create({
                         'summary_id': summary.id,
-                        'product_id': line.product_id.id,
-                        'price_unit': line.price_unit,
-                        'loaded_qty': line.loaded_qty,
-                        'sold_qty': 0.0,
-                        'returned_qty': 0.0,
+                        'product_id': p_id,
+                        'price_unit': data['price'],
+                        'loaded_qty': data['qty'],
                     })
         return True
 
-    def action_close(self):
-        self.ensure_one()
-        if self.state != 'in_progress':
-            raise UserError(_("Sayohatni yopish uchun u 'Jarayonda' bo'lishi kerak!"))
+    def action_cancel(self):
+        """ Bekor qilish: Yuklangan miqdorlarni Agent qoldig'idan ayirib tashlaydi """
+        for trip in self:
+            if trip.state != 'validated':
+                raise UserError(_("Faqat tasdiqlangan sayohatni bekor qilish mumkin!"))
+                
+            summary = self.env['van.agent.summary'].search([
+                ('agent_id', '=', trip.agent_id.id),
+            ], limit=1)
             
-        return {
-            'name': _('Sayohatni Yopish'),
-            'type': 'ir.actions.act_window',
-            'res_model': 'van.trip.close.wizard',
-            'view_mode': 'form',
-            'target': 'new',
-            'context': {
-                'default_trip_id': self.id,
-                'default_cash_received': self.x_cash_expected,
-                'default_card_received': self.x_card_expected
-            }
+            if summary:
+                product_dict = {}
+                for line in trip.trip_line_ids:
+                    product_dict[line.product_id.id] = product_dict.get(line.product_id.id, 0.0) + line.loaded_qty
+                    
+                for p_id, qty in product_dict.items():
+                    inv_line = self.env['van.agent.inventory.line'].search([
+                        ('summary_id', '=', summary.id),
+                        ('product_id', '=', p_id)
+                    ], limit=1)
+                    if inv_line:
+                        inv_line.loaded_qty -= qty
+                        
+            trip.state = 'draft'
+        return True
+
+    @api.model
+    def create_material_request_from_pos(self, agent_id, lines_data):
+        """
+        Creates a 'draft' van.trip from the POS Material Request Popup.
+        """
+        agent = self.env['res.users'].browse(agent_id)
+        
+        # Odoo POS requires an internal location for a trip. 
+        # We find their assigned default stock or fallback to a standard internal one.
+        location = self.env['stock.location'].search([
+            ('usage', '=', 'internal'), 
+            ('company_id', 'in', [self.env.company.id, False])
+        ], limit=1)
+        
+        if not location:
+            raise UserError(_("Hech qanday ichki ombor topilmadi. Iltimos omborni sozlang."))
+            
+        trip_vals = {
+            'agent_id': agent.id,
+            'location_id': location.id,
+            'state': 'draft',
+            'trip_line_ids': [(0, 0, {
+                'product_id': line['product_id'],
+                'loaded_qty': line['qty'],
+                'price_unit': self.env['product.product'].browse(line['product_id']).list_price,
+            }) for line in lines_data]
         }
+        
+        trip = self.create(trip_vals)
+        # Sayohatni avtomatik tasdiqlash (Agent Qoldig'iga to'g'ridan to'g'ri yuklash)
+        trip.action_validate()
+        
+        return trip.id
 
     @api.model
     def get_van_dashboard_data(self, date_from=False, date_to=False):

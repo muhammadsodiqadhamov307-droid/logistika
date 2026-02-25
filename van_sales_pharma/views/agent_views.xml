@@ -186,6 +186,83 @@
     </record>
 
     <!-- ============================================================
+         AGENT SUMMARY — INVENTORY DASHBOARD (Hybrid Form + Kanban)
+    ============================================================ -->
+    <record id="view_van_agent_summary_inventory_dashboard" model="ir.ui.view">
+        <field name="name">van.agent.summary.inventory.dashboard</field>
+        <field name="model">van.agent.summary</field>
+        <field name="arch" type="xml">
+            <form string="Agent Inventari" create="0" edit="0">
+                <sheet>
+                    <div class="row mb-4">
+                        <div class="col-12 col-md-4">
+                            <div class="card text-center text-bg-primary shadow-sm" style="border: none; border-radius: 8px;">
+                                <div class="card-body">
+                                    <h6 class="card-title text-uppercase text-white-50 mb-1" style="font-size: 0.85rem; font-weight: 600;">Jami Mahsulotlar Soni</h6>
+                                    <h2 class="mb-0 text-white" style="font-weight: 700;"><field name="total_inventory_qty"/></h2>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-md-4">
+                            <div class="card text-center text-bg-success shadow-sm" style="border: none; border-radius: 8px;">
+                                <div class="card-body">
+                                    <h6 class="card-title text-uppercase text-white-50 mb-1" style="font-size: 0.85rem; font-weight: 600;">Jami Summa (Sotuv Narxida)</h6>
+                                    <h2 class="mb-0 text-white" style="font-weight: 700;"><field name="total_inventory_value" widget="monetary" options="{'currency_field': 'currency_id'}"/></h2>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-md-4">
+                            <div class="card text-center text-bg-warning shadow-sm" style="border: none; border-radius: 8px;">
+                                <div class="card-body">
+                                    <h6 class="card-title text-uppercase text-dark-50 mb-1" style="font-size: 0.85rem; font-weight: 600;">Kutilayotgan Sof Foyda</h6>
+                                    <h2 class="mb-0 text-dark" style="font-weight: 700;"><field name="expected_net_profit" widget="monetary" options="{'currency_field': 'currency_id'}"/></h2>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <h4 class="mt-4 mb-3 border-bottom pb-2">Olib Yurgan Mahsulotlar Ro'yxati</h4>
+                    
+                    <field name="active_inventory_line_ids" readonly="1">
+                        <kanban class="o_kanban_mobile" create="0" sample="1">
+                            <field name="product_id"/>
+                            <field name="remaining_qty"/>
+                            <field name="cost_price"/>
+                            <field name="price_unit"/>
+                            <field name="currency_id"/>
+                            <field name="uom_id"/>
+                            <templates>
+                                <t t-name="card" class="flex-row">
+                                    <aside class="o_kanban_aside_full" style="width: 85px; text-align: center; padding-top: 15px;">
+                                        <img t-attf-src="/web/image?model=product.product&amp;id={{record.product_id.raw_value}}&amp;field=image_128" alt="Mahsulot Rasmi" style="width: 64px; height: 64px; object-fit: cover; margin: 0 auto; display: block; border-radius: 4px;"/>
+                                    </aside>
+                                    <main class="ms-3 pe-2 w-100">
+                                        <strong class="o_kanban_record_title" style="font-size: 1.1em; font-weight:bold;">
+                                            <field name="product_id"/>
+                                        </strong>
+                                        <div class="mt-2 text-muted" style="font-size: 0.9em;">
+                                            <i class="fa fa-cubes me-1"/> Qoldiq: 
+                                            <span class="text-primary fw-bold float-end"><field name="remaining_qty"/> <field name="uom_id"/></span>
+                                        </div>
+                                        <div class="text-muted mt-1" style="font-size: 0.9em;" groups="van_sales_pharma.group_van_admin">
+                                            <i class="fa fa-download me-1"/> Kelish narxi: 
+                                            <span class="text-danger fw-bold float-end"><field name="cost_price" widget="monetary"/></span>
+                                        </div>
+                                        <div class="text-muted mt-1" style="font-size: 0.9em;">
+                                            <i class="fa fa-tag me-1"/> Sotish narxi: 
+                                            <span class="text-success fw-bold float-end"><field name="price_unit" widget="monetary"/></span>
+                                        </div>
+                                    </main>
+                                </t>
+                            </templates>
+                        </kanban>
+                    </field>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- ============================================================
          AGENT SUMMARY — KANBAN VIEW (Beautiful Cards)
     ============================================================ -->
     <record id="view_van_agent_summary_kanban" model="ir.ui.view">

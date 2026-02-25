@@ -46,6 +46,23 @@ class VanAgentSummary(models.Model):
     )
     inventory_count = fields.Integer(string='Mahsulotlar Soni', compute='_compute_active_inventory')
 
+    total_inventory_qty = fields.Float(string='Jami Mahsulotlar Soni', compute='_compute_inventory_dashboard')
+    total_inventory_value = fields.Monetary(string='Jami Summa (Sotuv)', currency_field='currency_id', compute='_compute_inventory_dashboard')
+    expected_net_profit = fields.Monetary(string='Kutilayotgan Sof Foyda', currency_field='currency_id', compute='_compute_inventory_dashboard')
+
+    @api.depends('active_inventory_line_ids.remaining_qty', 'active_inventory_line_ids.price_unit', 'active_inventory_line_ids.cost_price')
+    def _compute_inventory_dashboard(self):
+        for rec in self:
+            qty = val = profit = 0.0
+            for line in rec.active_inventory_line_ids:
+                qty += line.remaining_qty
+                val += line.remaining_qty * line.price_unit
+                cost = line.product_id.standard_price if not line.cost_price else line.cost_price
+                profit += (line.price_unit - cost) * line.remaining_qty
+            rec.total_inventory_qty = qty
+            rec.total_inventory_value = val
+            rec.expected_net_profit = profit
+
     def _compute_active_inventory(self):
         for rec in self:
             active_lines = rec.inventory_line_ids.filtered(lambda l: l.remaining_qty > 0 and l.product_id.type != 'service')
@@ -215,12 +232,14 @@ class VanAgentSummary(models.Model):
 
     def action_view_inventory_kanban(self):
         self.ensure_one()
+        view_id = self.env.ref('van_sales_pharma.view_van_agent_summary_inventory_dashboard').id
         return {
             'type': 'ir.actions.act_window',
             'name': f"{self.agent_id.name} - Olib Yurgan Mahsulotlar",
-            'res_model': 'van.agent.inventory.line',
-            'view_mode': 'kanban,list,form',
-            'domain': [('id', 'in', self.active_inventory_line_ids.ids)],
+            'res_model': 'van.agent.summary',
+            'res_id': self.id,
+            'view_mode': 'form',
+            'views': [(view_id, 'form')],
             'target': 'current',
         }
 

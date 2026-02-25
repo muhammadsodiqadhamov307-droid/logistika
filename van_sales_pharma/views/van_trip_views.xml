@@ -7,10 +7,9 @@
         <field name="arch" type="xml">
             <form string="Sayohat">
                 <header>
-                    <button name="action_load" string="Yuklash Akti" type="object" class="btn-primary" invisible="state != 'draft'"/>
-                    <button name="action_start" string="Sayohatni Boshlash" type="object" class="btn-success" invisible="state != 'loaded'"/>
-                    <button name="action_close" string="Sayohatni Yopish" type="object" class="btn-warning" invisible="state != 'in_progress'"/>
-                    <field name="state" widget="statusbar" statusbar_visible="draft,loaded,in_progress,closed"/>
+                    <button name="action_validate" string="Tasdiqlash" type="object" class="btn-success" invisible="state != 'draft'"/>
+                    <button name="action_cancel" string="Bekor Qilish" type="object" class="btn-danger" invisible="state != 'validated'"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,validated"/>
                 </header>
                 <sheet>
                     <div class="oe_title">
@@ -30,52 +29,18 @@
                         </group>
                     </group>
                     <notebook>
-                        <page string="Mahsulotlar (Mashina Qoldig'i)">
-                            <field name="trip_line_ids" readonly="1">
-                                <list editable="bottom" decoration-warning="remaining_qty &lt;= 0">
+                        <page string="Yuklanayotgan Mahsulotlar">
+                            <field name="trip_line_ids" readonly="state != 'draft'">
+                                <list editable="bottom">
                                     <field name="product_id"/>
                                     <field name="loaded_qty"/>
-                                    <field name="sold_qty"/>
-                                    <field name="returned_qty"/>
-                                    <field name="remaining_qty" decoration-bf="1"/>
                                     <field name="uom_id"/>
                                     <field name="price_unit" widget="monetary" options="{'currency_field': 'currency_id'}"/>
                                     <field name="currency_id" column_invisible="True"/>
                                 </list>
                             </field>
                         </page>
-                        <page string="POS Sotuvlari">
-                            <field name="pos_order_ids" readonly="1">
-                                <list>
-                                    <field name="name"/>
-                                    <field name="partner_id"/>
-                                    <field name="date_order" widget="datetime"/>
-                                    <field name="amount_total" widget="monetary"/>
-                                    <field name="state" widget="badge"/>
-                                </list>
-                            </field>
-                        </page>
-                        <page string="To'lovlar">
-                            <field name="payment_ids" readonly="1">
-                                <list>
-                                    <field name="name"/>
-                                    <field name="payment_method"/>
-                                    <field name="amount" widget="monetary" options="{'currency_field': 'currency_id'}"/>
-                                    <field name="date"/>
-                                    <field name="state" widget="badge" decoration-success="state == 'received'"/>
-                                    <field name="currency_id" column_invisible="True"/>
-                                </list>
-                            </field>
-                        </page>
                     </notebook>
-                    <group class="oe_subtotal_footer oe_right" colspan="2" name="financials">
-                        <field name="x_cash_expected" widget="monetary" options="{'currency_field': 'currency_id'}"/>
-                        <field name="x_card_expected" widget="monetary" options="{'currency_field': 'currency_id'}"/>
-                        <field name="x_nasiya_total" widget="monetary" options="{'currency_field': 'currency_id'}"/>
-                        <field name="x_cash_received" widget="monetary" options="{'currency_field': 'currency_id'}" invisible="state not in ['closed']"/>
-                        <field name="x_card_received" widget="monetary" options="{'currency_field': 'currency_id'}" invisible="state not in ['closed']"/>
-                        <field name="x_difference" widget="monetary" options="{'currency_field': 'currency_id'}" decoration-danger="x_difference &gt; 0" decoration-success="x_difference &lt;= 0" invisible="state not in ['closed']"/>
-                    </group>
                 </sheet>
             </form>
         </field>
@@ -86,13 +51,10 @@
         <field name="name">van.trip.list</field>
         <field name="model">van.trip</field>
         <field name="arch" type="xml">
-            <list string="Sayohatlar" decoration-muted="state == 'draft'" decoration-info="state == 'loaded'" decoration-warning="state == 'in_progress'" decoration-success="state == 'closed'">
+            <list string="Sayohatlar" decoration-muted="state == 'draft'" decoration-success="state == 'validated'">
                 <field name="name"/>
                 <field name="agent_id"/>
                 <field name="date"/>
-                <field name="x_cash_expected" widget="monetary" options="{'currency_field': 'currency_id'}"/>
-                <field name="x_cash_received" widget="monetary" options="{'currency_field': 'currency_id'}" optional="show"/>
-                <field name="x_difference" widget="monetary" options="{'currency_field': 'currency_id'}" decoration-danger="x_difference &gt; 0" optional="show"/>
                 <field name="state" widget="badge"/>
                 <field name="currency_id" column_invisible="True"/>
             </list>

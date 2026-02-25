@@ -12,12 +12,6 @@ access_van_payment_admin,van.payment admin,model_van_payment,van_sales_pharma.gr
 access_van_payment_agent,van.payment agent,model_van_payment,van_sales_pharma.group_van_agent,1,1,1,1
 access_van_nasiya_admin,van.nasiya admin,model_van_nasiya,van_sales_pharma.group_van_admin,1,1,1,1
 access_van_nasiya_agent,van.nasiya agent,model_van_nasiya,van_sales_pharma.group_van_agent,1,0,0,0
-access_van_load_wizard_admin,van.load.wizard admin,model_van_load_wizard,van_sales_pharma.group_van_admin,1,1,1,1
-access_van_load_line_admin,van.load.line admin,model_van_load_line,van_sales_pharma.group_van_admin,1,1,1,1
-access_van_trip_close_admin,van.trip.close.wizard admin,model_van_trip_close_wizard,van_sales_pharma.group_van_admin,1,1,1,1
-access_van_trip_close_agent,van.trip.close.wizard agent,model_van_trip_close_wizard,van_sales_pharma.group_van_agent,1,1,1,0
-access_van_trip_close_line_admin,van.trip.close.line admin,model_van_trip_close_line,van_sales_pharma.group_van_admin,1,1,1,1
-access_van_trip_close_line_agent,van.trip.close.line agent,model_van_trip_close_line,van_sales_pharma.group_van_agent,1,1,1,0
 access_van_agent_summary_admin,van.agent.summary admin,model_van_agent_summary,van_sales_pharma.group_van_admin,1,1,1,1
 access_van_agent_summary_agent,van.agent.summary agent,model_van_agent_summary,van_sales_pharma.group_van_agent,1,0,0,0
 access_van_agent_inventory_line_admin,van.agent.inventory.line admin,model_van_agent_inventory_line,van_sales_pharma.group_van_admin,1,1,1,1

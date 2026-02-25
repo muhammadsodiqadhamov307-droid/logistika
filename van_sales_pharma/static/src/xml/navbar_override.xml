@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+    <t t-name="van_sales_pharma.Navbar" t-inherit="point_of_sale.Navbar" t-inherit-mode="extension" owl="1">
+        <xpath expr="//DropdownItem[contains(., 'Cash In/Out')]" position="after">
+            <DropdownItem t-if="this.pos.cashier._role != 'minimal'" onSelected="() => this.openMaterialRequestPopup()">
+                <i class="fa fa-fw fa-paper-plane me-2"/>Material So'rovi
+            </DropdownItem>
+        </xpath>
+    </t>
+</templates>

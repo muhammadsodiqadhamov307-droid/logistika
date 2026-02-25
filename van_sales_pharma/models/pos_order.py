@@ -4,27 +4,18 @@ from odoo import models, fields, api
 class PosOrder(models.Model):
     _inherit = 'pos.order'
 
-    x_trip_id = fields.Many2one('van.trip', string='Sayohat (Trip)', compute='_compute_trip_id', store=True)
     x_agent_summary_id = fields.Many2one('van.agent.summary', string='Agent Hisobot',
-                                          compute='_compute_trip_id', store=True)
+                                          compute='_compute_agent_summary_id', store=True)
 
     @api.depends('session_id.config_id', 'date_order', 'user_id')
-    def _compute_trip_id(self):
+    def _compute_agent_summary_id(self):
         for order in self:
             order_date = order.date_order.date() if order.date_order else False
             if not order_date:
-                order.x_trip_id = False
                 order.x_agent_summary_id = False
                 continue
 
-            trip = self.env['van.trip'].search([
-                ('agent_id', '=', order.user_id.id),
-                ('date', '=', order_date),
-                ('state', 'in', ['loaded', 'in_progress'])
-            ], limit=1)
-            order.x_trip_id = trip.id if trip else False
-
-            # Agent hisobotini ham topamiz
+            # Agent hisobotini topamiz
             summary = self.env['van.agent.summary'].search([
                 ('agent_id', '=', order.user_id.id),
             ], limit=1)

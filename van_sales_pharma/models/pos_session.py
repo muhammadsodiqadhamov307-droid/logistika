@@ -10,16 +10,9 @@ class PosSession(models.Model):
         # Custom Logic: Track both Cash In and Cash Out into the Agent's van.payment.
         if _type in ['in', 'out']:
             agent = self.env.user
-            # Try to find the active trip for this agent
-            active_trip = self.env['van.trip'].search([
-                ('agent_id', '=', agent.id), 
-                ('state', 'in', ['loaded', 'in_progress'])
-            ], limit=1)
-
             # Create a van.payment record so it shows up in Kirimlar / Chiqimlar
             self.env['van.payment'].create({
                 'agent_id': agent.id,
-                'trip_id': active_trip.id if active_trip else False,
                 'partner_id': partner_id if _type == 'in' else False,
                 'payment_type': _type,
                 'payment_method': 'cash',
