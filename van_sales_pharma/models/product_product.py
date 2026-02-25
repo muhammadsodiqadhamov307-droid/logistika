@@ -44,6 +44,48 @@ class ProductTemplate(models.Model):
             ('id', 'in', van_product_tmpl_ids)
         ]
 
+    def get_product_info_pos(self, price, quantity, pos_config_id, product_variant_id=False):
+        """
+        Override to show the agent's van inventory (Qoldiq) instead of global
+        warehouse stock when they hold-press a product in POS.
+        JS calls this on product.template, so this is the correct location.
+        """
+        res = super().get_product_info_pos(price, quantity, pos_config_id, product_variant_id)
+
+        config = self.env['pos.config'].browse(pos_config_id)
+        session = config.current_session_id
+        cashier = session.user_id if session else self.env.user
+
+        if not cashier:
+            return res
+
+        # Find Van Agent Summary for this cashier
+        summary = self.env['van.agent.summary'].search([
+            ('agent_id', '=', cashier.id),
+        ], limit=1)
+
+        if not summary:
+            return res
+
+        # Match inventory lines by any variant of THIS template (self = product.template)
+        inv_lines = summary.inventory_line_ids.filtered(
+            lambda l: l.product_id.product_tmpl_id.id == self.id and l.remaining_qty > 0
+        )
+
+        remaining = sum(inv_lines.mapped('remaining_qty'))
+
+        # Replace the company warehouse list with the Agent's Truck Inventory
+        res['warehouses'] = [{
+            'id': 99999,
+            'name': f"{cashier.name} - Mashina Ombori",
+            'available_quantity': remaining,
+            'free_qty': remaining,
+            'forecasted_quantity': remaining,
+            'uom': self.uom_name,
+        }]
+
+        return res
+
 
 class ProductProduct(models.Model):
     _inherit = 'product.product'
@@ -86,44 +128,4 @@ class ProductProduct(models.Model):
             ('id', 'in', van_product_ids)
         ]
 
-    def get_product_info_pos(self, price, quantity, pos_config_id, product_variant_id=False):
-        """
-        Override to show the agent's van inventory (Qoldiq) instead of global
-        warehouse stock when they click the 'info' button in POS.
-        """
-        res = super().get_product_info_pos(price, quantity, pos_config_id, product_variant_id)
 
-        config = self.env['pos.config'].browse(pos_config_id)
-        session = config.current_session_id
-        cashier = session.user_id if session else self.env.user
-
-        if not cashier or cashier.id == 1:
-            return res
-
-        # As long as the agent has a summary Profile, they should see their Van Inventory
-        # We don't require an active trip here because an admin might manually add inventory
-        # to the summary to test it.
-        summary = self.env['van.agent.summary'].search([
-            ('agent_id', '=', cashier.id),
-        ], limit=1)
-
-        if summary:
-            # Find the inventory line for this product variant
-            inv_lines = summary.inventory_line_ids.filtered(
-                lambda l: l.product_id.id == self.id
-            )
-            
-            remaining = sum(inv_lines.mapped('remaining_qty'))
-            
-            # Replace the entire warehouse list with just the Agent's Van Inventory
-            # so the info dialog only shows the Qoldiq
-            res['warehouses'] = [{
-                'id': 99999, # Fake ID to avoid errors
-                'name': f"{cashier.name} - Mashina Ombori",
-                'available_quantity': remaining,
-                'free_qty': remaining,
-                'forecasted_quantity': remaining,
-                'uom': self.uom_name,
-            }]
-
-        return res
