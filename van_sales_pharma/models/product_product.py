@@ -100,34 +100,30 @@ class ProductProduct(models.Model):
         if not cashier or cashier.id == 1:
             return res
 
-        # Check if this cashier is an agent with an active trip
-        active_trip = self.env['van.trip'].search([
+        # As long as the agent has a summary Profile, they should see their Van Inventory
+        # We don't require an active trip here because an admin might manually add inventory
+        # to the summary to test it.
+        summary = self.env['van.agent.summary'].search([
             ('agent_id', '=', cashier.id),
-            ('state', 'in', ['loaded', 'in_progress', 'validated'])
         ], limit=1)
 
-        if active_trip:
-            summary = self.env['van.agent.summary'].search([
-                ('agent_id', '=', cashier.id),
-            ], limit=1)
-
-            if summary:
-                # Find the inventory line for this product variant
-                inv_lines = summary.inventory_line_ids.filtered(
-                    lambda l: l.product_id.id == self.id
-                )
-                
-                remaining = sum(inv_lines.mapped('remaining_qty'))
-                
-                # Replace the entire warehouse list with just the Agent's Van Inventory
-                # so the info dialog only shows the Qoldiq
-                res['warehouses'] = [{
-                    'id': 99999, # Fake ID to avoid errors
-                    'name': f"{cashier.name} - Mashina Ombori",
-                    'available_quantity': remaining,
-                    'free_qty': remaining,
-                    'forecasted_quantity': remaining,
-                    'uom': self.uom_name,
-                }]
+        if summary:
+            # Find the inventory line for this product variant
+            inv_lines = summary.inventory_line_ids.filtered(
+                lambda l: l.product_id.id == self.id
+            )
+            
+            remaining = sum(inv_lines.mapped('remaining_qty'))
+            
+            # Replace the entire warehouse list with just the Agent's Van Inventory
+            # so the info dialog only shows the Qoldiq
+            res['warehouses'] = [{
+                'id': 99999, # Fake ID to avoid errors
+                'name': f"{cashier.name} - Mashina Ombori",
+                'available_quantity': remaining,
+                'free_qty': remaining,
+                'forecasted_quantity': remaining,
+                'uom': self.uom_name,
+            }]
 
         return res

@@ -42,6 +42,7 @@
             'van_sales_pharma/static/src/xml/cash_move_popup_override.xml',
             'van_sales_pharma/static/src/xml/material_request_popup.xml',
             'van_sales_pharma/static/src/xml/navbar_override.xml',
+            'van_sales_pharma/static/src/xml/product_info_popup_override.xml',
             'van_sales_pharma/static/src/js/material_request_popup.js',
             'van_sales_pharma/static/src/js/navbar_material_request.js',
             'van_sales_pharma/static/src/js/product_template_patch.js',
