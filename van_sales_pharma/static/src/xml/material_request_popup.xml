@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <templates id="template" xml:space="preserve">
     <t t-name="van_sales_pharma.MaterialRequestPopup">
-        <Dialog title="'Material So\'rovi'">
-            <div class="popup-material-request" style="min-width: 500px; max-height: 400px; overflow-y: auto;">
+        <Dialog title="'Material So\'rovi'" size="'md'">
+            <div class="popup-material-request" style="max-height: 65vh; overflow-y: auto; overflow-x: hidden;">
                 <div class="search-bar-container mb-3 d-flex gap-2">
                     <input type="text" 
                            class="form-control form-control-lg" 
@@ -33,8 +33,8 @@
 
                 <div class="selected-products">
                     <h6 class="text-muted fw-bold mb-2">So'ralayotgan mahsulotlar:</h6>
-                    <div class="card shadow-sm border-0">
-                        <table class="table table-hover table-striped mb-0">
+                    <div class="card shadow-sm border-0 table-responsive">
+                        <table class="table table-hover table-striped mb-0" style="min-width: 300px;">
                             <thead class="table-light">
                                 <tr>
                                     <th class="ps-3">Mahsulot</th>
@@ -74,11 +74,11 @@
             </div>
 
             <t t-set-slot="footer">
-                <div class="w-100 d-flex gap-2">
-                    <button class="button confirm btn btn-primary flex-grow-1" t-att-disabled="state.selectedLines.length === 0" t-on-click="confirm">
+                <div class="w-100 d-flex flex-column flex-sm-row gap-2">
+                    <button class="button confirm btn btn-primary flex-grow-1 py-3 py-sm-2" t-att-disabled="state.selectedLines.length === 0" t-on-click="confirm">
                         <i class="fa fa-paper-plane me-2"/> Tasdiqlashga Yuborish
                     </button>
-                    <button class="button cancel btn btn-secondary flex-grow-1" t-on-click="props.close">
+                    <button class="button cancel btn btn-secondary flex-grow-1 py-3 py-sm-2" t-on-click="props.close">
                         Bekor qilish
                     </button>
                 </div>
