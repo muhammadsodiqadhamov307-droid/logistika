@@ -273,14 +273,13 @@ class VanTrip(models.Model):
         agent_totals = {}
         
         for mo in monthly_orders:
-            # Customers (Aggregate by Commercial Entity to avoid duplicates from delivery addresses)
+            # Customers (Aggregate by Name to merge duplicate partner records like "Yangi apteka")
             if mo.partner_id:
-                c_partner = mo.partner_id.commercial_partner_id or mo.partner_id
-                c_id = c_partner.id
-                c_name = c_partner.name
-                if c_id not in customer_totals:
-                    customer_totals[c_id] = {'id': c_id, 'name': c_name, 'total': 0.0}
-                customer_totals[c_id]['total'] += mo.amount_total
+                c_name = mo.partner_id.name or "Noma'lum"
+                c_key = c_name.strip().upper()
+                if c_key not in customer_totals:
+                    customer_totals[c_key] = {'name': c_name.strip(), 'total': 0.0}
+                customer_totals[c_key]['total'] += mo.amount_total
                 
             # Agents
             a_id = mo.user_id.id
