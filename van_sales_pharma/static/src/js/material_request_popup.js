@@ -104,8 +104,11 @@ export class MaterialRequestPopup extends Component {
             ]);
 
             if (tripId) {
-                this.notification.add(_t("Material so'rovi muvaffaqiyatli bajarildi! (Qoldiq qayta yuklandi)"), 5000);
+                this.notification.add(_t("Material so'rovi muvaffaqiyatli bajarildi! Sahifa yangilanmoqda..."), 5000);
                 this.props.close();
+
+                // Refresh the POS application to pull the newly injected Agent inventory products
+                setTimeout(() => window.location.reload(), 1500);
             }
         } catch (error) {
             console.error("Error creating material request:", error);
