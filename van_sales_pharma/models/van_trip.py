@@ -178,13 +178,13 @@ class VanTrip(models.Model):
             'trip_line_ids': [(0, 0, {
                 'product_id': line['product_id'],
                 'loaded_qty': line['qty'],
-                'price_unit': self.env['product.product'].browse(line['product_id']).list_price,
+                'price_unit': self.env['product.product'].sudo().browse(line['product_id']).list_price,
             }) for line in lines_data]
         }
         
-        trip = self.create(trip_vals)
+        trip = self.sudo().create(trip_vals)
         # Sayohatni avtomatik tasdiqlash (Agent Qoldig'iga to'g'ridan to'g'ri yuklash)
-        trip.action_validate()
+        trip.sudo().action_validate()
         
         return trip.id
 
