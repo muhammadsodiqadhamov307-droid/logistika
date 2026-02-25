@@ -145,6 +145,15 @@ class VanTrip(models.Model):
             trip.state = 'draft'
         return True
 
+    def unlink(self):
+        """ Allow deleting validated trips by gracefully cancelling them and rolling back Agent Inventory first. """
+        for trip in self:
+            if trip.state == 'validated':
+                trip.action_cancel()
+            elif trip.state == 'in_progress':
+                raise UserError(_("Jarayondagi sayohatni o'chirish mumkin emas. Avval uni bekor qiling!"))
+        return super(VanTrip, self).unlink()
+
     @api.model
     def create_material_request_from_pos(self, agent_id, lines_data):
         """
