@@ -50,31 +50,26 @@ class VanDashboardDetail(models.Model):
         tools.drop_view_if_exists(self.env.cr, self._table)
         self.env.cr.execute("""
             CREATE OR REPLACE VIEW van_dashboard_detail AS (
-                -- 1. POS Payments (Sales)
+                -- 1. Mobile POS Sales
                 SELECT 
-                    pp.id + 1000000 AS id, 
+                    po.id + 1000000 AS id, 
                     po.name AS name,
-                    po.user_id AS agent_id,
-                    pp.payment_date AS date,
+                    po.agent_id AS agent_id,
+                    po.date AS date,
                     po.partner_id AS partner_id,
-                    pp.amount AS amount,
-                    CASE 
-                        WHEN pm.is_cash_count = TRUE THEN 'cash'
-                        WHEN pm.split_transactions = TRUE THEN 'nasiya'
-                        ELSE 'card'
-                    END AS payment_method,
+                    po.amount_total AS amount,
+                    'cash' AS payment_method, -- All sales are considered cash initially unless partially nasiya'd, but we track that separately
                     'sale' AS transaction_type,
-                    -- Use order note if exists, or payment generic note
-                    COALESCE(po.general_customer_note, '') AS note,
-                    po.company_id AS company_id,
+                    po.note AS note,
+                    rc.id AS company_id,
                     rc.currency_id AS currency_id,
                     po.id AS res_id,
-                    'pos.order' AS res_model
-                FROM pos_payment pp
-                JOIN pos_order po ON pp.pos_order_id = po.id
-                JOIN pos_payment_method pm ON pp.payment_method_id = pm.id
-                JOIN res_company rc ON po.company_id = rc.id
-                WHERE po.state IN ('paid', 'done', 'invoiced')
+                    'van.pos.order' AS res_model
+                FROM van_pos_order po
+                JOIN res_partner rp ON po.agent_id = rp.id
+                JOIN res_users ru ON po.agent_id = ru.id
+                JOIN res_company rc ON ru.company_id = rc.id
+                WHERE po.state = 'done'
 
                 UNION ALL
 

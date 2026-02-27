@@ -1,0 +1,224 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="van_sales_pharma.VanMobilePos" owl="1">
+        <div class="van-mobile-pos-container" style="display: flex; flex-direction: column; height: 100vh; background-color: #f3f4f6; font-family: sans-serif;">
+            
+            <!-- Navbar -->
+            <div class="van-navbar" style="background-color: #2563eb; color: white; padding: 15px; display: flex; align-items: center; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); justify-content: space-between;">
+                <div style="display: flex; align-items: center;">
+                    <button t-if="state.screen !== 'clients' and state.screen !== 'kirim'" t-on-click="goBack" style="background: none; border: none; color: white; font-size: 20px; margin-right: 15px;">
+                        <i class="fa fa-arrow-left"></i>
+                    </button>
+                    <span style="font-size: 18px; font-weight: bold;">
+                        <t t-if="state.screen === 'clients'">Mijozlar</t>
+                        <t t-if="state.screen === 'products'">Mahsulotlar (<t t-esc="state.selectedClient.name"/>)</t>
+                        <t t-if="state.screen === 'checkout'">Xaridni Tasdiqlash</t>
+                        <t t-if="state.screen === 'kirim'">To'lov Qabul Qilish</t>
+                    </span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <!-- Quick Actions -->
+                    <button t-if="state.screen === 'clients' or state.screen === 'products'" t-on-click="() => this.openQuickAction('kirim')" style="background-color: #10b981; border: none; color: white; border-radius: 5px; padding: 5px 10px; font-weight: bold; font-size: 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.1);">
+                        + Kirim
+                    </button>
+                    <button t-if="state.screen === 'clients' or state.screen === 'products'" t-on-click="() => this.openQuickAction('chiqim')" style="background-color: #ef4444; border: none; color: white; border-radius: 5px; padding: 5px 10px; font-weight: bold; font-size: 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.1);">
+                        - Chiqim
+                    </button>
+                    <!-- Close POS -->
+                    <button t-if="state.screen === 'clients'" t-on-click="closePos" style="background: none; border: none; color: white; font-size: 20px; margin-left: 5px;">
+                        <i class="fa fa-times"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Quick Action Modal -->
+            <div t-if="state.showQuickAction" style="position: absolute; top:0; left:0; right:0; bottom:0; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 1000; padding: 20px;">
+                <div style="background: white; border-radius: 10px; width: 100%; max-width: 400px; padding: 20px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h3 style="margin: 0;">
+                            <t t-if="state.quickActionType === 'kirim'">Kirim Qabul Qilish</t>
+                            <t t-if="state.quickActionType === 'chiqim'">Chiqim Qilish</t>
+                        </h3>
+                        <button t-on-click="closeQuickAction" style="background: none; border: none; font-size: 20px; cursor: pointer;"><i class="fa fa-times text-muted"></i></button>
+                    </div>
+
+                    <t t-if="state.quickActionType === 'kirim' and state.screen === 'products'">
+                        <div style="margin-bottom: 15px; font-size: 14px; color: #4b5563;">
+                            <strong>Mijoz:</strong> <t t-esc="state.selectedClient.name"/>
+                        </div>
+                    </t>
+                    <t t-if="state.quickActionType === 'kirim' and state.screen === 'clients'">
+                        <div style="margin-bottom: 15px;">
+                            <label style="display: block; font-size: 14px; font-weight: bold; margin-bottom: 5px; color: #374151;">Mijoz (Ixtiyoriy, agar qarz to'layotgan bo'lsa)</label>
+                            <select t-model="state.quickActionPartnerId" style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; box-sizing: border-box; outline: none; background-color: white;">
+                                <option value="">Turli Tushum</option>
+                                <t t-foreach="state.clients" t-as="client" t-key="client.id">
+                                    <option t-att-value="client.id"><t t-esc="client.name"/></option>
+                                </t>
+                            </select>
+                        </div>
+                    </t>
+
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; font-size: 14px; font-weight: bold; margin-bottom: 5px; color: #374151;">Summa (So'm)</label>
+                        <input type="number" t-model="state.quickActionAmount" placeholder="0" style="width: 100%; padding: 12px; border: 2px solid #d1d5db; border-radius: 8px; font-size: 18px; box-sizing: border-box; outline: none; transition: border-color 0.2s;" t-attf-style="border-color: {{ state.quickActionType === 'kirim' ? '#10b981' : '#ef4444' }};"/>
+                    </div>
+
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: block; font-size: 14px; font-weight: bold; margin-bottom: 5px; color: #374151;">Izoh (Ixtiyoriy)</label>
+                        <input type="text" t-model="state.quickActionNote" placeholder="Nima uchun..." style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; box-sizing: border-box; outline: none;"/>
+                    </div>
+
+                    <button t-on-click="submitQuickAction" style="width: 100%; padding: 15px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; color: white; cursor: pointer;" t-attf-style="background-color: {{ state.quickActionType === 'kirim' ? '#10b981' : '#ef4444' }};">
+                        Saqlash
+                    </button>
+                </div>
+            </div>
+
+            <!-- Error Banner -->
+            <div t-if="state.error" style="background-color: #fee2e2; color: #b91c1c; padding: 10px; margin: 10px; border-radius: 5px; text-align: center;">
+                <t t-esc="state.error"/>
+                <button t-on-click="() => state.error = null" style="background: none; border: none; margin-left: 10px; font-weight: bold; cursor: pointer;">X</button>
+            </div>
+            
+            <!-- Loading Indicator -->
+            <div t-if="state.loading" style="position: absolute; top:0; left:0; right:0; bottom:0; background: rgba(255,255,255,0.7); display: flex; justify-content: center; align-items: center; z-index: 1000;">
+                <div style="font-size: 24px; color: #2563eb;"><i class="fa fa-spin fa-spinner"></i> Yuklanmoqda...</div>
+            </div>
+
+            <!-- Content Area -->
+            <div class="van-pos-content" style="flex: 1; overflow-y: auto; padding: 10px; padding-bottom: 80px;">
+                
+                <!-- CLIENTS SCREEN -->
+                <t t-if="state.screen === 'clients'">
+                    <div style="margin-bottom: 15px;">
+                        <input type="text" placeholder="Mijozni qidirish..." t-model="state.searchQuery" style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #d1d5db; font-size: 16px; box-sizing: border-box;"/>
+                    </div>
+                    
+                    <div class="client-list">
+                        <t t-foreach="filteredClients" t-as="client" t-key="client.id">
+                            <div class="client-card" t-on-click="() => this.selectClient(client)" style="background: white; padding: 15px; border-radius: 10px; margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <div style="font-weight: bold; font-size: 16px; margin-bottom: 5px;"><t t-esc="client.name"/></div>
+                                    <div style="font-size: 14px; color: #4b5563;">Hozirgi qarz: <span style="color: #dc2626; font-weight: bold;"><t t-esc="client.total_due.toLocaleString()"/></span></div>
+                                </div>
+                                <i class="fa fa-chevron-right" style="color: #9ca3af;"></i>
+                            </div>
+                        </t>
+                        <t t-if="filteredClients.length === 0">
+                            <div style="text-align: center; color: #6b7280; padding: 20px;">Mijoz topilmadi.</div>
+                        </t>
+                    </div>
+                </t>
+
+                <!-- PRODUCTS SCREEN -->
+                <t t-if="state.screen === 'products'">
+                    <div style="margin-bottom: 15px;">
+                        <input type="text" placeholder="Tovarni qidirish..." t-model="state.productSearchQuery" style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #d1d5db; font-size: 16px; box-sizing: border-box;"/>
+                    </div>
+
+                    <t t-foreach="filteredInventory" t-as="product" t-key="product.product_id">
+                        <div class="product-card" style="background: white; padding: 15px; border-radius: 10px; margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center;">
+                            <div style="flex: 1;">
+                                <div style="font-weight: bold; font-size: 16px; margin-bottom: 5px;"><t t-esc="product.name"/></div>
+                                <t t-if="!state.cart[product.product_id]">
+                                    <div style="font-size: 14px; color: #4b5563;">Narx: <span style="color: #059669; font-weight: bold;"><t t-esc="product.price.toLocaleString()"/> so'm</span></div>
+                                </t>
+                                <t t-else="">
+                                    <div style="font-size: 14px; color: #4b5563; display: flex; align-items: center; margin-bottom: 5px;">
+                                        Narx: <input type="number" 
+                                                     t-att-value="state.cart[product.product_id].custom_price" 
+                                                     t-on-change="(ev) => this.setCartPrice(product, ev)"
+                                                     style="width: 100px; padding: 4px; margin: 0 5px; border: 1px solid #059669; border-radius: 5px; color: #059669; font-weight: bold; font-size: 14px;"/> so'm
+                                    </div>
+                                </t>
+                                <div style="font-size: 12px; color: #6b7280;">Qoldiq: <t t-esc="product.remaining"/> <t t-esc="product.uom"/></div>
+                            </div>
+                            
+                            <div style="display: flex; align-items: center;">
+                                <t t-if="state.cart[product.product_id]">
+                                    <button class="btn-qty" t-on-click="() => this.removeFromCart(product.product_id)" style="width: 35px; height: 35px; border-radius: 5px; border: 1px solid #d1d5db; background-color: white; color: #ef4444; font-weight: bold; font-size: 18px; display: flex; justify-content: center; align-items: center;">-</button>
+                                    <input type="number" 
+                                           t-att-value="state.cart[product.product_id] ? state.cart[product.product_id].qty : ''" 
+                                           t-on-change="(ev) => this.setCartQuantity(product, ev)"
+                                           style="width: 50px; text-align: center; font-weight: bold; font-size: 16px; border: 1px solid #d1d5db; border-radius: 5px; margin: 0 5px; padding: 5px;"/>
+                                </t>
+                                <button class="btn-qty" t-on-click="() => this.addToCart(product)" t-att-disabled="state.cart[product.product_id] and state.cart[product.product_id].qty >= product.remaining" style="width: 35px; height: 35px; border-radius: 5px; border: 1px solid #2563eb; background-color: #2563eb; color: white; font-weight: bold; font-size: 18px; display: flex; justify-content: center; align-items: center;" t-attf-style="#{state.cart[product.product_id] and state.cart[product.product_id].qty >= product.remaining ? 'opacity: 0.5; cursor: not-allowed;' : ''}">+</button>
+                            </div>
+                        </div>
+                    </t>
+                    <t t-if="filteredInventory.length === 0">
+                        <div style="text-align: center; color: #6b7280; padding: 20px;">Sizning omboringizda mahsulot yo'q yoki qidiruvga mos kelmadi.</div>
+                    </t>
+                </t>
+
+                <!-- CHECKOUT SCREEN -->
+                <t t-if="state.screen === 'checkout'">
+                    <div style="background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                        <t t-foreach="cartItems" t-as="item" t-key="item.product.product_id">
+                            <div style="padding: 15px; border-bottom: 1px solid #f3f4f6; display: flex; justify-content: space-between;">
+                                <div>
+                                    <div style="font-weight: bold;"><t t-esc="item.product.name"/></div>
+                                    <div style="color: #6b7280; font-size: 13px;"><t t-esc="item.qty"/> x <t t-esc="item.custom_price.toLocaleString()"/></div>
+                                </div>
+                                <div style="font-weight: bold; color: #111827;">
+                                    <t t-esc="(item.qty * item.custom_price).toLocaleString()"/>
+                                </div>
+                            </div>
+                        </t>
+                        <div style="padding: 15px; background-color: #f9fafb; display: flex; justify-content: space-between; font-size: 18px; font-weight: bold;">
+                            <span>Jami (Nasiya):</span>
+                            <span style="color: #dc2626;"><t t-esc="cartTotal.toLocaleString()"/></span>
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 25px;">
+                        <button t-on-click="submitOrder" style="width: 100%; padding: 15px; background-color: #dc2626; color: white; font-size: 18px; font-weight: bold; border: none; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(220, 38, 38, 0.4);">
+                            NASIYA BILAN SOTISH
+                        </button>
+                    </div>
+                </t>
+
+                <!-- KIRIM SCREEN -->
+                <t t-if="state.screen === 'kirim'">
+                    <div style="text-align: center; padding: 20px;">
+                        <i class="fa fa-check-circle" style="font-size: 64px; color: #10b981; margin-bottom: 20px;"></i>
+                        <h2 style="margin: 0 0 10px 0;">Savdo Qabul Qilindi!</h2>
+                        <p style="color: #6b7280; margin-bottom: 30px;">Xarid summasi mijoz qarziga (Nasiya) avtomatik yozildi.</p>
+                        
+                        <div style="background: white; padding: 20px; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 20px;">
+                            <h3 style="margin: 0 0 15px 0;">Mijoz hozir pul to'laydimi?</h3>
+                            
+                            <div style="margin-bottom: 15px; text-align: left;">
+                                <label style="display: block; font-size: 14px; color: #4b5563; margin-bottom: 5px;">To'lov summasi (Kirim):</label>
+                                <input type="number" t-att-value="state.kirimAmount" t-on-change="setKirimAmount" style="width: 100%; padding: 12px; font-size: 20px; font-weight: bold; border: 2px solid #2563eb; border-radius: 8px; box-sizing: border-box; text-align: right;"/>
+                            </div>
+                            
+                            <div style="display: flex; gap: 10px;">
+                                <button t-on-click="() => this.submitKirim('cash')" style="width: 100%; padding: 15px; background-color: #10b981; color: white; font-weight: bold; border: none; border-radius: 8px; font-size: 18px;">Naqt Pul Qabul Qilish (Kirim)</button>
+                            </div>
+                        </div>
+
+                        <button t-on-click="resetToStart" style="width: 100%; padding: 15px; background-color: transparent; color: #4b5563; font-weight: bold; border: 1px solid #d1d5db; border-radius: 8px;">
+                            Ayni vaqtda to'lov yo'q (O'tkazib yuborish)
+                        </button>
+                    </div>
+                </t>
+            </div>
+
+            <!-- Sticky Cart Footer -->
+            <t t-if="state.screen === 'products' and cartItems.length > 0">
+                <div style="position: fixed; bottom: 0; left: 0; right: 0; background-color: white; padding: 15px; box-shadow: 0 -4px 6px -1px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; z-index: 50;">
+                    <div>
+                        <div style="font-weight: bold; font-size: 16px;">Jami: <span style="color: #dc2626;"><t t-esc="cartTotal.toLocaleString()"/></span></div>
+                        <div style="font-size: 12px; color: #6b7280;"><t t-esc="cartItems.length"/> turdagi mahsulot</div>
+                    </div>
+                    <button t-on-click="goToCheckout" style="background-color: #2563eb; color: white; font-weight: bold; border: none; padding: 12px 20px; border-radius: 8px;">
+                        Xarid <i class="fa fa-arrow-right" style="margin-left: 5px;"></i>
+                    </button>
+                </div>
+            </t>
+
+        </div>
+    </t>
+</templates>

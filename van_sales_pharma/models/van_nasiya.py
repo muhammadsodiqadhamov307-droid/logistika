@@ -22,6 +22,9 @@ class VanNasiya(models.Model):
     amount_total = fields.Monetary(string='Jami Qarz', required=True, currency_field='currency_id')
     amount_paid = fields.Monetary(string='To\'langan', compute='_compute_payment_amounts', store=True, currency_field='currency_id')
     amount_residual = fields.Monetary(string='Qolgan Qarz', compute='_compute_payment_amounts', store=True, currency_field='currency_id')
+    
+    # Yangi manual to'lov yozuvlari (Kirimlar orqali)
+    payment_ids = fields.One2many('van.payment', 'nasiya_id', string="To'lovlar")
 
     state = fields.Selection([
         ('open', 'Ochiq'),
@@ -36,15 +39,16 @@ class VanNasiya(models.Model):
                 vals['name'] = self.env['ir.sequence'].next_by_code('van.nasiya') or _('Yangi')
         return super().create(vals_list)
 
-    @api.depends('invoice_id.amount_residual')
+    @api.depends('invoice_id.amount_residual', 'payment_ids.amount', 'amount_total')
     def _compute_payment_amounts(self):
         for record in self:
             if record.invoice_id:
                 record.amount_residual = record.invoice_id.amount_residual
                 record.amount_paid = record.invoice_id.amount_total - record.invoice_id.amount_residual
             else:
-                record.amount_residual = record.amount_total
-                record.amount_paid = 0.0
+                total_paid = sum(p.amount for p in record.payment_ids if p.payment_type == 'in')
+                record.amount_paid = total_paid
+                record.amount_residual = record.amount_total - total_paid
 
     @api.depends('amount_residual', 'amount_total')
     def _compute_state(self):

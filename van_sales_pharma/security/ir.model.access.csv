@@ -18,3 +18,7 @@ access_van_agent_inventory_line_admin,van.agent.inventory.line admin,model_van_a
 access_van_agent_inventory_line_agent,van.agent.inventory.line agent,model_van_agent_inventory_line,van_sales_pharma.group_van_agent,1,0,0,0
 access_van_dashboard_detail_admin,van.dashboard.detail admin,model_van_dashboard_detail,van_sales_pharma.group_van_admin,1,0,0,0
 access_van_dashboard_detail_agent,van.dashboard.detail agent,model_van_dashboard_detail,van_sales_pharma.group_van_agent,1,0,0,0
+access_van_pos_order_admin,van.pos.order admin,model_van_pos_order,van_sales_pharma.group_van_admin,1,1,1,1
+access_van_pos_order_agent,van.pos.order agent,model_van_pos_order,van_sales_pharma.group_van_agent,1,1,1,1
+access_van_pos_order_line_admin,van.pos.order.line admin,model_van_pos_order_line,van_sales_pharma.group_van_admin,1,1,1,1
+access_van_pos_order_line_agent,van.pos.order.line agent,model_van_pos_order_line,van_sales_pharma.group_van_agent,1,1,1,1

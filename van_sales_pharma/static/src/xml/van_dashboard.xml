@@ -40,16 +40,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="col">
-                            <div class="card shadow-sm border-0 h-100" t-on-click="() =&gt; this.openSalesByMethod('card')" style="cursor: pointer; background: linear-gradient(135deg, #6f42c1 0%, #59359a 100%);">
-                                <div class="card-body text-center p-3">
-                                    <h6 class="card-title fw-bold mb-2" style="color: white !important;">Karta Orqali</h6>
-                                    <h3 class="fw-bold m-0" style="color: white !important;">
-                                        <t t-esc="formatPrice(state.total_card)"/>
-                                    </h3>
-                                </div>
-                            </div>
-                        </div>
+
                         <div class="col">
                             <div class="card shadow-sm border-0 h-100" t-on-click="() =&gt; this.openSalesByMethod('chiqim')" style="cursor: pointer; background: linear-gradient(135deg, #dc3545 0%, #a71d2a 100%);">
                                 <div class="card-body text-center p-3">

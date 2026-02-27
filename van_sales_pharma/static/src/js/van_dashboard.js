@@ -135,26 +135,26 @@ export class VanSalesDashboard extends Component {
         this.action.doAction({
             type: 'ir.actions.act_window',
             name: `Bugungi Sotuvlar`,
-            res_model: 'pos.order',
+            res_model: 'van.pos.order',
             view_mode: 'list,form',
             views: [[false, 'list'], [false, 'form']],
-            domain: [['date_order', '>=', today + ' 00:00:00']],
+            domain: [['date', '>=', today + ' 00:00:00']],
             target: 'current',
         });
     }
 
     openMarginDetails() {
-        let domain = [['order_id.state', 'in', ['paid', 'done', 'invoiced']]];
+        let domain = [['order_id.state', '=', 'done']];
         if (this.state.date_from) {
-            domain.push(['order_id.date_order', '>=', this.state.date_from + ' 00:00:00']);
+            domain.push(['order_id.date', '>=', this.state.date_from + ' 00:00:00']);
         }
         if (this.state.date_to) {
-            domain.push(['order_id.date_order', '<=', this.state.date_to + ' 23:59:59']);
+            domain.push(['order_id.date', '<=', this.state.date_to + ' 23:59:59']);
         }
         this.action.doAction({
             type: 'ir.actions.act_window',
             name: `Sof Foyda Detallari`,
-            res_model: 'pos.order.line',
+            res_model: 'van.pos.order.line',
             view_mode: 'list,form',
             views: [[this.state.margin_view_id, 'list'], [false, 'form']],
             domain: domain,
@@ -163,13 +163,20 @@ export class VanSalesDashboard extends Component {
     }
 
     openSales() {
-        this.action.doAction('point_of_sale.action_pos_order_line');
+        this.action.doAction({
+            type: 'ir.actions.act_window',
+            name: `Sotuvlar Detallari`,
+            res_model: 'van.pos.order.line',
+            view_mode: 'list',
+            views: [[false, 'list']],
+            target: 'current',
+        });
     }
 
     openSale(saleId) {
         this.action.doAction({
             type: 'ir.actions.act_window',
-            res_model: 'pos.order',
+            res_model: 'van.pos.order',
             res_id: saleId,
             views: [[false, 'form']],
             target: 'current',
@@ -186,7 +193,8 @@ export class VanSalesDashboard extends Component {
         } else if (method === 'chiqim') {
             domain = [['transaction_type', '=', 'chiqim']];
         } else {
-            domain = [['payment_method', '=', 'card'], ['transaction_type', 'in', ['sale', 'kirim']]];
+            // default fallback just in case
+            domain = [];
         }
 
         // Apply date filters if they exist, and leave all-time if they don't
@@ -201,14 +209,12 @@ export class VanSalesDashboard extends Component {
 
         const methodNames = {
             'cash': 'Naqt Amaliyotlar',
-            'card': 'Karta Amaliyotlari',
             'nasiya': 'Jami Nasiyalar',
             'chiqim': 'Chiqim Amaliyotlari'
         };
 
         let context = {};
         if (method === 'cash') context = { 'search_default_cash': 1 };
-        else if (method === 'card') context = { 'search_default_card': 1 };
         else if (method === 'nasiya') context = { 'search_default_nasiya': 1 };
         else if (method === 'chiqim') context = { 'search_default_chiqim': 1 };
 

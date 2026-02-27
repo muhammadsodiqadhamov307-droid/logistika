@@ -22,9 +22,6 @@
                 <field name="total_cash"
                        widget="monetary"
                        options="{'currency_field': 'currency_id'}"/>
-                <field name="total_card"
-                       widget="monetary"
-                       options="{'currency_field': 'currency_id'}"/>
                 <field name="total_nasiya"
                        widget="monetary"
                        options="{'currency_field': 'currency_id'}"/>
@@ -89,15 +86,6 @@
                             </h4>
                         </div>
                         <div class="col-md-2 col-6 text-center border-end">
-                            <small class="text-muted">💳 Karta</small>
-                            <h4 class="fw-bold" style="color:#6f42c1">
-                                <field name="total_card"
-                                       widget="monetary"
-                                       options="{'currency_field': 'currency_id'}"
-                                       readonly="1"/>
-                            </h4>
-                        </div>
-                        <div class="col-md-2 col-6 text-center border-end">
                             <small class="text-muted">📋 Nasiya</small>
                             <h4 class="fw-bold" style="color:#e0a800">
                                 <field name="total_nasiya"
@@ -129,16 +117,16 @@
                     <field name="currency_id" invisible="1"/>
 
                     <notebook>
-                        <page string="POS Sotuvlar" name="pos_orders">
+                        <page string="Mobil POS Sotuvlar" name="pos_orders">
                             <field name="pos_order_ids" readonly="1">
                                 <list>
                                     <field name="name"/>
-                                    <field name="date_order"/>
+                                    <field name="date"/>
                                     <field name="partner_id"/>
                                     <field name="amount_total" sum="Jami Sotuv" widget="monetary" options="{'currency_field': 'currency_id'}"/>
                                     <field name="state" widget="badge" 
                                            decoration-info="state == 'draft'" 
-                                           decoration-success="state in ('paid', 'done', 'invoiced')"/>
+                                           decoration-success="state == 'done'"/>
                                     <field name="currency_id" column_invisible="True"/>
                                 </list>
                             </field>

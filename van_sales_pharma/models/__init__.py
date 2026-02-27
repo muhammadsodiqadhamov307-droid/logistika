@@ -13,3 +13,4 @@ from . import van_customer
 from . import pos_session
 from . import van_dashboard_detail
 from . import product_template
+from . import van_pos_order

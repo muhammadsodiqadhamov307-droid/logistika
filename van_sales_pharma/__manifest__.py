@@ -28,6 +28,8 @@
         'views/menu_views.xml',
         'views/van_dashboard_views.xml',
         'views/van_dashboard_detail_views.xml',
+        'views/van_pos_order_views.xml',
+        'views/van_mobile_pos_action.xml',
         'report/van_load_act_report.xml',
         'report/van_trip_report.xml',
     ],
@@ -36,6 +38,8 @@
             'van_sales_pharma/static/src/css/van_sales.css',
             'van_sales_pharma/static/src/js/van_dashboard.js',
             'van_sales_pharma/static/src/xml/van_dashboard.xml',
+            'van_sales_pharma/static/src/js/van_mobile_pos.js',
+            'van_sales_pharma/static/src/xml/van_mobile_pos.xml',
         ],
         'point_of_sale._assets_pos': [
             'van_sales_pharma/static/src/js/cash_move_popup_override.js',

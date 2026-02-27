@@ -206,13 +206,13 @@ class VanTrip(models.Model):
         if date_from:
             dt_from = datetime.strptime(date_from, "%Y-%m-%d")
             s_date = tz.localize(datetime.combine(dt_from, time.min)).astimezone(pytz.UTC).replace(tzinfo=None)
-            domain_pos.append(('date_order', '>=', s_date))
+            domain_pos.append(('date', '>=', s_date))
             domain_vp.append(('date', '>=', s_date))
             
         if date_to:
             dt_to = datetime.strptime(date_to, "%Y-%m-%d")
             e_date = tz.localize(datetime.combine(dt_to, time.max)).astimezone(pytz.UTC).replace(tzinfo=None)
-            domain_pos.append(('date_order', '<=', e_date))
+            domain_pos.append(('date', '<=', e_date))
             domain_vp.append(('date', '<=', e_date))
         
         # 1. Total Global Nasiya
@@ -221,17 +221,10 @@ class VanTrip(models.Model):
         total_global_nasiya = sum(p.x_van_total_due for p in partners)
 
         # 2. POS Cash & Card (Filtered by Date or All-Time)
-        pos_orders = self.env['pos.order'].search(domain_pos)
-        t_cash = 0.0
+        pos_orders = self.env['van.pos.order'].search(domain_pos)
+        t_cash = sum(pos_orders.filtered(lambda o: o.state == 'done').mapped('amount_total'))
         t_card = 0.0
         t_chiqim = 0.0
-        
-        for order in pos_orders.filtered(lambda o: o.state in ['paid', 'done', 'invoiced']):
-            for payment in order.payment_ids:
-                if payment.payment_method_id.is_cash_count:
-                    t_cash += payment.amount
-                elif not payment.payment_method_id.split_transactions:
-                    t_card += payment.amount
 
         # 3. Add Kirim / Track Chiqim (Filtered by Date or All-Time)
         van_payments = self.env['van.payment'].search(domain_vp)
@@ -239,7 +232,6 @@ class VanTrip(models.Model):
         for vp in van_payments:
             if vp.payment_type == 'in':
                 if vp.payment_method == 'cash': t_cash += vp.amount
-                elif vp.payment_method == 'card': t_card += vp.amount
             elif vp.payment_type == 'out':
                 t_chiqim += vp.amount
                 # Chiqim decreases the agent's cash balance
@@ -249,21 +241,16 @@ class VanTrip(models.Model):
         # 4. Calculate Margin (Foyda) for Filtered sales
         # Margin = Total Price - Standard Price * quantity
         margin_today = 0.0
-        for order in pos_orders.filtered(lambda o: o.state in ['paid', 'done', 'invoiced']):
-            for line in order.lines:
-                # Odoo's default margin calculation (if pos_margin is installed) or fallback
-                if hasattr(line, 'margin'):
-                    margin_today += line.margin
-                else:
-                    # Fallback to standard_price or 0 if missing
-                    # Some versions use `cost_price` or `standard_price`
-                    cost_unit = getattr(line.product_id, 'standard_price', 0.0) or 0.0
-                    cost = cost_unit * line.qty
-                    margin_today += (line.price_subtotal_incl - cost)
+        for order in pos_orders.filtered(lambda o: o.state == 'done'):
+            for line in order.line_ids:
+                cost_unit = getattr(line.product_id, 'standard_price', 0.0) or 0.0
+                cost = cost_unit * line.qty
+                # Using total price minus cost
+                margin_today += (line.subtotal - cost)
 
         # 5. Top Mijozlar va Agentlar (Filtered by Date, or All-Time if no date)
         # Using the same pos_orders variable as it's already filtered properly based on date_from/date_to
-        monthly_orders = pos_orders.filtered(lambda o: o.state in ['paid', 'done', 'invoiced'])
+        monthly_orders = pos_orders.filtered(lambda o: o.state == 'done')
 
         customer_totals = {}
         agent_totals = {}
@@ -271,13 +258,13 @@ class VanTrip(models.Model):
         
         for mo in monthly_orders:
             # Products
-            for line in mo.lines:
+            for line in mo.line_ids:
                 if line.product_id:
                     p_id = line.product_id.id
                     p_name = line.product_id.name
                     if p_id not in product_totals:
                         product_totals[p_id] = {'name': p_name, 'total': 0.0}
-                    product_totals[p_id]['total'] += line.price_subtotal_incl
+                    product_totals[p_id]['total'] += line.subtotal
             # Customers (Aggregate by Name to merge duplicate partner records like "Yangi apteka")
             if mo.partner_id:
                 c_name = mo.partner_id.name or "Noma'lum"
@@ -287,8 +274,8 @@ class VanTrip(models.Model):
                 customer_totals[c_key]['total'] += mo.amount_total
                 
             # Agents
-            a_id = mo.user_id.id
-            a_name = mo.user_id.name
+            a_id = mo.agent_id.id
+            a_name = mo.agent_id.name
             if a_id not in agent_totals:
                 agent_totals[a_id] = {'name': a_name, 'total': 0.0}
             agent_totals[a_id]['total'] += mo.amount_total
@@ -320,8 +307,8 @@ class VanTrip(models.Model):
             e_date = tz.localize(datetime.combine(last_day, time.max)).astimezone(pytz.UTC).replace(tzinfo=None)
             
             # Calculate sum using standard search and mapped to avoid read_group API changes
-            domain = [('date_order', '>=', s_date), ('date_order', '<=', e_date), ('state', 'in', ['paid', 'done', 'invoiced'])]
-            orders = self.env['pos.order'].search(domain)
+            domain = [('date', '>=', s_date), ('date', '<=', e_date), ('state', '=', 'done')]
+            orders = self.env['van.pos.order'].search(domain)
             month_total = sum(orders.mapped('amount_total'))
             
             chart_labels.append(f"{uzbek_months[target_date.month]} {target_date.year}")
@@ -333,7 +320,7 @@ class VanTrip(models.Model):
 
         return {
             'today_trips_count': len(pos_orders),
-            'active_trips_count': len(pos_orders.filtered(lambda o: o.state in ['paid', 'done', 'invoiced'])),
+            'active_trips_count': len(pos_orders.filtered(lambda o: o.state == 'done')),
             'total_cash': t_cash,
             'total_card': t_card,
             'total_chiqim': t_chiqim,

@@ -41,8 +41,6 @@ class VanAgentSummary(models.Model):
     # === Moliyaviy ko'rsatkichlar ===
     total_cash = fields.Monetary(string='Naqt Pul', currency_field='currency_id',
                                  compute='_compute_financials')
-    total_card = fields.Monetary(string='Karta', currency_field='currency_id',
-                                 compute='_compute_financials')
     total_nasiya = fields.Monetary(string='Nasiya (Qarz)', currency_field='currency_id',
                                    compute='_compute_financials')
     total_chiqim = fields.Monetary(string='Chiqim (Xarajat)', currency_field='currency_id',
@@ -51,7 +49,7 @@ class VanAgentSummary(models.Model):
                                   compute='_compute_financials')
     total_balance = fields.Monetary(string='Mavjud Balans', currency_field='currency_id',
                                    compute='_compute_financials',
-                                   help="Ushbu oraliqdagi Naqt + Karta - Chiqim")
+                                   help="Ushbu oraliqdagi Naqt - Chiqim")
 
     # === Mahsulot inventariyasi ===
     inventory_line_ids = fields.One2many('van.agent.inventory.line', 'summary_id', string='Inventar')
@@ -88,7 +86,7 @@ class VanAgentSummary(models.Model):
 
     # === Sotuv buyurtmalari ===
     pos_order_count = fields.Integer(string='Sotuvlar Soni', compute='_compute_financials')
-    pos_order_ids = fields.Many2many('pos.order', compute='_compute_financials', string="Sotuvlar Ro'yxati")
+    pos_order_ids = fields.Many2many('van.pos.order', compute='_compute_financials', string="Sotuvlar Ro'yxati")
 
     # === Chiqimlar ro'yxati (computed, for tab display & deletion) ===
     chiqim_ids = fields.Many2many(
@@ -135,41 +133,31 @@ class VanAgentSummary(models.Model):
     @api.depends('date_from', 'date_to', 'agent_id')
     def _compute_financials(self):
         for rec in self:
-            cash = card = nasiya = total = chiqim = 0
+            cash = nasiya = total = chiqim = 0
             
-            # Domain for POS orders
+            # Domain for Custom Mobile POS orders
             order_domain = [
-                ('user_id', '=', rec.agent_id.id),
-                ('state', 'in', ['paid', 'done', 'invoiced'])
+                ('agent_id', '=', rec.agent_id.id),
+                ('state', '=', 'done')
             ]
             
-            # Use proper timezone localization for date conversion to UTC
             tz = pytz.timezone(self.env.user.tz or self.env.context.get('tz') or 'UTC')
             
             if rec.date_from:
                 local_start = tz.localize(datetime.combine(rec.date_from, time.min))
                 utc_start = local_start.astimezone(pytz.UTC).replace(tzinfo=None)
-                order_domain.append(('date_order', '>=', utc_start))
+                order_domain.append(('date', '>=', utc_start))
             if rec.date_to:
                 local_end = tz.localize(datetime.combine(rec.date_to, time.max))
                 utc_end = local_end.astimezone(pytz.UTC).replace(tzinfo=None)
-                order_domain.append(('date_order', '<=', utc_end))
+                order_domain.append(('date', '<=', utc_end))
                 
-            orders = self.env['pos.order'].search(order_domain)
+            orders = self.env['van.pos.order'].search(order_domain)
             count = len(orders)
+            total = sum(orders.mapped('amount_total'))
             
-            for order in orders:
-                total += order.amount_total
-                for payment in order.payment_ids:
-                    pm = payment.payment_method_id
-                    if pm.is_cash_count:
-                        cash += payment.amount
-                    elif pm.split_transactions:
-                        nasiya += payment.amount
-                    else:
-                        card += payment.amount
             
-            # --- Integrate van.payments (POS Kirim/Chiqim tracked via our custom pos_session override) ---
+            # --- Integrate van.payments ---
             payment_domain = [
                 ('agent_id', '=', rec.agent_id.id),
             ]
@@ -181,35 +169,33 @@ class VanAgentSummary(models.Model):
             van_payments = self.env['van.payment'].search(payment_domain)
             for vp in van_payments:
                 if vp.payment_type == 'in':
-                    if vp.payment_method == 'cash':
-                        cash += vp.amount
-                    else:
-                        card += vp.amount
+                    cash += vp.amount
                 elif vp.payment_type == 'out':
                     chiqim += vp.amount
+            
+            nasiya = max(0, total - cash)
 
             rec.total_cash = cash
-            rec.total_card = card
             rec.total_nasiya = nasiya
             rec.total_sales = total
             rec.pos_order_count = count
             rec.pos_order_ids = [(6, 0, orders.ids)]
             rec.total_chiqim = chiqim
-            rec.total_balance = (cash + card) - chiqim
+            rec.total_balance = cash - chiqim
 
     def action_view_pos_orders(self):
         self.ensure_one()
-        order_domain = [('user_id', '=', self.agent_id.id)]
+        order_domain = [('agent_id', '=', self.agent_id.id)]
         if self.date_from:
-            order_domain.append(('date_order', '>=', datetime.combine(self.date_from, time.min)))
+            order_domain.append(('date', '>=', datetime.combine(self.date_from, time.min)))
         if self.date_to:
-            order_domain.append(('date_order', '<=', datetime.combine(self.date_to, time.max)))
+            order_domain.append(('date', '<=', datetime.combine(self.date_to, time.max)))
 
-        orders = self.env['pos.order'].search(order_domain)
+        orders = self.env['van.pos.order'].search(order_domain)
         return {
             'type': 'ir.actions.act_window',
             'name': f'{self.agent_id.name} - Sotuvlar',
-            'res_model': 'pos.order',
+            'res_model': 'van.pos.order',
             'view_mode': 'list,form',
             'domain': [('id', 'in', orders.ids)],
             'target': 'current',
@@ -297,15 +283,14 @@ class VanAgentInventoryLine(models.Model):
 
             # Common domain parts
             base_domain = [
-                ('order_id.user_id', '=', agent_id),
-                ('order_id.state', 'in', ['paid', 'done', 'invoiced']),
+                ('order_id.agent_id', '=', agent_id),
+                ('order_id.state', '=', 'done'),
                 ('product_id', '=', product_id),
             ]
 
-            # 1. All-time sold qty (used for REAL remaining balance calculation)
-            # We don't filter by date here because 'loaded_qty' is cumulative all-time.
-            all_lines = self.env['pos.order.line'].search(base_domain)
-            all_time_sold = sum(all_lines.mapped('qty'))
+            # 1. All-time sold qty 
+            fast_pos_lines = self.env['van.pos.order.line'].search(base_domain)
+            all_time_sold = sum(fast_pos_lines.mapped('qty'))
 
             # 2. Period sold qty (shown in the 'Sotilgan' column for the chosen date range)
             period_sold = 0.0
@@ -315,13 +300,15 @@ class VanAgentInventoryLine(models.Model):
                 if date_from:
                     local_start = tz.localize(datetime.combine(date_from, time.min))
                     utc_start = local_start.astimezone(pytz.UTC).replace(tzinfo=None)
-                    period_domain.append(('order_id.date_order', '>=', utc_start))
+                    period_domain.append(('order_id.date', '>=', utc_start))
                 if date_to:
                     local_end = tz.localize(datetime.combine(date_to, time.max))
                     utc_end = local_end.astimezone(pytz.UTC).replace(tzinfo=None)
-                    period_domain.append(('order_id.date_order', '<=', utc_end))
+                    period_domain.append(('order_id.date', '<=', utc_end))
                 
-                period_lines = self.env['pos.order.line'].search(period_domain)
+                period_lines = self.env['van.pos.order.line'].search(period_domain)
+                period_sold = sum(period_lines.mapped('qty'))
+
             line.sold_qty = period_sold
             line.returned_qty = 0.0
             line.remaining_qty = max(0.0, line.loaded_qty - all_time_sold)

@@ -15,6 +15,7 @@ class VanPayment(models.Model):
     partner_id = fields.Many2one('res.partner', string='Kirim Qilgan Mijoz', help="POSdan qilingan mijoz qarzi to'lovi")
     agent_id = fields.Many2one('res.users', string='Agent', required=True, default=lambda self: self.env.user)
     sale_order_id = fields.Many2one('van.sale.order', string='Sotuv', ondelete='cascade')
+    nasiya_id = fields.Many2one('van.nasiya', string='Nasiya', ondelete='cascade')
 
     payment_type = fields.Selection([
         ('in', 'Kirim (+)') ,
@@ -24,7 +25,7 @@ class VanPayment(models.Model):
     payment_method = fields.Selection([
         ('cash', 'Naqt'),
         ('card', 'Karta / Bank')
-    ], string='To\'lov Usuli', required=True)
+    ], string='To\'lov Usuli', required=True, default='cash')
     
     amount = fields.Monetary(string='Mablag\'', required=True, currency_field='currency_id')
     date = fields.Datetime(string='Sana', default=fields.Datetime.now, required=True)
