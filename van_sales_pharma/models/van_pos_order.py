@@ -107,22 +107,15 @@ class VanPosOrderLine(models.Model):
     subtotal = fields.Monetary(string='Oraliq Summa', compute='_compute_subtotal', store=True, currency_field='currency_id')
     
     # Cost and Margin
-    cost_price = fields.Float(string='Kelish Narxi', compute='_compute_cost_and_margin', store=True)
-    margin = fields.Monetary(string='Sof Foyda', compute='_compute_cost_and_margin', store=True, currency_field='currency_id')
+    standard_price = fields.Float(string='Kelish Narxi', related='product_id.standard_price', readonly=True, store=True)
+    margin = fields.Monetary(string='Sof Foyda', compute='_compute_margin', store=True, currency_field='currency_id')
 
     @api.depends('qty', 'price_unit')
     def _compute_subtotal(self):
         for line in self:
             line.subtotal = line.qty * line.price_unit
 
-    @api.depends('qty', 'price_unit', 'product_id', 'product_id.standard_price')
-    def _compute_cost_and_margin(self):
+    @api.depends('qty', 'price_unit', 'standard_price')
+    def _compute_margin(self):
         for line in self:
-            if not line.product_id:
-                line.cost_price = 0.0
-                line.margin = 0.0
-                continue
-                
-            cost_unit = line.product_id.standard_price or 0.0
-            line.cost_price = cost_unit
-            line.margin = (line.price_unit - cost_unit) * line.qty
+            line.margin = (line.price_unit - line.standard_price) * line.qty
