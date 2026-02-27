@@ -11,7 +11,7 @@ access_van_sale_line_agent,van.sale.order.line agent,model_van_sale_order_line,v
 access_van_payment_admin,van.payment admin,model_van_payment,van_sales_pharma.group_van_admin,1,1,1,1
 access_van_payment_agent,van.payment agent,model_van_payment,van_sales_pharma.group_van_agent,1,1,1,1
 access_van_nasiya_admin,van.nasiya admin,model_van_nasiya,van_sales_pharma.group_van_admin,1,1,1,1
-access_van_nasiya_agent,van.nasiya agent,model_van_nasiya,van_sales_pharma.group_van_agent,1,0,0,0
+access_van_nasiya_agent,van.nasiya agent,model_van_nasiya,van_sales_pharma.group_van_agent,1,1,1,0
 access_van_agent_summary_admin,van.agent.summary admin,model_van_agent_summary,van_sales_pharma.group_van_admin,1,1,1,1
 access_van_agent_summary_agent,van.agent.summary agent,model_van_agent_summary,van_sales_pharma.group_van_agent,1,0,0,0
 access_van_agent_inventory_line_admin,van.agent.inventory.line admin,model_van_agent_inventory_line,van_sales_pharma.group_van_admin,1,1,1,1
