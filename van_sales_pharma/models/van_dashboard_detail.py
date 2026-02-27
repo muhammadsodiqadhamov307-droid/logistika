@@ -46,6 +46,15 @@ class VanDashboardDetail(models.Model):
             'target': 'current',
         }
 
+    def unlink(self):
+        """ Delete the actual underlying record (van.pos.order or van.payment) """
+        for rec in self:
+            if rec.res_model and rec.res_id:
+                real_record = self.env[rec.res_model].browse(rec.res_id)
+                if real_record.exists():
+                    real_record.unlink()
+        return True
+
     def init(self):
         tools.drop_view_if_exists(self.env.cr, self._table)
         self.env.cr.execute("""

@@ -23,7 +23,7 @@
         <field name="name">van.dashboard.detail.list</field>
         <field name="model">van.dashboard.detail</field>
         <field name="arch" type="xml">
-            <list string="Moliyaviy Amaliyotlar" create="0" edit="0" delete="0" decoration-success="transaction_type == 'kirim'" decoration-danger="transaction_type == 'chiqim'" decoration-info="transaction_type == 'sale'">
+            <list string="Moliyaviy Amaliyotlar" create="0" edit="0" decoration-success="transaction_type == 'kirim'" decoration-danger="transaction_type == 'chiqim'" decoration-info="transaction_type == 'sale'">
                 <field name="date"/>
                 <field name="name" column_invisible="1"/>
                 <field name="partner_id"/>
