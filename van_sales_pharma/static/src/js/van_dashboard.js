@@ -238,5 +238,7 @@ export class VanSalesDashboard extends Component {
         });
     }
 
+}
+
 VanSalesDashboard.template = "van_sales_pharma.DashboardView";
 registry.category("actions").add("van_sales_dashboard_action", VanSalesDashboard);
