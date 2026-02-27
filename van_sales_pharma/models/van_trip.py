@@ -221,8 +221,9 @@ class VanTrip(models.Model):
         total_global_nasiya = sum(p.x_van_total_due for p in partners)
 
         # 2. POS Cash & Card (Filtered by Date or All-Time)
+        # NOTE: Sales are ALL on nasiya (credit) — cash is only from van.payment records below.
         pos_orders = self.env['van.pos.order'].search(domain_pos)
-        t_cash = sum(pos_orders.filtered(lambda o: o.state == 'done').mapped('amount_total'))
+        t_cash = 0.0  # Will be filled from van.payment only
         t_card = 0.0
         t_chiqim = 0.0
 
@@ -231,21 +232,28 @@ class VanTrip(models.Model):
         
         for vp in van_payments:
             if vp.payment_type == 'in':
-                if vp.payment_method == 'cash': t_cash += vp.amount
+                if vp.payment_method == 'cash':
+                    t_cash += vp.amount
             elif vp.payment_type == 'out':
                 t_chiqim += vp.amount
-                # Chiqim decreases the agent's cash balance
-                t_cash -= vp.amount
-
 
         # 4. Calculate Margin (Foyda) for Filtered sales
-        # Margin = Total Price - Standard Price * quantity
+        # Margin = Total Price - Agent Cost Price * quantity
+        # Agent cost price is stored in van.agent.inventory.line.cost_price per product
         margin_today = 0.0
+        
+        # Build a cost map from the current agent's inventory (agent_id = current user)
+        agent_summary = self.env['van.agent.summary'].search([('agent_id', '=', self.env.uid)], limit=1)
+        agent_cost_map = {}
+        if agent_summary:
+            for inv_line in agent_summary.inventory_line_ids:
+                cost = inv_line.cost_price or inv_line.product_id.standard_price or 0.0
+                agent_cost_map[inv_line.product_id.id] = cost
+        
         for order in pos_orders.filtered(lambda o: o.state == 'done'):
             for line in order.line_ids:
-                cost_unit = getattr(line.product_id, 'standard_price', 0.0) or 0.0
+                cost_unit = agent_cost_map.get(line.product_id.id, line.product_id.standard_price or 0.0)
                 cost = cost_unit * line.qty
-                # Using total price minus cost
                 margin_today += (line.subtotal - cost)
 
         # 5. Top Mijozlar va Agentlar (Filtered by Date, or All-Time if no date)

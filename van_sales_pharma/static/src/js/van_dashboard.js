@@ -197,51 +197,46 @@ export class VanSalesDashboard extends Component {
             return;
         }
 
-        let domain = [];
+        // Cash = only actual van.payment (kirim) records
         if (method === 'cash') {
-            domain = [['payment_method', '=', 'cash'], ['transaction_type', 'in', ['sale', 'kirim']]];
-        } else if (method === 'chiqim') {
+            let cashDomain = [['payment_type', '=', 'in'], ['payment_method', '=', 'cash']];
+            if (this.state.date_from) cashDomain.push(['date', '>=', this.state.date_from + ' 00:00:00']);
+            if (this.state.date_to) cashDomain.push(['date', '<=', this.state.date_to + ' 23:59:59']);
+            this.action.doAction({
+                type: 'ir.actions.act_window',
+                name: 'Naqt Pul Kirimlar',
+                res_model: 'van.payment',
+                view_mode: 'list,form',
+                views: [[false, 'list'], [false, 'form']],
+                domain: cashDomain,
+                target: 'current',
+            });
+            return;
+        }
+
+        // Chiqim = expenses from van.dashboard.detail
+        let domain = [];
+        if (method === 'chiqim') {
             domain = [['transaction_type', '=', 'chiqim']];
-        } else {
-            // default fallback just in case
-            domain = [];
         }
 
-        // Apply date filters if they exist, and leave all-time if they don't
-        if (method !== 'nasiya') {
-            if (this.state.date_from) {
-                domain.push(['date', '>=', this.state.date_from + ' 00:00:00']);
-            }
-            if (this.state.date_to) {
-                domain.push(['date', '<=', this.state.date_to + ' 23:59:59']);
-            }
+        if (this.state.date_from) {
+            domain.push(['date', '>=', this.state.date_from + ' 00:00:00']);
         }
-
-        const methodNames = {
-            'cash': 'Naqt Amaliyotlar',
-            'nasiya': 'Jami Nasiyalar',
-            'chiqim': 'Chiqim Amaliyotlari'
-        };
-
-        let context = {};
-        if (method === 'cash') context = { 'search_default_cash': 1 };
-        else if (method === 'nasiya') context = { 'search_default_nasiya': 1 };
-        else if (method === 'chiqim') context = { 'search_default_chiqim': 1 };
-
-        console.log("DEBUG POS: Opening dashboard detail with domain:", domain);
+        if (this.state.date_to) {
+            domain.push(['date', '<=', this.state.date_to + ' 23:59:59']);
+        }
 
         this.action.doAction({
             type: 'ir.actions.act_window',
-            name: methodNames[method] || 'Amaliyotlar',
+            name: method === 'chiqim' ? 'Chiqim Amaliyotlari' : 'Amaliyotlar',
             res_model: 'van.dashboard.detail',
             view_mode: 'list,form',
             views: [[false, 'list'], [false, 'form']],
             domain: domain,
-            context: context,
             target: 'current',
         });
     }
-}
 
 VanSalesDashboard.template = "van_sales_pharma.DashboardView";
 registry.category("actions").add("van_sales_dashboard_action", VanSalesDashboard);
