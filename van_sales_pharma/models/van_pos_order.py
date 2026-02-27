@@ -115,7 +115,7 @@ class VanPosOrderLine(models.Model):
         for line in self:
             line.subtotal = line.qty * line.price_unit
 
-    @api.depends('qty', 'price_unit', 'product_id')
+    @api.depends('qty', 'price_unit', 'product_id', 'product_id.standard_price')
     def _compute_cost_and_margin(self):
         for line in self:
             if not line.product_id:
