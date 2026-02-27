@@ -184,12 +184,22 @@ export class VanSalesDashboard extends Component {
     }
 
     openSalesByMethod(method) {
-        let domain = [];
+        // Nasiya has its own dedicated model - open it directly
+        if (method === 'nasiya') {
+            this.action.doAction({
+                type: 'ir.actions.act_window',
+                name: 'Jami Nasiyalar',
+                res_model: 'van.nasiya',
+                view_mode: 'list,form',
+                views: [[false, 'list'], [false, 'form']],
+                target: 'current',
+            });
+            return;
+        }
 
+        let domain = [];
         if (method === 'cash') {
             domain = [['payment_method', '=', 'cash'], ['transaction_type', 'in', ['sale', 'kirim']]];
-        } else if (method === 'nasiya') {
-            domain = [['payment_method', '=', 'nasiya']]; // Global nasiya, filter off date
         } else if (method === 'chiqim') {
             domain = [['transaction_type', '=', 'chiqim']];
         } else {
