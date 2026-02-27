@@ -38,24 +38,27 @@ class VanPosController(http.Controller):
         """
         lines = [{'product_id': ID, 'qty': QTY, 'price': PRICE}]
         """
-        order_vals = {
-            'agent_id': request.env.uid,
-            'partner_id': partner_id,
-            'line_ids': [(0, 0, {
-                'product_id': l['product_id'],
-                'qty': l['qty'],
-                'price_unit': l['price']
-            }) for l in lines]
-        }
-        order = request.env['van.pos.order'].create(order_vals)
-        order.action_confirm_order()
-        
-        return {
-            'success': True,
-            'order_id': order.id,
-            'nasiya_id': order.nasiya_id.id,
-            'nasiya_amount': order.nasiya_id.amount_total
-        }
+        try:
+            order_vals = {
+                'agent_id': request.env.uid,
+                'partner_id': partner_id,
+                'line_ids': [(0, 0, {
+                    'product_id': l['product_id'],
+                    'qty': l['qty'],
+                    'price_unit': l['price']
+                }) for l in lines]
+            }
+            order = request.env['van.pos.order'].create(order_vals)
+            order.action_confirm_order()
+            
+            return {
+                'success': True,
+                'order_id': order.id,
+                'nasiya_id': order.nasiya_id.id,
+                'nasiya_amount': order.nasiya_id.amount_total
+            }
+        except Exception as e:
+            return {'success': False, 'error': str(e)}
 
     @http.route('/van/pos/submit_kirim', type='json', auth='user')
     def submit_kirim(self, nasiya_id, amount, payment_method='cash'):

@@ -205,10 +205,12 @@
                     </div>
                 </t>
             </div>
+            
+            <!-- Spacer so the last item isn't hidden by the bottom bar -->
+            <div t-if="state.screen === 'products'" style="height: 100px;"></div>
 
-            <!-- Sticky Cart Footer -->
-            <t t-if="state.screen === 'products' and cartItems.length > 0">
-                <div style="position: fixed; bottom: 0; left: 0; right: 0; background-color: white; padding: 15px; box-shadow: 0 -4px 6px -1px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; z-index: 50;">
+            <!-- Bottom Cart Summary (Fixed) -->
+            <div t-if="state.screen === 'products' and cartItems.length > 0" style="position: fixed; bottom: 0; left: 0; right: 0; background: white; padding: 15px 20px; box-shadow: 0 -4px 6px -1px rgba(0, 0, 0, 0.1); display: flex; justify-content: space-between; align-items: center; z-index: 100;">
                     <div>
                         <div style="font-weight: bold; font-size: 16px;">Jami: <span style="color: #dc2626;"><t t-esc="cartTotal.toLocaleString()"/></span></div>
                         <div style="font-size: 12px; color: #6b7280;"><t t-esc="cartItems.length"/> turdagi mahsulot</div>
