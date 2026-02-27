@@ -105,8 +105,39 @@ class VanPosOrderLine(models.Model):
     price_unit = fields.Float(string='Narx', required=True)
     
     subtotal = fields.Monetary(string='Oraliq Summa', compute='_compute_subtotal', store=True, currency_field='currency_id')
+    
+    # Cost and Margin
+    cost_price = fields.Float(string='Kelish Narxi', compute='_compute_cost_and_margin', store=True)
+    margin = fields.Monetary(string='Sof Foyda', compute='_compute_cost_and_margin', store=True, currency_field='currency_id')
 
     @api.depends('qty', 'price_unit')
     def _compute_subtotal(self):
         for line in self:
             line.subtotal = line.qty * line.price_unit
+
+    @api.depends('qty', 'price_unit', 'product_id', 'order_id.agent_id')
+    def _compute_cost_and_margin(self):
+        for line in self:
+            if not line.product_id or not line.order_id.agent_id:
+                line.cost_price = 0.0
+                line.margin = 0.0
+                continue
+                
+            # Find agent's cost price from their active inventory
+            agent_summary = self.env['van.agent.summary'].search([
+                ('agent_id', '=', line.order_id.agent_id.id)
+            ], limit=1)
+            
+            cost_unit = 0.0
+            if agent_summary:
+                inv_line = self.env['van.agent.inventory.line'].search([
+                    ('summary_id', '=', agent_summary.id),
+                    ('product_id', '=', line.product_id.id)
+                ], limit=1)
+                
+                if inv_line:
+                    # Guard against bad cost data (cost > selling price)
+                    cost_unit = inv_line.cost_price if (0 < inv_line.cost_price < line.price_unit) else 0.0
+            
+            line.cost_price = cost_unit
+            line.margin = (line.price_unit - cost_unit) * line.qty

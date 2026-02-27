@@ -94,8 +94,10 @@
                 <field name="order_id"/>
                 <field name="product_id"/>
                 <field name="qty"/>
-                <field name="price_unit" string="Sotish Narxi"/>
-                <field name="subtotal" string="Jami Tushum" sum="Jami"/>
+                <field name="cost_price" sum="Jami" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                <field name="price_unit" string="Sotish Narxi" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                <field name="subtotal" string="Jami Tushum" sum="Jami" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                <field name="margin" sum="Jami" widget="monetary" options="{'currency_field': 'currency_id'}"/>
                 <field name="currency_id" column_invisible="1"/>
             </list>
         </field>
