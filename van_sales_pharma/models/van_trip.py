@@ -110,8 +110,6 @@ class VanTrip(models.Model):
                 if existing_inv_line:
                     existing_inv_line.loaded_qty += data['qty']
                     existing_inv_line.price_unit = data['price']
-                    # Update cost_price from standard_price at load time
-                    existing_inv_line.cost_price = self.env['product.product'].browse(p_id).standard_price
                 else:
                     self.env['van.agent.inventory.line'].create({
                         'summary_id': summary.id,
@@ -241,26 +239,13 @@ class VanTrip(models.Model):
                 t_chiqim += vp.amount
 
         # 4. Calculate Margin (Foyda) for Filtered sales
-        # Margin = Total Price - Agent Cost Price * quantity
-        # Agent cost price is stored in van.agent.inventory.line.cost_price per product
+        # Margin = Total Price - standard_price * quantity
         margin_today = 0.0
-        
-        # Build a cost map from the current agent's inventory (agent_id = current user)
-        agent_summary = self.env['van.agent.summary'].search([('agent_id', '=', self.env.uid)], limit=1)
-        agent_cost_map = {}
-        if agent_summary:
-            for inv_line in agent_summary.inventory_line_ids:
-                cost = inv_line.cost_price or inv_line.product_id.standard_price or 0.0
-                agent_cost_map[inv_line.product_id.id] = cost
         
         for order in pos_orders.filtered(lambda o: o.state == 'done'):
             for line in order.line_ids:
-                cost_unit = agent_cost_map.get(line.product_id.id, 0.0)
-                # only apply cost if it makes sense (less than or equal to selling price)
-                if cost_unit > 0 and cost_unit < line.price_unit:
-                    cost = cost_unit * line.qty
-                else:
-                    cost = 0.0
+                cost_unit = line.product_id.standard_price or 0.0
+                cost = cost_unit * line.qty
                 margin_today += (line.subtotal - cost)
 
         # 5. Top Mijozlar va Agentlar (Filtered by Date, or All-Time if no date)
