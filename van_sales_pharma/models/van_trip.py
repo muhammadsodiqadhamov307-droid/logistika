@@ -110,11 +110,14 @@ class VanTrip(models.Model):
                 if existing_inv_line:
                     existing_inv_line.loaded_qty += data['qty']
                     existing_inv_line.price_unit = data['price']
+                    # Update cost_price from standard_price at load time
+                    existing_inv_line.cost_price = self.env['product.product'].browse(p_id).standard_price
                 else:
                     self.env['van.agent.inventory.line'].create({
                         'summary_id': summary.id,
                         'product_id': p_id,
                         'price_unit': data['price'],
+                        'cost_price': self.env['product.product'].browse(p_id).standard_price,
                         'loaded_qty': data['qty'],
                     })
         return True
@@ -252,8 +255,12 @@ class VanTrip(models.Model):
         
         for order in pos_orders.filtered(lambda o: o.state == 'done'):
             for line in order.line_ids:
-                cost_unit = agent_cost_map.get(line.product_id.id, line.product_id.standard_price or 0.0)
-                cost = cost_unit * line.qty
+                cost_unit = agent_cost_map.get(line.product_id.id, 0.0)
+                # only apply cost if it makes sense (less than or equal to selling price)
+                if cost_unit > 0 and cost_unit < line.price_unit:
+                    cost = cost_unit * line.qty
+                else:
+                    cost = 0.0
                 margin_today += (line.subtotal - cost)
 
         # 5. Top Mijozlar va Agentlar (Filtered by Date, or All-Time if no date)
