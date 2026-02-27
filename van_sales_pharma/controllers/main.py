@@ -3,7 +3,7 @@ from odoo.http import request
 
 class VanPosController(http.Controller):
 
-    @http.route('/van/pos/get_clients', type='json', auth='user')
+    @http.route('/van/pos/get_clients', type='jsonrpc', auth='user')
     def get_clients(self):
         partners = request.env['res.partner'].search([('x_is_van_customer', '=', True)])
         # recompute balances based on new nasiya
@@ -16,7 +16,7 @@ class VanPosController(http.Controller):
             'total_due': p.x_van_total_due
         } for p in partners]
 
-    @http.route('/van/pos/get_inventory', type='json', auth='user')
+    @http.route('/van/pos/get_inventory', type='jsonrpc', auth='user')
     def get_inventory(self):
         summary = request.env['van.agent.summary'].search([('agent_id', '=', request.env.uid)], limit=1)
         if not summary:
@@ -33,7 +33,7 @@ class VanPosController(http.Controller):
             })
         return items
 
-    @http.route('/van/pos/submit_order', type='json', auth='user')
+    @http.route('/van/pos/submit_order', type='jsonrpc', auth='user')
     def submit_order(self, partner_id, lines):
         """
         lines = [{'product_id': ID, 'qty': QTY, 'price': PRICE}]
@@ -60,7 +60,7 @@ class VanPosController(http.Controller):
         except Exception as e:
             return {'success': False, 'error': str(e)}
 
-    @http.route('/van/pos/submit_kirim', type='json', auth='user')
+    @http.route('/van/pos/submit_kirim', type='jsonrpc', auth='user')
     def submit_kirim(self, nasiya_id, amount, payment_method='cash'):
         nasiya = request.env['van.nasiya'].browse(nasiya_id)
         if not nasiya.exists():
@@ -77,7 +77,7 @@ class VanPosController(http.Controller):
         
         return {'success': True, 'payment_id': payment.id}
 
-    @http.route('/van/pos/submit_quick_action', type='json', auth='user')
+    @http.route('/van/pos/submit_quick_action', type='jsonrpc', auth='user')
     def submit_quick_action(self, type, amount, note='', partner_id=None):
         try:
             payment_vals = {
