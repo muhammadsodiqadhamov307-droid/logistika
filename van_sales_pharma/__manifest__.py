@@ -7,6 +7,9 @@
     'depends': [
         'base',
         'mail',
+        'point_of_sale',
+        'stock',
+        'product',
     ],
     'data': [
         'security/van_sales_security.xml',
