@@ -16,6 +16,9 @@
     <menuitem id="menu_van_kirimlar_main" name="Kirimlar" parent="menu_van_sales_root" action="action_van_kirimlar_global" sequence="25"/>
     <menuitem id="menu_van_chiqimlar_main" name="Chiqimlar" parent="menu_van_sales_root" action="action_van_chiqimlar_global" sequence="26"/>
 
+    <!-- Mahsulotlar (Products) -->
+    <menuitem id="menu_van_products" name="Mahsulotlar" parent="menu_van_sales_root" action="action_van_product" sequence="30"/>
+
     <!-- Mijozlar (Customers) -->
     <menuitem id="menu_van_customers_main" name="Mijozlar" parent="menu_van_sales_root" action="action_van_customers_v2" sequence="40"/>
 

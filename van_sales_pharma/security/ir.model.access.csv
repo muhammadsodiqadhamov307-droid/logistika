@@ -22,3 +22,5 @@ access_van_pos_order_admin,van.pos.order admin,model_van_pos_order,van_sales_pha
 access_van_pos_order_agent,van.pos.order agent,model_van_pos_order,van_sales_pharma.group_van_agent,1,1,1,1
 access_van_pos_order_line_admin,van.pos.order.line admin,model_van_pos_order_line,van_sales_pharma.group_van_admin,1,1,1,1
 access_van_pos_order_line_agent,van.pos.order.line agent,model_van_pos_order_line,van_sales_pharma.group_van_agent,1,1,1,1
+access_van_product_admin,van.product admin,model_van_product,van_sales_pharma.group_van_admin,1,1,1,1
+access_van_product_agent,van.product agent,model_van_product,van_sales_pharma.group_van_agent,1,0,0,0

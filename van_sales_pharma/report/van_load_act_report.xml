@@ -39,7 +39,7 @@
                                 <tr>
                                     <th name="th_description" class="text-start">Mahsulot</th>
                                     <th name="th_quantity" class="text-end">Miqdor</th>
-                                    <th name="th_uom" class="text-start">Birlik</th>
+
                                     <th name="th_price" class="text-end">Sotuv Narxi</th>
                                 </tr>
                             </thead>
@@ -48,7 +48,7 @@
                                     <tr t-att-class="'bg-200 fw-bold' if line.loaded_qty &lt;= 0 else ''">
                                         <td><span t-field="line.product_id.name"/></td>
                                         <td class="text-end"><span t-field="line.loaded_qty"/></td>
-                                        <td><span t-field="line.uom_id"/></td>
+
                                         <td class="text-end">
                                             <span t-field="line.price_unit" t-options='{"widget": "monetary", "display_currency": doc.currency_id}'/>
                                         </td>

@@ -100,14 +100,14 @@ class VanPosOrderLine(models.Model):
     company_id = fields.Many2one('res.company', related='order_id.company_id', store=True)
     currency_id = fields.Many2one('res.currency', related='order_id.currency_id', store=True)
 
-    product_id = fields.Many2one('product.product', string='Mahsulot', required=True)
+    product_id = fields.Many2one('van.product', string='Mahsulot', required=True)
     qty = fields.Float(string='Miqdor', required=True, default=1.0)
     price_unit = fields.Float(string='Narx', required=True)
     
     subtotal = fields.Monetary(string='Oraliq Summa', compute='_compute_subtotal', store=True, currency_field='currency_id')
     
     # Cost and Margin
-    standard_price = fields.Float(string='Kelish Narxi', related='product_id.standard_price', readonly=True, store=True)
+    cost_price = fields.Float(string='Kelish Narxi', related='product_id.cost_price', readonly=True, store=True)
     margin = fields.Monetary(string='Sof Foyda', compute='_compute_margin', store=True, currency_field='currency_id')
 
     @api.depends('qty', 'price_unit')
@@ -115,7 +115,7 @@ class VanPosOrderLine(models.Model):
         for line in self:
             line.subtotal = line.qty * line.price_unit
 
-    @api.depends('qty', 'price_unit', 'standard_price')
+    @api.depends('qty', 'price_unit', 'cost_price')
     def _compute_margin(self):
         for line in self:
-            line.margin = (line.price_unit - line.standard_price) * line.qty
+            line.margin = (line.price_unit - line.cost_price) * line.qty

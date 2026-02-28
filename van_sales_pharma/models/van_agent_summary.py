@@ -64,23 +64,23 @@ class VanAgentSummary(models.Model):
     total_inventory_value = fields.Monetary(string='Jami Summa (Sotuv)', currency_field='currency_id', compute='_compute_inventory_dashboard')
     expected_net_profit = fields.Monetary(string='Kutilayotgan Sof Foyda', currency_field='currency_id', compute='_compute_inventory_dashboard')
 
-    @api.depends('inventory_line_ids.remaining_qty', 'inventory_line_ids.price_unit', 'inventory_line_ids.cost_price', 'inventory_line_ids.product_id.standard_price')
+    @api.depends('inventory_line_ids.remaining_qty', 'inventory_line_ids.price_unit', 'inventory_line_ids.cost_price')
     def _compute_inventory_dashboard(self):
         for rec in self:
             qty = val = profit = 0.0
             for line in rec.active_inventory_line_ids:
                 qty += line.remaining_qty
                 val += line.remaining_qty * line.price_unit
-                cost = line.product_id.standard_price if not line.cost_price else line.cost_price
+                cost = line.cost_price
                 profit += (line.price_unit - cost) * line.remaining_qty
             rec.total_inventory_qty = qty
             rec.total_inventory_value = val
             rec.expected_net_profit = profit
 
-    @api.depends('inventory_line_ids.remaining_qty', 'inventory_line_ids.product_id.type')
+    @api.depends('inventory_line_ids.remaining_qty')
     def _compute_active_inventory(self):
         for rec in self:
-            active_lines = rec.inventory_line_ids.filtered(lambda l: l.remaining_qty > 0 and l.product_id.type != 'service')
+            active_lines = rec.inventory_line_ids.filtered(lambda l: l.remaining_qty > 0)
             rec.active_inventory_line_ids = active_lines
             rec.inventory_count = len(active_lines)
 
@@ -254,10 +254,9 @@ class VanAgentInventoryLine(models.Model):
     _description = 'Agent Inventar Satri'
 
     summary_id = fields.Many2one('van.agent.summary', required=True, ondelete='cascade')
-    product_id = fields.Many2one('product.product', string='Mahsulot', required=True)
-    uom_id = fields.Many2one('uom.uom', related='product_id.uom_id', string="O'lchov")
+    product_id = fields.Many2one('van.product', string='Mahsulot', required=True)
     price_unit = fields.Float(string='Narx (So\'m)')
-    cost_price = fields.Float(string='Kelish narxi', related='product_id.standard_price', readonly=True)
+    cost_price = fields.Float(string='Kelish narxi', related='product_id.cost_price', readonly=True)
 
     loaded_qty = fields.Float(string='Yuklangan')
     # Not stored — always recomputes live so sold/remaining values reflect new POS orders immediately

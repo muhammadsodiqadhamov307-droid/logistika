@@ -29,7 +29,6 @@ class VanPosController(http.Controller):
                 'name': line.product_id.display_name,
                 'price': line.price_unit,
                 'remaining': line.remaining_qty,
-                'uom': line.uom_id.name,
             })
         return items
 

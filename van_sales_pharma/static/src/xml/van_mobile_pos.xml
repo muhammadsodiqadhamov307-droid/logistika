@@ -132,7 +132,7 @@
                                                      style="width: 100px; padding: 4px; margin: 0 5px; border: 1px solid #059669; border-radius: 5px; color: #059669; font-weight: bold; font-size: 14px;"/> so'm
                                     </div>
                                 </t>
-                                <div style="font-size: 12px; color: #6b7280;">Qoldiq: <t t-esc="product.remaining"/> <t t-esc="product.uom"/></div>
+                                <div style="font-size: 12px; color: #6b7280;">Qoldiq: <t t-esc="product.remaining"/></div>
                             </div>
                             
                             <div style="display: flex; align-items: center;">

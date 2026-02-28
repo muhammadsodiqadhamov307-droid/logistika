@@ -76,9 +76,9 @@
                                 <t t-foreach="doc.trip_line_ids" t-as="line">
                                     <tr>
                                         <td><span t-field="line.product_id.name"/></td>
-                                        <td class="text-end"><span t-field="line.loaded_qty"/> <span t-field="line.uom_id.name"/></td>
-                                        <td class="text-end"><span t-field="line.sold_qty"/> <span t-field="line.uom_id.name"/></td>
-                                        <td class="text-end"><span t-field="line.returned_qty"/> <span t-field="line.uom_id.name"/></td>
+                                        <td class="text-end"><span t-field="line.loaded_qty"/></td>
+                                        <td class="text-end"><span t-field="line.sold_qty"/></td>
+                                        <td class="text-end"><span t-field="line.returned_qty"/></td>
                                     </tr>
                                 </t>
                             </tbody>

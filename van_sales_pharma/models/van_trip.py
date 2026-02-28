@@ -115,7 +115,7 @@ class VanTrip(models.Model):
                         'summary_id': summary.id,
                         'product_id': p_id,
                         'price_unit': data['price'],
-                        'cost_price': self.env['product.product'].browse(p_id).standard_price,
+                        'cost_price': self.env['van.product'].browse(p_id).cost_price,
                         'loaded_qty': data['qty'],
                     })
         return True
@@ -179,7 +179,7 @@ class VanTrip(models.Model):
             'trip_line_ids': [(0, 0, {
                 'product_id': line['product_id'],
                 'loaded_qty': line['qty'],
-                'price_unit': self.env['product.product'].sudo().browse(line['product_id']).list_price,
+                'price_unit': self.env['van.product'].sudo().browse(line['product_id']).list_price,
             }) for line in lines_data]
         }
         
@@ -244,7 +244,7 @@ class VanTrip(models.Model):
         
         for order in pos_orders.filtered(lambda o: o.state == 'done'):
             for line in order.line_ids:
-                cost_unit = line.product_id.standard_price or 0.0
+                cost_unit = line.product_id.cost_price or 0.0
                 cost = cost_unit * line.qty
                 margin_today += (line.subtotal - cost)
 

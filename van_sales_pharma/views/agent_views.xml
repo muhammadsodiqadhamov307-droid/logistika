@@ -218,11 +218,11 @@
                             <field name="cost_price"/>
                             <field name="price_unit"/>
                             <field name="currency_id"/>
-                            <field name="uom_id"/>
+
                             <templates>
                                 <t t-name="card" class="flex-row">
                                     <aside class="o_kanban_aside_full" style="width: 85px; text-align: center; padding-top: 15px;">
-                                        <img t-attf-src="/web/image?model=product.product&amp;id={{record.product_id.raw_value}}&amp;field=image_128" alt="Mahsulot Rasmi" style="width: 64px; height: 64px; object-fit: cover; margin: 0 auto; display: block; border-radius: 4px;"/>
+                                        <img t-attf-src="/web/image?model=van.product&amp;id={{record.product_id.raw_value}}&amp;field=image_1920" alt="Mahsulot Rasmi" style="width: 64px; height: 64px; object-fit: cover; margin: 0 auto; display: block; border-radius: 4px;"/>
                                     </aside>
                                     <main class="ms-3 pe-2 w-100">
                                         <strong class="o_kanban_record_title" style="font-size: 1.1em; font-weight:bold;">
@@ -230,7 +230,7 @@
                                         </strong>
                                         <div class="mt-2 text-muted" style="font-size: 0.9em;">
                                             <i class="fa fa-cubes me-1"/> Qoldiq: 
-                                            <span class="text-primary fw-bold float-end"><field name="remaining_qty"/> <field name="uom_id"/></span>
+                                            <span class="text-primary fw-bold float-end"><field name="remaining_qty"/></span>
                                         </div>
                                         <div class="text-muted mt-1" style="font-size: 0.9em;" groups="van_sales_pharma.group_van_admin">
                                             <i class="fa fa-download me-1"/> Kelish narxi: 
@@ -304,11 +304,11 @@
                 <field name="cost_price"/>
                 <field name="price_unit"/>
                 <field name="currency_id"/>
-                <field name="uom_id"/>
+
                 <templates>
                     <t t-name="card" class="flex-row">
                         <aside class="o_kanban_aside_full" style="width: 85px; text-align: center; padding-top: 15px;">
-                            <img t-attf-src="/web/image?model=product.product&amp;id={{record.product_id.raw_value}}&amp;field=image_128" alt="Mahsulot Rasmi" style="width: 64px; height: 64px; object-fit: cover; margin: 0 auto; display: block; border-radius: 4px;"/>
+                            <img t-attf-src="/web/image?model=van.product&amp;id={{record.product_id.raw_value}}&amp;field=image_1920" alt="Mahsulot Rasmi" style="width: 64px; height: 64px; object-fit: cover; margin: 0 auto; display: block; border-radius: 4px;"/>
                         </aside>
                         <main class="ms-3 pe-2 w-100">
                             <strong class="o_kanban_record_title" style="font-size: 1.1em; font-weight:bold;">
@@ -317,7 +317,7 @@
                             <div class="mt-2 d-flex flex-column gap-1" style="font-size: 0.95em;">
                                 <div class="d-flex justify-content-between border-bottom pb-1">
                                     <span class="text-muted"><i class="fa fa-cubes me-1"/> Qoldiq:</span>
-                                    <span class="fw-bold text-primary"><field name="remaining_qty"/> <field name="uom_id"/></span>
+                                    <span class="fw-bold text-primary"><field name="remaining_qty"/></span>
                                 </div>
                                 <div class="d-flex justify-content-between border-bottom pb-1">
                                     <span class="text-muted"><i class="fa fa-download me-1"/> Kelish narxi:</span>
@@ -355,7 +355,7 @@
                             <group>
                                 <group>
                                     <field name="price_unit" widget="monetary" options="{'currency_field': 'currency_id'}"/>
-                                    <field name="uom_id"/>
+        
                                 </group>
                                 <group>
                                     <field name="subtotal_sold" widget="monetary" options="{'currency_field': 'currency_id'}"/>

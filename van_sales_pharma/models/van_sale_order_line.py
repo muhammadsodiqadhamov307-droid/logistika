@@ -11,20 +11,18 @@ class VanSaleOrderLine(models.Model):
     company_id = fields.Many2one('res.company', related='order_id.company_id', store=True)
     currency_id = fields.Many2one('res.currency', related='order_id.currency_id', store=True)
 
-    product_id = fields.Many2one('product.product', string='Mahsulot', required=True)
+    product_id = fields.Many2one('van.product', string='Mahsulot', required=True)
     qty = fields.Float(string='Miqdor', required=True, default=1.0)
     price_unit = fields.Float(string='Narx', required=True)
     
     subtotal = fields.Monetary(string='Mablag\'', compute='_compute_subtotal', store=True, currency_field='currency_id')
-    uom_id = fields.Many2one('uom.uom', string='O\'lchov Birligi')
 
     @api.onchange('product_id')
     def _onchange_product_id(self):
         if self.product_id:
             # Sayohatga yuklangan mahsulotlardan (trip_lines) narxini topish afzal,
             # Lekin tezlik uchun ro'yxatdan asosiy narxni tortamiz.
-            self.price_unit = self.product_id.lst_price
-            self.uom_id = self.product_id.uom_id
+            self.price_unit = self.product_id.list_price
 
     @api.depends('qty', 'price_unit')
     def _compute_subtotal(self):

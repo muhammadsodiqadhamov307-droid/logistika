@@ -6,11 +6,8 @@ from . import van_payment
 from . import van_nasiya
 from . import res_partner
 from . import res_users
-from . import pos_order
-from . import product_product
 from . import van_agent_summary
 from . import van_customer
-from . import pos_session
 from . import van_pos_order
 from . import van_dashboard_detail
-from . import product_template
+from . import van_product
