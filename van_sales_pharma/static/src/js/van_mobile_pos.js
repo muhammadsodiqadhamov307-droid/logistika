@@ -10,7 +10,7 @@ export class VanMobilePos extends Component {
         this.action = useService("action");
 
         this.state = useState({
-            screen: 'clients', // clients, products, checkout, kirim
+            screen: 'products', // clients, products, checkout, kirim
             error: null,
 
             // Data
@@ -18,7 +18,7 @@ export class VanMobilePos extends Component {
             inventory: [],
 
             // Active selection
-            selectedClient: null,
+            selectedClient: { id: false, name: 'Naqt savdo', total_due: 0 },
             cart: {}, // productId: {qty, product}
 
             // Post-checkout
@@ -39,7 +39,10 @@ export class VanMobilePos extends Component {
         });
 
         onWillStart(async () => {
-            await this.loadClients();
+            await Promise.all([
+                this.loadClients(),
+                this.loadInventory()
+            ]);
         });
     }
 
@@ -66,7 +69,6 @@ export class VanMobilePos extends Component {
     selectClient(client) {
         this.state.selectedClient = client;
         this.state.screen = 'products';
-        this.loadInventory();
     }
 
     get filteredClients() {
@@ -191,8 +193,8 @@ export class VanMobilePos extends Component {
     }
 
     resetToStart() {
-        this.state.screen = 'clients';
-        this.state.selectedClient = null;
+        this.state.screen = 'products';
+        this.state.selectedClient = { id: false, name: 'Naqt savdo', total_due: 0 };
         this.state.cart = {};
         this.state.newNasiyaId = null;
         this.state.searchQuery = '';
@@ -243,9 +245,8 @@ export class VanMobilePos extends Component {
     }
 
     goBack() {
-        if (this.state.screen === 'products') {
-            this.state.screen = 'clients';
-            this.state.selectedClient = null;
+        if (this.state.screen === 'clients') {
+            this.state.screen = 'products';
         } else if (this.state.screen === 'checkout') {
             this.state.screen = 'products';
         }

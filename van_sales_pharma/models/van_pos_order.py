@@ -14,7 +14,7 @@ class VanPosOrder(models.Model):
     currency_id = fields.Many2one('res.currency', related='company_id.currency_id', store=True)
 
     agent_id = fields.Many2one('res.users', string='Agent', required=True, default=lambda self: self.env.user)
-    partner_id = fields.Many2one('res.partner', string='Mijoz', required=True)
+    partner_id = fields.Many2one('res.partner', string='Mijoz')
     date = fields.Datetime(string='Sana', required=True, default=fields.Datetime.now)
     
     amount_total = fields.Monetary(string='Jami Summa', compute='_compute_amount_total', store=True, currency_field='currency_id')

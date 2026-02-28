@@ -12,7 +12,7 @@ class VanNasiya(models.Model):
     company_id = fields.Many2one('res.company', string='Korxona', default=lambda self: self.env.company)
     currency_id = fields.Many2one('res.currency', related='company_id.currency_id', store=True)
 
-    partner_id = fields.Many2one('res.partner', string='Mijoz', required=True)
+    partner_id = fields.Many2one('res.partner', string='Mijoz')
     agent_id = fields.Many2one('res.users', string='Savdo Agenti')
     sale_order_id = fields.Many2one('van.sale.order', string='Muloqot Sotuvi', ondelete='set null')
     invoice_id = fields.Many2one('account.move', string='Faktura (Invoice)', ondelete='cascade')

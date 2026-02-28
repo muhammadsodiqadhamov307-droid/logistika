@@ -40,7 +40,7 @@ class VanPosController(http.Controller):
         try:
             order_vals = {
                 'agent_id': request.env.uid,
-                'partner_id': partner_id,
+                'partner_id': partner_id if partner_id else False,
                 'line_ids': [(0, 0, {
                     'product_id': l['product_id'],
                     'qty': l['qty'],
