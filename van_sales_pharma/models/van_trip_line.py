@@ -16,6 +16,7 @@ class VanTripLine(models.Model):
     price_unit = fields.Float(string='Narx', required=True)
 
     loaded_qty = fields.Float(string='Yuklangan Miqdor', default=0.0, required=True)
+    uom_id = fields.Many2one('uom.uom', string='O‘lchov Birligi')
 
     @api.onchange('product_id')
     def _onchange_product_id(self):
