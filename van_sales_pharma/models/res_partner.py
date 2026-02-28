@@ -5,15 +5,18 @@ _logger = logging.getLogger(__name__)
 
 class ResPartner(models.Model):
     _inherit = 'res.partner'
+    currency_id = fields.Many2one('res.currency', string='Valyuta', related='company_id.currency_id', readonly=True)
 
     x_van_total_due = fields.Monetary(
         string='Jami Nasiya Qarzi',
         compute='_compute_van_nasiya_stats',
+        currency_field='currency_id',
         help="Mijozning yopilmagan (ochiq) nasiya summasi."
     )
     x_van_total_overdue = fields.Monetary(
         string='Muddati O\'tgan Nasiya',
         compute='_compute_van_nasiya_stats',
+        currency_field='currency_id',
         help="To'lov muddati o'tgan nasiyalar summasi."
     )
     x_van_nasiya_count = fields.Integer(
@@ -24,22 +27,26 @@ class ResPartner(models.Model):
     x_van_balance = fields.Monetary(
         string='Mijoz Balansi',
         compute='_compute_van_nasiya_stats',
+        currency_field='currency_id',
         help="Mijozning haqiqiy qarz balansi (Jami Nasiya - Jami Kirim)."
     )
     
     x_van_total_cash = fields.Monetary(
         string='Jami Naqt To\'lovlar',
         compute='_compute_van_payment_stats',
+        currency_field='currency_id',
         help="Sotuvchi agentlarga qilingan jami naqt to'lovlar."
     )
     x_van_total_card = fields.Monetary(
         string='Jami Karta To\'lovlar',
         compute='_compute_van_payment_stats',
+        currency_field='currency_id',
         help="Sotuvchi agentlarga qilingan jami karta to'lovlar."
     )
     x_van_total_nasiya = fields.Monetary(
         string='Jami Nasiya Savdo (Tarixiy)',
         compute='_compute_van_payment_stats',
+        currency_field='currency_id',
         help="Mijoz ushbu korxonadan olgan jami nasiya savdolari."
     )
     
@@ -51,6 +58,7 @@ class ResPartner(models.Model):
     x_van_pos_total_sum = fields.Monetary(
         string='Jami Xarid Summasi',
         compute='_compute_van_pos_stats',
+        currency_field='currency_id',
         help="Mijozning barcha xaridlari (POS) umumiy summasi."
     )
 
