@@ -98,7 +98,7 @@ class VanPosController(http.Controller):
     @http.route('/van/pos/get_requests', type='jsonrpc', auth='user')
     def get_requests(self):
         try:
-            requests = request.env['van.request'].search([('agent_id', '=', request.env.uid)], order='date desc', limit=50)
+            requests = request.env['van.request'].search([('agent_id', '=', request.env.uid), ('state', '!=', 'done')], order='date desc', limit=50)
             res = []
             for req in requests:
                 lines = [{'product_name': l.product_id.name, 'qty': l.qty} for l in req.line_ids]

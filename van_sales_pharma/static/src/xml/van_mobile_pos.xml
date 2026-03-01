@@ -242,6 +242,98 @@
                         </button>
                     </div>
                 </t>
+
+                <!-- REQUESTS LIST SCREEN -->
+                <t t-if="state.screen === 'requests_list'">
+                    <button t-on-click="() => state.screen = 'new_request_form'" style="width: 100%; padding: 15px; background-color: #3b82f6; color: white; border: none; border-radius: 8px; font-size: 24px; font-weight: bold; cursor: pointer; margin-bottom: 15px; box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.5);">
+                        <i class="fa fa-plus"></i>
+                    </button>
+                    
+                    <t t-if="state.requestsList.length === 0">
+                        <div style="text-align: center; padding: 20px; color: #6b7280;">Hali hech qanday so'rovlar yo'q.</div>
+                    </t>
+                    <t t-else="">
+                        <div style="display: grid; grid-template-columns: 1fr; gap: 15px;">
+                            <t t-foreach="state.requestsList" t-as="req" t-key="req.id">
+                                <div style="background: white; border-radius: 8px; padding: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border-left: 4px solid #3b82f6;">
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                        <div style="font-weight: bold; font-size: 16px;"><t t-esc="req.name"/></div>
+                                        <div style="font-size: 12px; color: white; background: #10b981; padding: 3px 8px; border-radius: 10px; font-weight: bold;" t-if="req.state === 'done'">Bajarildi</div>
+                                        <div style="font-size: 12px; color: white; background: #6b7280; padding: 3px 8px; border-radius: 10px; font-weight: bold;" t-if="req.state === 'cancel'">Bekor qilingan</div>
+                                        <div style="font-size: 12px; color: white; background: #3b82f6; padding: 3px 8px; border-radius: 10px; font-weight: bold;" t-if="req.state === 'draft'">Kutilmoqda</div>
+                                    </div>
+                                    <div style="font-size: 14px; margin-bottom: 5px; color: #374151;">
+                                        <i class="fa fa-user" style="color: #6b7280; width: 15px;"></i> <t t-esc="req.partner_name" t-if="req.partner_name"/> <span t-else="" style="color: #9ca3af;">Mijozsiz</span>
+                                    </div>
+                                    <div style="font-size: 12px; color: #6b7280; margin-bottom: 10px;">
+                                        <i class="fa fa-calendar" style="width: 15px;"></i> <t t-esc="req.date"/>
+                                    </div>
+                                    
+                                    <div style="background: #f3f4f6; border-radius: 5px; padding: 10px; font-size: 13px;">
+                                        <t t-foreach="req.lines" t-as="line" t-key="line_index">
+                                            <div style="display: flex; justify-content: space-between; margin-bottom: 4px; border-bottom: 1px solid #e5e7eb; padding-bottom: 2px;">
+                                                <span><t t-esc="line.product_name"/></span>
+                                                <span style="font-weight: bold;"><t t-esc="line.qty"/> ta</span>
+                                            </div>
+                                        </t>
+                                    </div>
+                                    <div t-if="req.notes" style="margin-top: 10px; font-size: 13px; color: #4b5563; font-style: italic;">
+                                        "<t t-esc="req.notes"/>"
+                                    </div>
+                                </div>
+                            </t>
+                        </div>
+                    </t>
+                </t>
+
+                <!-- NEW REQUEST FORM SCREEN -->
+                <t t-if="state.screen === 'new_request_form'">
+                    <div style="background: white; border-radius: 10px; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
+                        <div style="margin-bottom: 15px;">
+                            <label style="display: block; font-size: 14px; font-weight: bold; margin-bottom: 5px; color: #374151;">Mijoz</label>
+                            <select t-model="state.requestPartnerId" style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; box-sizing: border-box; outline: none; background-color: white;">
+                                <option value="">-- Mijozni tanlang (Majburiy)--</option>
+                                <t t-foreach="state.clients" t-as="client" t-key="'req-'+client.id">
+                                    <option t-att-value="client.id"><t t-esc="client.name"/></option>
+                                </t>
+                            </select>
+                        </div>
+
+                        <div style="margin-top: 20px; margin-bottom: 10px; font-weight: bold; color: #374151; font-size: 16px;">Mahsulotlar ro'yxati</div>
+                        
+                        <t t-foreach="state.newRequestLines" t-as="line" t-key="line_index">
+                            <div style="display: flex; gap: 10px; margin-bottom: 10px; background: #f9fafb; padding: 10px; border-radius: 8px; border: 1px solid #e5e7eb; align-items: center;">
+                                <div style="flex: 2;">
+                                    <select t-on-change="(ev) => this.updateRequestLineProduct(line_index, ev)" style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 5px; font-size: 14px; box-sizing: border-box; outline: none; background-color: white;">
+                                        <option value="">-- Tanlang --</option>
+                                        <t t-foreach="state.inventory" t-as="product" t-key="'reqprod-'+product.product_id">
+                                            <option t-att-value="product.product_id" t-att-selected="line.product_id == product.product_id"><t t-esc="product.name"/></option>
+                                        </t>
+                                    </select>
+                                </div>
+                                <div style="flex: 1;">
+                                    <input type="number" t-att-value="line.qty" t-on-change="(ev) => this.updateRequestLineQty(line_index, ev)" placeholder="Soni" style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 5px; font-size: 14px; box-sizing: border-box; outline: none; text-align: center;"/>
+                                </div>
+                                <button t-on-click="() => this.removeRequestLine(line_index)" t-if="state.newRequestLines.length > 1" style="background: #fee2e2; border: none; color: #ef4444; width: 35px; height: 35px; border-radius: 5px; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                                    <i class="fa fa-trash"></i>
+                                </button>
+                            </div>
+                        </t>
+                        
+                        <button t-on-click="addRequestLine" style="width: 100%; padding: 10px; background: none; border: 2px dashed #d1d5db; color: #6b7280; border-radius: 8px; font-weight: bold; margin-bottom: 20px; cursor: pointer;">
+                            <i class="fa fa-plus"></i> Yana mahsulot qo'shish
+                        </button>
+
+                        <div style="margin-bottom: 20px;">
+                            <label style="display: block; font-size: 14px; font-weight: bold; margin-bottom: 5px; color: #374151;">Umumiy Izoh</label>
+                            <input type="text" t-model="state.requestNote" placeholder="Aloxida talab bo'lsa..." style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; box-sizing: border-box; outline: none;"/>
+                        </div>
+
+                        <button t-on-click="submitRequest" style="width: 100%; padding: 15px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; color: white; cursor: pointer; background-color: #10b981; box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.5);">
+                            So'rovni Saqlash
+                        </button>
+                    </div>
+                </t>
             </div>
             
             <!-- Spacer so the last item isn't hidden by the bottom bar -->
