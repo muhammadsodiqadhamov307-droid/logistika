@@ -249,7 +249,7 @@
                         <button t-on-click="() => state.screen = 'new_request_form'" style="flex: 1; padding: 12px; background-color: #3b82f6; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.5);">
                             <i class="fa fa-plus-circle"></i> Yangi
                         </button>
-                        <select t-model="state.requestFilter" style="flex: 1; padding: 12px; border-radius: 8px; border: 1px solid #d1d5db; outline: none; background: white; font-weight: bold; color: #374151; font-size: 15px;">
+                        <select t-model="state.requestFilter" style="width: 140px; flex-shrink: 0; padding: 12px 10px; border-radius: 8px; border: 1px solid #d1d5db; outline: none; background: white; font-weight: bold; color: #374151; font-size: 14px;">
                             <option value="draft">Kutilmoqda</option>
                             <option value="done">Bajarildi</option>
                             <option value="cancel">Bekor qilingan</option>
@@ -267,7 +267,7 @@
                                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                                         <div style="font-weight: bold; font-size: 16px;"><t t-esc="req.name"/></div>
                                         <select t-on-change="(ev) => this.updateRequestState(req.id, ev.target.value)" 
-                                                t-att-style="req.state === 'done' ? 'background: #10b981; color: white; border: none; border-radius: 10px; padding: 5px 10px; font-weight: bold; font-size: 12px; outline: none; appearance: none; text-align: center;' : req.state === 'cancel' ? 'background: #6b7280; color: white; border: none; border-radius: 10px; padding: 5px 10px; font-weight: bold; font-size: 12px; outline: none; appearance: none; text-align: center;' : 'background: #3b82f6; color: white; border: none; border-radius: 10px; padding: 5px 10px; font-weight: bold; font-size: 12px; outline: none; appearance: none; text-align: center;'">
+                                                t-att-style="req.state === 'done' ? 'background: #10b981; color: white; border: none; border-radius: 12px; padding: 4px 10px; font-weight: bold; font-size: 11px; outline: none; cursor: pointer; min-width: 90px; text-align: center;' : req.state === 'cancel' ? 'background: #6b7280; color: white; border: none; border-radius: 12px; padding: 4px 10px; font-weight: bold; font-size: 11px; outline: none; cursor: pointer; min-width: 90px; text-align: center;' : 'background: #3b82f6; color: white; border: none; border-radius: 12px; padding: 4px 10px; font-weight: bold; font-size: 11px; outline: none; cursor: pointer; min-width: 90px; text-align: center;'">
                                             <option value="draft" t-att-selected="req.state === 'draft' ? 'selected' : undefined">Kutilmoqda</option>
                                             <option value="done" t-att-selected="req.state === 'done' ? 'selected' : undefined">Bajarildi</option>
                                             <option value="cancel" t-att-selected="req.state === 'cancel' ? 'selected' : undefined">Bekor</option>
