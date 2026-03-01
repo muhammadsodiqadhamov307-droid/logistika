@@ -44,8 +44,16 @@ export class VanMobilePos extends Component {
             requestsList: [],
             requestFilter: 'draft',
             requestPartnerId: '',
+            requestPartnerName: '',
             requestNote: '',
-            newRequestLines: [{ product_id: '', qty: '' }],
+            newRequestLines: [],
+
+            // Picker Modals for newRequest form
+            showClientPickerModal: false,
+            clientSearchModal: '',
+            showProductPickerModal: false,
+            productSearchModal: '',
+            tempSelectedProducts: new Set(),
         });
 
         onWillStart(async () => {
@@ -104,8 +112,94 @@ export class VanMobilePos extends Component {
     }
 
     get filteredRequests() {
-        if (this.state.requestFilter === 'all') return this.state.requestsList;
+        if (this.state.requestFilter === 'all') {
+            return this.state.requestsList;
+        }
         return this.state.requestsList.filter(req => req.state === this.state.requestFilter);
+    }
+
+    get filteredModalClients() {
+        if (!this.state.clientSearchModal) {
+            return this.state.clients;
+        }
+        const search = this.state.clientSearchModal.toLowerCase();
+        return this.state.clients.filter(client =>
+            client.name.toLowerCase().includes(search)
+        );
+    }
+
+    get filteredModalProducts() {
+        if (!this.state.productSearchModal) {
+            return this.state.inventory;
+        }
+        const search = this.state.productSearchModal.toLowerCase();
+        return this.state.inventory.filter(prod =>
+            prod.name.toLowerCase().includes(search)
+        );
+    }
+
+    // Modal Picker Handlers
+    openClientPicker() {
+        this.state.clientSearchModal = '';
+        this.state.showClientPickerModal = true;
+    }
+
+    closeClientPicker() {
+        this.state.showClientPickerModal = false;
+    }
+
+    selectRequestClient(client) {
+        this.state.requestPartnerId = client.id;
+        this.state.requestPartnerName = client.name;
+        this.closeClientPicker();
+    }
+
+    openProductPicker() {
+        this.state.productSearchModal = '';
+        // Pre-fill temp selection
+        this.state.tempSelectedProducts = new Set(this.state.newRequestLines.map(l => l.product_id));
+        this.state.showProductPickerModal = true;
+    }
+
+    closeProductPicker() {
+        this.state.showProductPickerModal = false;
+    }
+
+    toggleProductSelection(product_id) {
+        if (this.state.tempSelectedProducts.has(product_id)) {
+            this.state.tempSelectedProducts.delete(product_id);
+        } else {
+            this.state.tempSelectedProducts.add(product_id);
+        }
+        // Force Owl update for Set
+        this.state.tempSelectedProducts = new Set(this.state.tempSelectedProducts);
+    }
+
+    confirmProductSelection() {
+        const currentLinesMap = new Map();
+        this.state.newRequestLines.forEach(l => {
+            currentLinesMap.set(l.product_id, l);
+        });
+
+        // Rebuild lines
+        const newLines = [];
+        for (const product_id of this.state.tempSelectedProducts) {
+            const product = this.state.inventory.find(p => p.product_id === product_id);
+            if (!product) continue;
+
+            if (currentLinesMap.has(product_id)) {
+                newLines.push(currentLinesMap.get(product_id));
+            } else {
+                newLines.push({
+                    product_id: product_id,
+                    product_name: product.name,
+                    price: product.price,
+                    qty: 1
+                });
+            }
+        }
+        this.state.newRequestLines = newLines;
+        this.closeProductPicker();
     }
 
     get cartItems() {
