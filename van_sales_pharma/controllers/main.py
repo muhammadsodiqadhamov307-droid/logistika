@@ -29,6 +29,7 @@ class VanPosController(http.Controller):
                 'name': line.product_id.display_name,
                 'price': line.price_unit,
                 'remaining': line.remaining_qty,
+                'image_url': f'/web/image?model=van.product&id={line.product_id.id}&field=image_1920',
             })
         return items
 
