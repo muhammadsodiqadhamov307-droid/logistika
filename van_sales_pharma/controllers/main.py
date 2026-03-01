@@ -100,7 +100,7 @@ class VanPosController(http.Controller):
         try:
             import pytz
             user_tz = pytz.timezone(request.env.user.tz or 'Asia/Tashkent')
-            requests = request.env['van.request'].search([('agent_id', '=', request.env.uid), ('state', '=', 'draft')], order='date desc', limit=50)
+            requests = request.env['van.request'].search([('agent_id', '=', request.env.uid)], order='date desc', limit=100)
             res = []
             for req in requests:
                 lines = [{'product_name': l.product_id.name, 'qty': l.qty} for l in req.line_ids]

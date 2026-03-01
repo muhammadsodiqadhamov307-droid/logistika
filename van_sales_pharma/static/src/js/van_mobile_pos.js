@@ -42,6 +42,7 @@ export class VanMobilePos extends Component {
 
             // Requests (So'rovlar)
             requestsList: [],
+            requestFilter: 'draft',
             requestPartnerId: '',
             requestNote: '',
             newRequestLines: [{ product_id: '', qty: '' }],
@@ -88,6 +89,11 @@ export class VanMobilePos extends Component {
     get filteredInventory() {
         if (!this.state.productSearchQuery) return this.state.inventory;
         return this.state.inventory.filter(p => p.name.toLowerCase().includes(this.state.productSearchQuery.toLowerCase()));
+    }
+
+    get filteredRequests() {
+        if (this.state.requestFilter === 'all') return this.state.requestsList;
+        return this.state.requestsList.filter(req => req.state === this.state.requestFilter);
     }
 
     get cartItems() {
@@ -263,6 +269,7 @@ export class VanMobilePos extends Component {
             if (result.success) {
                 this.state.requestsList = result.requests || [];
                 this.state.screen = 'requests_list';
+                this.state.requestFilter = 'draft';
                 this.state.requestPartnerId = '';
                 this.state.requestNote = '';
                 this.state.newRequestLines = [{ product_id: '', qty: '' }];

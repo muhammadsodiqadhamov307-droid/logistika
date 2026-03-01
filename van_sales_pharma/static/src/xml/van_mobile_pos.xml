@@ -245,22 +245,33 @@
 
                 <!-- REQUESTS LIST SCREEN -->
                 <t t-if="state.screen === 'requests_list'">
-                    <button t-on-click="() => state.screen = 'new_request_form'" style="width: 100%; padding: 15px; background-color: #3b82f6; color: white; border: none; border-radius: 8px; font-size: 24px; font-weight: bold; cursor: pointer; margin-bottom: 15px; box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.5);">
-                        <i class="fa fa-plus"></i>
-                    </button>
+                    <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                        <button t-on-click="() => state.screen = 'new_request_form'" style="flex: 1; padding: 12px; background-color: #3b82f6; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.5);">
+                            <i class="fa fa-plus-circle"></i> Yangi
+                        </button>
+                        <select t-model="state.requestFilter" style="flex: 1; padding: 12px; border-radius: 8px; border: 1px solid #d1d5db; outline: none; background: white; font-weight: bold; color: #374151; font-size: 15px;">
+                            <option value="draft">Kutilmoqda</option>
+                            <option value="done">Bajarildi</option>
+                            <option value="cancel">Bekor qilingan</option>
+                            <option value="all">Barchasi</option>
+                        </select>
+                    </div>
                     
-                    <t t-if="state.requestsList.length === 0">
-                        <div style="text-align: center; padding: 20px; color: #6b7280;">Hali hech qanday so'rovlar yo'q.</div>
+                    <t t-if="filteredRequests.length === 0">
+                        <div style="text-align: center; padding: 20px; color: #6b7280;">Ushbu holatda hech qanday so'rovlar topilmadi.</div>
                     </t>
                     <t t-else="">
                         <div style="display: grid; grid-template-columns: 1fr; gap: 15px;">
-                            <t t-foreach="state.requestsList" t-as="req" t-key="req.id">
+                            <t t-foreach="filteredRequests" t-as="req" t-key="req.id">
                                 <div style="background: white; border-radius: 8px; padding: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border-left: 4px solid #3b82f6;">
                                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                                         <div style="font-weight: bold; font-size: 16px;"><t t-esc="req.name"/></div>
-                                        <div style="font-size: 12px; color: white; background: #10b981; padding: 3px 8px; border-radius: 10px; font-weight: bold;" t-if="req.state === 'done'">Bajarildi</div>
-                                        <div style="font-size: 12px; color: white; background: #6b7280; padding: 3px 8px; border-radius: 10px; font-weight: bold;" t-if="req.state === 'cancel'">Bekor qilingan</div>
-                                        <div style="font-size: 12px; color: white; background: #3b82f6; padding: 3px 8px; border-radius: 10px; font-weight: bold;" t-if="req.state === 'draft'">Kutilmoqda</div>
+                                        <select t-on-change="(ev) => this.updateRequestState(req.id, ev.target.value)" 
+                                                t-att-style="req.state === 'done' ? 'background: #10b981; color: white; border: none; border-radius: 10px; padding: 5px 10px; font-weight: bold; font-size: 12px; outline: none; appearance: none; text-align: center;' : req.state === 'cancel' ? 'background: #6b7280; color: white; border: none; border-radius: 10px; padding: 5px 10px; font-weight: bold; font-size: 12px; outline: none; appearance: none; text-align: center;' : 'background: #3b82f6; color: white; border: none; border-radius: 10px; padding: 5px 10px; font-weight: bold; font-size: 12px; outline: none; appearance: none; text-align: center;'">
+                                            <option value="draft" t-att-selected="req.state === 'draft' ? 'selected' : undefined">Kutilmoqda</option>
+                                            <option value="done" t-att-selected="req.state === 'done' ? 'selected' : undefined">Bajarildi</option>
+                                            <option value="cancel" t-att-selected="req.state === 'cancel' ? 'selected' : undefined">Bekor</option>
+                                        </select>
                                     </div>
                                     <div style="font-size: 14px; margin-bottom: 5px; color: #374151;">
                                         <i class="fa fa-user" style="color: #6b7280; width: 15px;"></i> <t t-esc="req.partner_name" t-if="req.partner_name"/> <span t-else="" style="color: #9ca3af;">Mijozsiz</span>
@@ -279,14 +290,6 @@
                                     </div>
                                     <div t-if="req.notes" style="margin-top: 10px; font-size: 13px; color: #4b5563; font-style: italic;">
                                         "<t t-esc="req.notes"/>"
-                                    </div>
-                                    <div style="display: flex; gap: 10px; margin-top: 15px;">
-                                        <button t-on-click="() => this.updateRequestState(req.id, 'done')" style="flex: 1; padding: 10px; background-color: #10b981; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; box-shadow: 0 2px 4px -1px rgba(16, 185, 129, 0.4);">
-                                            <i class="fa fa-check"></i> Bajarildi
-                                        </button>
-                                        <button t-on-click="() => this.updateRequestState(req.id, 'cancel')" style="flex: 1; padding: 10px; background-color: #ef4444; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; box-shadow: 0 2px 4px -1px rgba(239, 68, 68, 0.4);">
-                                            <i class="fa fa-times"></i> Bekor
-                                        </button>
                                     </div>
                                 </div>
                             </t>
