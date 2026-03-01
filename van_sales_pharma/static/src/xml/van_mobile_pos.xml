@@ -280,6 +280,14 @@
                                     <div t-if="req.notes" style="margin-top: 10px; font-size: 13px; color: #4b5563; font-style: italic;">
                                         "<t t-esc="req.notes"/>"
                                     </div>
+                                    <div style="display: flex; gap: 10px; margin-top: 15px;">
+                                        <button t-on-click="() => this.updateRequestState(req.id, 'done')" style="flex: 1; padding: 10px; background-color: #10b981; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; box-shadow: 0 2px 4px -1px rgba(16, 185, 129, 0.4);">
+                                            <i class="fa fa-check"></i> Bajarildi
+                                        </button>
+                                        <button t-on-click="() => this.updateRequestState(req.id, 'cancel')" style="flex: 1; padding: 10px; background-color: #ef4444; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; box-shadow: 0 2px 4px -1px rgba(239, 68, 68, 0.4);">
+                                            <i class="fa fa-times"></i> Bekor
+                                        </button>
+                                    </div>
                                 </div>
                             </t>
                         </div>

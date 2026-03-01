@@ -293,6 +293,24 @@ export class VanMobilePos extends Component {
         this.state.newRequestLines[index].qty = ev.target.value;
     }
 
+    async updateRequestState(requestId, newState) {
+        this.state.loading = true;
+        try {
+            const result = await rpc("/van/pos/update_request_state", {
+                request_id: requestId,
+                state: newState
+            });
+            if (result.success) {
+                await this.openRequestsList();
+            } else {
+                this.state.error = result.error || "Holatni o'zgartirish muvaffaqiyatsiz bo'ldi";
+            }
+        } catch (e) {
+            this.state.error = "Tarmoqda xatolik";
+        }
+        this.state.loading = false;
+    }
+
     async submitRequest() {
         if (!this.state.requestPartnerId) {
             this.state.error = "Iltimos mijozni tanlang.";

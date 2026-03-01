@@ -98,20 +98,39 @@ class VanPosController(http.Controller):
     @http.route('/van/pos/get_requests', type='jsonrpc', auth='user')
     def get_requests(self):
         try:
-            requests = request.env['van.request'].search([('agent_id', '=', request.env.uid), ('state', '!=', 'done')], order='date desc', limit=50)
+            import pytz
+            user_tz = pytz.timezone(request.env.user.tz or 'Asia/Tashkent')
+            requests = request.env['van.request'].search([('agent_id', '=', request.env.uid), ('state', '=', 'draft')], order='date desc', limit=50)
             res = []
             for req in requests:
                 lines = [{'product_name': l.product_id.name, 'qty': l.qty} for l in req.line_ids]
+                
+                local_date_str = ''
+                if req.date:
+                    local_dt = pytz.utc.localize(req.date).astimezone(user_tz)
+                    local_date_str = local_dt.strftime('%Y-%m-%d %H:%M:%S')
+
                 res.append({
                     'id': req.id,
                     'name': req.name,
-                    'date': req.date.strftime('%Y-%m-%d %H:%M:%S') if req.date else '',
+                    'date': local_date_str,
                     'partner_name': req.partner_id.name if req.partner_id else '',
                     'state': req.state,
                     'lines': lines,
                     'notes': req.notes or ''
                 })
             return {'success': True, 'requests': res}
+        except Exception as e:
+            return {'success': False, 'error': str(e)}
+
+    @http.route('/van/pos/update_request_state', type='jsonrpc', auth='user')
+    def update_request_state(self, request_id, state):
+        try:
+            req = request.env['van.request'].sudo().search([('id', '=', int(request_id)), ('agent_id', '=', request.env.uid)])
+            if req:
+                req.sudo().write({'state': state})
+                return {'success': True}
+            return {'success': False, 'error': "So'rov topilmadi yoki ruxsat yo'q"}
         except Exception as e:
             return {'success': False, 'error': str(e)}
 
