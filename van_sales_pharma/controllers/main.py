@@ -95,8 +95,28 @@ class VanPosController(http.Controller):
         except Exception as e:
             return {'success': False, 'error': str(e)}
 
+    @http.route('/van/pos/get_requests', type='jsonrpc', auth='user')
+    def get_requests(self):
+        try:
+            requests = request.env['van.request'].search([('agent_id', '=', request.env.uid)], order='date desc', limit=50)
+            res = []
+            for req in requests:
+                lines = [{'product_name': l.product_id.name, 'qty': l.qty} for l in req.line_ids]
+                res.append({
+                    'id': req.id,
+                    'name': req.name,
+                    'date': req.date.strftime('%Y-%m-%d %H:%M:%S') if req.date else '',
+                    'partner_name': req.partner_id.name if req.partner_id else '',
+                    'state': req.state,
+                    'lines': lines,
+                    'notes': req.notes or ''
+                })
+            return {'success': True, 'requests': res}
+        except Exception as e:
+            return {'success': False, 'error': str(e)}
+
     @http.route('/van/pos/submit_request', type='jsonrpc', auth='user')
-    def submit_request(self, partner_id, product_id, qty, notes=''):
+    def submit_request(self, partner_id, lines, notes=''):
         try:
             if not partner_id:
                 return {'success': False, 'error': "Mijozni tanlash so'rov qoldirish uchun majburiy!"}
@@ -104,11 +124,14 @@ class VanPosController(http.Controller):
             request_vals = {
                 'agent_id': request.env.uid,
                 'partner_id': partner_id,
-                'product_id': product_id,
-                'qty': float(qty),
                 'notes': notes,
+                'line_ids': [(0, 0, {
+                    'product_id': l['product_id'],
+                    'qty': float(l['qty'])
+                }) for l in lines]
             }
-            new_request = request.env['van.request'].create(request_vals)
+            # Use sudo() to bypass strict creation rules for POS users
+            new_request = request.env['van.request'].sudo().create(request_vals)
             return {'success': True, 'request_id': new_request.id}
         except Exception as e:
             return {'success': False, 'error': str(e)}

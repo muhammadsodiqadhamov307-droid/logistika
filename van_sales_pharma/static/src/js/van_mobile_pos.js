@@ -41,11 +41,10 @@ export class VanMobilePos extends Component {
             showActionMenu: false,
 
             // Requests (So'rovlar)
-            showRequestPopup: false,
+            requestsList: [],
             requestPartnerId: '',
-            requestProductId: '',
-            requestQty: '',
             requestNote: '',
+            newRequestLines: [{ product_id: '', qty: '' }],
         });
 
         onWillStart(async () => {
@@ -211,7 +210,7 @@ export class VanMobilePos extends Component {
         this.state.productSearchQuery = '';
         this.state.showQuickAction = false;
         this.state.showActionMenu = false;
-        this.state.showRequestPopup = false;
+        this.state.requestsList = [];
         this.loadClients();
     }
 
@@ -257,15 +256,53 @@ export class VanMobilePos extends Component {
     }
 
     // --- REQUESTS (SO'ROVLAR) ---
+    async openRequestsList() {
+        this.state.loading = true;
+        try {
+            const result = await rpc("/van/pos/get_requests", {});
+            if (result.success) {
+                this.state.requestsList = result.requests || [];
+                this.state.screen = 'requests_list';
+                this.state.requestPartnerId = '';
+                this.state.requestNote = '';
+                this.state.newRequestLines = [{ product_id: '', qty: '' }];
+            } else {
+                this.state.error = result.error || "So'rovlarni o'qishda xatolik";
+            }
+        } catch (e) {
+            this.state.error = "Tarmoqda xatolik";
+        }
+        this.state.loading = false;
+    }
+
+    addRequestLine() {
+        this.state.newRequestLines.push({ product_id: '', qty: '' });
+    }
+
+    removeRequestLine(index) {
+        if (this.state.newRequestLines.length > 1) {
+            this.state.newRequestLines.splice(index, 1);
+        }
+    }
+
+    updateRequestLineProduct(index, ev) {
+        this.state.newRequestLines[index].product_id = ev.target.value;
+    }
+
+    updateRequestLineQty(index, ev) {
+        this.state.newRequestLines[index].qty = ev.target.value;
+    }
+
     async submitRequest() {
         if (!this.state.requestPartnerId) {
             this.state.error = "Iltimos mijozni tanlang.";
             return;
         }
 
-        const qty = parseFloat(this.state.requestQty);
-        if (isNaN(qty) || qty <= 0) {
-            this.state.error = "Iltimos miqdorni to'g'ri kiriting.";
+        const validLines = this.state.newRequestLines.filter(l => l.product_id && parseFloat(l.qty) > 0);
+
+        if (validLines.length === 0) {
+            this.state.error = "Iltimos kamida bitta mahsulot va uning sonini kiriting.";
             return;
         }
 
@@ -273,17 +310,13 @@ export class VanMobilePos extends Component {
         try {
             const result = await rpc("/van/pos/submit_request", {
                 partner_id: parseInt(this.state.requestPartnerId),
-                product_id: parseInt(this.state.requestProductId) || false,
-                qty: qty,
+                lines: validLines,
                 notes: this.state.requestNote
             });
 
             if (result.success) {
-                this.state.showRequestPopup = false;
-                this.state.requestPartnerId = '';
-                this.state.requestProductId = '';
-                this.state.requestQty = '';
-                this.state.requestNote = '';
+                // Refresh list and go backward
+                await this.openRequestsList();
             } else {
                 this.state.error = result.error || "So'rov saqlanmadi.";
             }
@@ -298,6 +331,10 @@ export class VanMobilePos extends Component {
             this.state.screen = 'products';
         } else if (this.state.screen === 'checkout') {
             this.state.screen = 'products';
+        } else if (this.state.screen === 'requests_list') {
+            this.state.screen = 'products';
+        } else if (this.state.screen === 'new_request_form') {
+            this.state.screen = 'requests_list';
         }
     }
 

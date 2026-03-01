@@ -8,8 +8,7 @@ class VanRequest(models.Model):
     name = fields.Char(string='Reference', required=True, copy=False, readonly=True, index=True, default=lambda self: _('New'))
     agent_id = fields.Many2one('res.users', string='Agent', default=lambda self: self.env.user, required=True, readonly=True)
     partner_id = fields.Many2one('res.partner', string='Mijoz', required=True)
-    product_id = fields.Many2one('van.product', string='Mahsulot', required=True)
-    qty = fields.Float(string='Soni', required=True, default=1.0)
+    line_ids = fields.One2many('van.request.line', 'request_id', string='Mahsulotlar')
     state = fields.Selection([
         ('draft', 'Yangi'),
         ('done', 'Bajarildi'),
@@ -33,3 +32,11 @@ class VanRequest(models.Model):
 
     def action_draft(self):
         self.write({'state': 'draft'})
+
+class VanRequestLine(models.Model):
+    _name = 'van.request.line'
+    _description = "Mijoz So'rovi Mahsuloti"
+
+    request_id = fields.Many2one('van.request', string="So'rov", required=True, ondelete='cascade')
+    product_id = fields.Many2one('van.product', string='Mahsulot', required=True)
+    qty = fields.Float(string='Soni', required=True, default=1.0)

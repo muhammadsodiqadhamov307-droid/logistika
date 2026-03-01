@@ -33,8 +33,6 @@
                 <field name="date"/>
                 <field name="agent_id"/>
                 <field name="partner_id"/>
-                <field name="product_id"/>
-                <field name="qty"/>
                 <field name="state" widget="badge" decoration-info="state == 'draft'" decoration-success="state == 'done'" decoration-muted="state == 'cancel'"/>
             </list>
         </field>
@@ -64,12 +62,16 @@
                             <field name="agent_id"/>
                             <field name="date"/>
                         </group>
-                        <group>
-                            <field name="product_id"/>
-                            <field name="qty"/>
-                        </group>
                     </group>
                     <notebook>
+                        <page string="Mahsulotlar" name="lines">
+                            <field name="line_ids">
+                                <list editable="bottom">
+                                    <field name="product_id"/>
+                                    <field name="qty"/>
+                                </list>
+                            </field>
+                        </page>
                         <page string="Izohlar" name="notes">
                             <field name="notes" placeholder="Qo'shimcha izohlar kiritish..."/>
                         </page>
@@ -92,5 +94,5 @@
     </record>
 
     <!-- Menu Item (Will display correctly once added to __manifest__.py) -->
-    <menuitem id="menu_van_request" name="So'rovlar" parent="van_sales_root_menu" action="action_van_request" sequence="60"/>
+    <menuitem id="menu_van_request" name="So'rovlar" parent="menu_van_sales_root" action="action_van_request" sequence="60"/>
 </odoo>

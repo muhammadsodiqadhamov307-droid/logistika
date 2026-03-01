@@ -27,3 +27,5 @@ access_van_product_agent,van.product agent,model_van_product,van_sales_pharma.gr
 access_van_product_user,van.product user,model_van_product,base.group_user,1,0,0,0
 access_van_request_admin,van.request admin,model_van_request,van_sales_pharma.group_van_admin,1,1,1,1
 access_van_request_agent,van.request agent,model_van_request,van_sales_pharma.group_van_agent,1,1,1,0
+access_van_request_line_admin,van.request.line admin,model_van_request_line,van_sales_pharma.group_van_admin,1,1,1,1
+access_van_request_line_agent,van.request.line agent,model_van_request_line,van_sales_pharma.group_van_agent,1,1,1,0

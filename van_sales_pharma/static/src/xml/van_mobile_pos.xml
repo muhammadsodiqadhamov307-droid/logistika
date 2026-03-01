@@ -18,6 +18,8 @@
                         </t>
                         <t t-if="state.screen === 'checkout'">Xaridni Tasdiqlash</t>
                         <t t-if="state.screen === 'kirim'">To'lov Qabul Qilish</t>
+                        <t t-if="state.screen === 'requests_list'">So'rovlar Ro'yxati</t>
+                        <t t-if="state.screen === 'new_request_form'">Yangi So'rov</t>
                     </span>
                 <div style="display: flex; align-items: center; gap: 10px; position:relative;">
                     <!-- 3-Dots Menu Dropdown Toggle -->
@@ -45,7 +47,7 @@
                         
                         <div style="height: 1px; background: #e5e7eb; margin: 5px 0;"></div>
                         
-                        <button t-on-click="() => { state.showRequestPopup = true; state.showActionMenu = false; }" style="display: flex; align-items: center; width: 100%; text-align: left; background: none; border: none; padding: 10px; font-size: 15px; border-radius: 5px; color: #3b82f6; font-weight: bold;">
+                        <button t-on-click="() => { this.openRequestsList(); state.showActionMenu = false; }" style="display: flex; align-items: center; width: 100%; text-align: left; background: none; border: none; padding: 10px; font-size: 15px; border-radius: 5px; color: #3b82f6; font-weight: bold;">
                             <i class="fa fa-clipboard" style="margin-right: 10px; width: 15px;"></i> So'rovlar
                         </button>
                     </div>
@@ -92,52 +94,6 @@
 
                     <button t-on-click="submitQuickAction" style="width: 100%; padding: 15px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; color: white; cursor: pointer;" t-attf-style="background-color: {{ state.quickActionType === 'kirim' ? '#10b981' : '#ef4444' }};">
                         Saqlash
-                    </button>
-                </div>
-            </div>
-
-            <!-- Request (So'rovlar) Modal -->
-            <div t-if="state.showRequestPopup" style="position: absolute; top:0; left:0; right:0; bottom:0; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 1000; padding: 20px;">
-                <div class="van-popup-card" style="background: white; border-radius: 10px; width: 100%; max-width: 400px; padding: 20px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                        <h2 style="margin: 0; font-size: 20px; color: #3b82f6;">Yangi So'rov Qo'shish</h2>
-                        <button t-on-click="() => state.showRequestPopup = false" style="background: none; border: none; font-size: 24px; color: #6b7280; cursor: pointer;">
-                            <i class="fa fa-times"></i>
-                        </button>
-                    </div>
-
-                    <div style="margin-bottom: 15px;">
-                        <label style="display: block; font-size: 14px; font-weight: bold; margin-bottom: 5px; color: #374151;">Mijoz</label>
-                        <select t-model="state.requestPartnerId" style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; box-sizing: border-box; outline: none; background-color: white;">
-                            <option value="">-- Mijozni tanlang --</option>
-                            <t t-foreach="state.clients" t-as="client" t-key="'req-'+client.id">
-                                <option t-att-value="client.id"><t t-esc="client.name"/></option>
-                            </t>
-                        </select>
-                    </div>
-
-                    <div style="margin-bottom: 15px;">
-                        <label style="display: block; font-size: 14px; font-weight: bold; margin-bottom: 5px; color: #374151;">Mahsulot (Izohda yozish ham mumkin)</label>
-                        <select t-model="state.requestProductId" style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; box-sizing: border-box; outline: none; background-color: white;">
-                            <option value="">-- Mahsulotni tanlang --</option>
-                            <t t-foreach="state.inventory" t-as="product" t-key="'req-'+product.product_id">
-                                <option t-att-value="product.product_id"><t t-esc="product.name"/></option>
-                            </t>
-                        </select>
-                    </div>
-
-                    <div style="margin-bottom: 15px;">
-                        <label style="display: block; font-size: 14px; font-weight: bold; margin-bottom: 5px; color: #374151;">Soni</label>
-                        <input type="number" t-model="state.requestQty" placeholder="0" style="width: 100%; padding: 12px; border: 2px solid #d1d5db; border-radius: 8px; font-size: 18px; box-sizing: border-box; outline: none; transition: border-color 0.2s;" />
-                    </div>
-
-                    <div style="margin-bottom: 20px;">
-                        <label style="display: block; font-size: 14px; font-weight: bold; margin-bottom: 5px; color: #374151;">Izoh (Majburiy emas)</label>
-                        <input type="text" t-model="state.requestNote" placeholder="Aloxida talab bo'lsa..." style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; box-sizing: border-box; outline: none;"/>
-                    </div>
-
-                    <button t-on-click="submitRequest" style="width: 100%; padding: 15px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; color: white; cursor: pointer; background-color: #3b82f6;">
-                        So'rovni Saqlash
                     </button>
                 </div>
             </div>
