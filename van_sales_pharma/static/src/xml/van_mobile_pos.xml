@@ -322,7 +322,7 @@
                                     <img t-att-src="'/web/image?model=van.product&amp;id=' + line.product_id + '&amp;field=image_1920'" style="width: 40px; height: 40px; border-radius: 5px; object-fit: cover; border: 1px solid #d1d5db;" onerror="this.src='/van_sales_pharma/static/description/icon.png';"/>
                                     <div>
                                         <div style="font-weight: bold; font-size: 14px; color: #374151;"><t t-esc="line.product_name"/></div>
-                                        <div style="font-size: 12px; color: #6b7280;"><t t-esc="line.price.toLocaleString()"/> UZS</div>
+                                        <div style="font-size: 12px; color: #6b7280;"><t t-esc="(line.price || 0).toLocaleString()"/> UZS</div>
                                     </div>
                                 </div>
                                 <div style="flex: 1;">
@@ -375,7 +375,7 @@
                     <!-- Header -->
                     <div style="position: sticky; top: 0; background: white; z-index: 1010; padding: 15px; border-bottom: 1px solid #e5e7eb; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);">
                         <div style="font-size: 18px; font-weight: bold; color: #111827;">Mijozni Tanlang</div>
-                        <button t-on-click="closeClientPicker" style="background: none; border: none; font-size: 24px; color: #6b7280;">&amp;times;</button>
+                        <button t-on-click="closeClientPicker" style="background: none; border: none; font-size: 24px; color: #6b7280;">×</button>
                     </div>
 
                     <!-- Search Bar -->
@@ -409,7 +409,7 @@
                     <!-- Header -->
                     <div style="position: sticky; top: 0; background: white; z-index: 1010; padding: 15px; border-bottom: 1px solid #e5e7eb; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);">
                         <div style="font-size: 18px; font-weight: bold; color: #111827;">Mahsulotlarni Tanlang</div>
-                        <button t-on-click="closeProductPicker" style="background: none; border: none; font-size: 24px; color: #6b7280;">&amp;times;</button>
+                        <button t-on-click="closeProductPicker" style="background: none; border: none; font-size: 24px; color: #6b7280;">×</button>
                     </div>
 
                     <!-- Search Bar -->
@@ -418,7 +418,7 @@
                     </div>
 
                     <!-- Products Grid -->
-                    <div style="padding: 0 15px 120px 15px; display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; flex-grow: 1;">
+                    <div style="padding: 0 15px 120px 15px; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; flex-grow: 1; align-content: flex-start; align-items: flex-start;">
                         <t t-foreach="filteredModalProducts" t-as="product" t-key="'mpproduct-'+product.product_id">
                             
                             <!-- Card highlighting based on selection -->
@@ -435,7 +435,7 @@
                                     </div>
                                 </t>
 
-                                <img t-att-src="'/web/image?model=van.product&amp;id=' + product.product_id + '&amp;field=image_1920'" style="width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 8px; margin-bottom: 8px; border: 1px solid #f3f4f6;" onerror="this.src='/van_sales_pharma/static/description/icon.png';"/>
+                                <img t-att-src="'/web/image?model=van.product&amp;id=' + product.product_id + '&amp;field=image_1920'" style="width: 100%; height: 120px; object-fit: cover; border-radius: 8px; margin-bottom: 8px; border: 1px solid #f3f4f6;" onerror="this.src='/van_sales_pharma/static/description/icon.png';"/>
                                 <div style="font-weight: bold; font-size: 13px; color: #374151; word-wrap: break-word;"><t t-esc="product.name"/></div>
                                 <div style="font-size: 12px; color: #6b7280; margin-top: 5px;"><t t-esc="product.price.toLocaleString()"/> UZS</div>
                             </div>

@@ -378,7 +378,7 @@ export class VanMobilePos extends Component {
                 this.state.requestFilter = 'draft';
                 this.state.requestPartnerId = '';
                 this.state.requestNote = '';
-                this.state.newRequestLines = [{ product_id: '', qty: '' }];
+                this.state.newRequestLines = [];
             } else {
                 this.state.error = result.error || "So'rovlarni o'qishda xatolik";
             }
@@ -389,7 +389,7 @@ export class VanMobilePos extends Component {
     }
 
     addRequestLine() {
-        this.state.newRequestLines.push({ product_id: '', qty: '' });
+        // Obsolete function, replaced by multi-select modal confirmProductSelection
     }
 
     removeRequestLine(index) {
