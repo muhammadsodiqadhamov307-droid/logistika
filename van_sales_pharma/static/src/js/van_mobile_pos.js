@@ -54,6 +54,8 @@ export class VanMobilePos extends Component {
             showProductPickerModal: false,
             productSearchModal: '',
             tempSelectedProducts: new Set(),
+
+            pollingInterval: null,
         });
 
         onWillStart(async () => {
@@ -69,10 +71,17 @@ export class VanMobilePos extends Component {
                 this.loadClients(),
                 this.loadInventory()
             ]);
+
+            this.state.pollingInterval = setInterval(() => {
+                this.loadInventorySilent();
+            }, 15000);
         });
 
         onWillDestroy(() => {
             window.removeEventListener('popstate', this.popStateHandler);
+            if (this.state.pollingInterval) {
+                clearInterval(this.state.pollingInterval);
+            }
         });
     }
 
@@ -96,6 +105,30 @@ export class VanMobilePos extends Component {
         this.state.loading = false;
     }
 
+    async loadInventorySilent() {
+        try {
+            const freshInventory = await rpc("/van/pos/get_inventory", {});
+            this.state.inventory = freshInventory;
+
+            // Reconcile and clean up cart if stock dropped unexpectedly
+            for (const [productIdStr, item] of Object.entries(this.state.cart)) {
+                const pId = parseInt(productIdStr);
+                const freshProduct = freshInventory.find(p => p.product_id === pId);
+
+                if (!freshProduct || freshProduct.remaining <= 0) {
+                    delete this.state.cart[pId]; // Item vanished or solid out
+                } else if (item.qty > freshProduct.remaining) {
+                    this.state.cart[pId].qty = freshProduct.remaining; // Cap maximum to new limit
+                    this.state.cart[pId].product.remaining = freshProduct.remaining;
+                } else {
+                    this.state.cart[pId].product.remaining = freshProduct.remaining; // Update strictly for UI
+                }
+            }
+        } catch (e) {
+            console.error("Silent stock polling failed:", e);
+        }
+    }
+
     selectClient(client) {
         this.state.selectedClient = client;
         this.state.screen = 'products';
@@ -107,8 +140,9 @@ export class VanMobilePos extends Component {
     }
 
     get filteredInventory() {
-        if (!this.state.productSearchQuery) return this.state.inventory;
-        return this.state.inventory.filter(p => p.name.toLowerCase().includes(this.state.productSearchQuery.toLowerCase()));
+        let base = this.state.inventory.filter(p => p.remaining > 0);
+        if (!this.state.productSearchQuery) return base;
+        return base.filter(p => p.name.toLowerCase().includes(this.state.productSearchQuery.toLowerCase()));
     }
 
     get filteredRequests() {
@@ -129,11 +163,12 @@ export class VanMobilePos extends Component {
     }
 
     get filteredModalProducts() {
+        let base = this.state.inventory.filter(p => p.remaining > 0);
         if (!this.state.productSearchModal) {
-            return this.state.inventory;
+            return base;
         }
         const search = this.state.productSearchModal.toLowerCase();
-        return this.state.inventory.filter(prod =>
+        return base.filter(prod =>
             prod.name.toLowerCase().includes(search)
         );
     }
@@ -284,6 +319,7 @@ export class VanMobilePos extends Component {
                 this.state.nasiyaAmount = result.nasiya_amount;
                 this.state.kirimAmount = result.nasiya_amount; // Default kirim to total sum
                 this.state.screen = 'kirim';
+                this.loadInventorySilent(); // Trigger immediate stock update
             } else {
                 this.state.error = result.error || "Savdo amalga oshmadi.";
             }
