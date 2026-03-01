@@ -379,6 +379,7 @@ export class VanMobilePos extends Component {
                 this.state.requestPartnerId = '';
                 this.state.requestNote = '';
                 this.state.newRequestLines = [];
+                this.state.activeRequest = null;
             } else {
                 this.state.error = result.error || "So'rovlarni o'qishda xatolik";
             }
@@ -457,6 +458,11 @@ export class VanMobilePos extends Component {
         this.state.loading = false;
     }
 
+    viewRequestDetails(req) {
+        this.state.activeRequest = req;
+        this.state.screen = 'request_details';
+    }
+
     goBack() {
         if (this.state.screen === 'clients') {
             this.state.screen = 'products';
@@ -465,6 +471,9 @@ export class VanMobilePos extends Component {
         } else if (this.state.screen === 'requests_list') {
             this.state.screen = 'products';
         } else if (this.state.screen === 'new_request_form') {
+            this.state.screen = 'requests_list';
+        } else if (this.state.screen === 'request_details') {
+            this.state.activeRequest = null;
             this.state.screen = 'requests_list';
         }
     }

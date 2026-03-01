@@ -103,7 +103,19 @@ class VanPosController(http.Controller):
             requests = request.env['van.request'].search([('agent_id', '=', request.env.uid)], order='date desc', limit=100)
             res = []
             for req in requests:
-                lines = [{'product_name': l.product_id.name, 'qty': l.qty} for l in req.line_ids]
+                lines = []
+                total_amount = 0.0
+                for l in req.line_ids:
+                    price = l.product_id.list_price or 0.0
+                    subtotal = price * l.qty
+                    total_amount += subtotal
+                    lines.append({
+                        'product_name': l.product_id.name,
+                        'qty': l.qty,
+                        'price': price,
+                        'subtotal': subtotal,
+                        'image_url': f'/web/image?model=van.product&id={l.product_id.id}&field=image_1920'
+                    })
                 
                 local_date_str = ''
                 if req.date:
@@ -116,6 +128,7 @@ class VanPosController(http.Controller):
                     'date': local_date_str,
                     'partner_name': req.partner_id.name if req.partner_id else '',
                     'state': req.state,
+                    'total_amount': total_amount,
                     'lines': lines,
                     'notes': req.notes or ''
                 })
