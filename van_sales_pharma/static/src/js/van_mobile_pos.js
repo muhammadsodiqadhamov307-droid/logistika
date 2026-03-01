@@ -1,7 +1,7 @@
 /** @odoo-module **/
 
 import { registry } from "@web/core/registry";
-import { Component, useState, onWillStart } from "@odoo/owl";
+import { Component, useState, onWillStart, onWillDestroy } from "@odoo/owl";
 import { useService } from "@web/core/utils/hooks";
 import { rpc } from "@web/core/network/rpc";
 
@@ -49,10 +49,22 @@ export class VanMobilePos extends Component {
         });
 
         onWillStart(async () => {
+            // Setup history trap for hardware back buttons
+            window.history.pushState(null, null, window.location.href);
+            this.popStateHandler = () => {
+                window.history.pushState(null, null, window.location.href); // Keep trapping
+                this.goBack();
+            };
+            window.addEventListener('popstate', this.popStateHandler);
+
             await Promise.all([
                 this.loadClients(),
                 this.loadInventory()
             ]);
+        });
+
+        onWillDestroy(() => {
+            window.removeEventListener('popstate', this.popStateHandler);
         });
     }
 
@@ -364,6 +376,9 @@ export class VanMobilePos extends Component {
     }
 
     closePos() {
+        if (this.popStateHandler) {
+            window.removeEventListener('popstate', this.popStateHandler);
+        }
         this.action.doAction({
             type: 'ir.actions.client',
             tag: 'reload',

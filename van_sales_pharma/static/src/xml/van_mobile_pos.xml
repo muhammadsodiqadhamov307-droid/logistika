@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <templates xml:space="preserve">
     <t t-name="van_sales_pharma.VanMobilePos" owl="1">
-        <div class="van-mobile-pos-container" style="display: flex; flex-direction: column; height: 100vh; background-color: #f3f4f6; font-family: sans-serif;">
+        <div class="van-mobile-pos-container" style="display: flex; flex-direction: column; height: 100vh; overflow-y: auto; -webkit-overflow-scrolling: touch; background-color: #f3f4f6; font-family: sans-serif;">
             
             <!-- Navbar -->
             <div class="van-navbar" style="background-color: #2563eb; color: white; padding: 15px; display: flex; align-items: center; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); justify-content: space-between;">
