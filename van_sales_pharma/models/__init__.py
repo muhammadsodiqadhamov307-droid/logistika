@@ -10,4 +10,5 @@ from . import van_agent_summary
 from . import van_customer
 from . import van_pos_order
 from . import van_dashboard_detail
+from . import van_request
 from . import van_product

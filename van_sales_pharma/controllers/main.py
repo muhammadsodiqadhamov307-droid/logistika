@@ -94,3 +94,21 @@ class VanPosController(http.Controller):
             return {'success': True, 'payment_id': payment.id}
         except Exception as e:
             return {'success': False, 'error': str(e)}
+
+    @http.route('/van/pos/submit_request', type='jsonrpc', auth='user')
+    def submit_request(self, partner_id, product_id, qty, notes=''):
+        try:
+            if not partner_id:
+                return {'success': False, 'error': "Mijozni tanlash so'rov qoldirish uchun majburiy!"}
+
+            request_vals = {
+                'agent_id': request.env.uid,
+                'partner_id': partner_id,
+                'product_id': product_id,
+                'qty': float(qty),
+                'notes': notes,
+            }
+            new_request = request.env['van.request'].create(request_vals)
+            return {'success': True, 'request_id': new_request.id}
+        except Exception as e:
+            return {'success': False, 'error': str(e)}

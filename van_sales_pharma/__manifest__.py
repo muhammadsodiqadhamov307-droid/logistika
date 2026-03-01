@@ -22,6 +22,7 @@
         'views/van_customer_views.xml',
         'views/van_nasiya_views.xml',
         'views/van_payment_views.xml',
+        'views/van_request_views.xml',
         'views/menu_views.xml',
         'views/van_dashboard_views.xml',
         'views/van_dashboard_detail_views.xml',

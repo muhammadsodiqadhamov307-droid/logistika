@@ -36,6 +36,16 @@ export class VanMobilePos extends Component {
             quickActionAmount: '',
             quickActionNote: '',
             quickActionPartnerId: '',
+
+            // Action Menu (3-dots)
+            showActionMenu: false,
+
+            // Requests (So'rovlar)
+            showRequestPopup: false,
+            requestPartnerId: '',
+            requestProductId: '',
+            requestQty: '',
+            requestNote: '',
         });
 
         onWillStart(async () => {
@@ -200,6 +210,8 @@ export class VanMobilePos extends Component {
         this.state.searchQuery = '';
         this.state.productSearchQuery = '';
         this.state.showQuickAction = false;
+        this.state.showActionMenu = false;
+        this.state.showRequestPopup = false;
         this.loadClients();
     }
 
@@ -240,6 +252,43 @@ export class VanMobilePos extends Component {
             }
         } catch (e) {
             this.state.error = "Tarmoqda xatolik: Amaliyot saqlanmadi.";
+        }
+        this.state.loading = false;
+    }
+
+    // --- REQUESTS (SO'ROVLAR) ---
+    async submitRequest() {
+        if (!this.state.requestPartnerId) {
+            this.state.error = "Iltimos mijozni tanlang.";
+            return;
+        }
+
+        const qty = parseFloat(this.state.requestQty);
+        if (isNaN(qty) || qty <= 0) {
+            this.state.error = "Iltimos miqdorni to'g'ri kiriting.";
+            return;
+        }
+
+        this.state.loading = true;
+        try {
+            const result = await rpc("/van/pos/submit_request", {
+                partner_id: parseInt(this.state.requestPartnerId),
+                product_id: parseInt(this.state.requestProductId) || false,
+                qty: qty,
+                notes: this.state.requestNote
+            });
+
+            if (result.success) {
+                this.state.showRequestPopup = false;
+                this.state.requestPartnerId = '';
+                this.state.requestProductId = '';
+                this.state.requestQty = '';
+                this.state.requestNote = '';
+            } else {
+                this.state.error = result.error || "So'rov saqlanmadi.";
+            }
+        } catch (e) {
+            this.state.error = "Tarmoqda xatolik: So'rov saqlanmadi.";
         }
         this.state.loading = false;
     }
