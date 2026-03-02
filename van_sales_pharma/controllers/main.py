@@ -167,3 +167,104 @@ class VanPosController(http.Controller):
             return {'success': True, 'request_id': new_request.id}
         except Exception as e:
             return {'success': False, 'error': str(e)}
+
+    @http.route('/van/pos/get_agents', type='jsonrpc', auth='user')
+    def get_agents(self):
+        try:
+            # Only users in the van sales agent group
+            agents = request.env.ref('van_sales_pharma.group_van_agent').users
+            res = []
+            for agent in agents:
+                res.append({
+                    'id': agent.id,
+                    'name': agent.name,
+                    'phone': agent.phone or '',
+                    'image_url': f'/web/image?model=res.users&id={agent.id}&field=avatar_128'
+                })
+            return res
+        except Exception as e:
+            return []
+
+    @http.route('/van/pos/submit_trip', type='jsonrpc', auth='user')
+    def submit_trip(self, agent_id, date, note, lines):
+        try:
+            if not agent_id:
+                return {'success': False, 'error': "Agentni tanlash majburiy!"}
+            if not lines:
+                return {'success': False, 'error': "Hech qanday mahsulot tanlanmadi!"}
+
+            # Get internal location for the trip
+            location = request.env['stock.location'].sudo().search([
+                ('usage', '=', 'internal'), 
+                ('company_id', 'in', [request.env.company.id, False])
+            ], limit=1)
+
+            if not location:
+                return {'success': False, 'error': "Ombor topilmadi!"}
+
+            trip_vals = {
+                'agent_id': int(agent_id),
+                'location_id': location.id,
+                'date': date,
+                'note': note or '',
+                'state': 'draft',
+                'trip_line_ids': [(0, 0, {
+                    'product_id': l['product_id'],
+                    'loaded_qty': float(l['qty']),
+                    'price_unit': request.env['van.product'].sudo().browse(l['product_id']).list_price,
+                }) for l in lines]
+            }
+            
+            # Sudo is needed because agents may not natively have creation rights on other agents
+            new_trip = request.env['van.trip'].sudo().create(trip_vals)
+            
+            # Auto validate the trip to push quantities into van.agent.inventory
+            new_trip.sudo().action_validate()
+            
+            return {'success': True, 'trip_id': new_trip.id}
+        except Exception as e:
+            return {'success': False, 'error': str(e)}
+
+    @http.route('/van/pos/get_trips', type='jsonrpc', auth='user')
+    def get_trips(self):
+        try:
+            import pytz
+            user_tz = pytz.timezone(request.env.user.tz or 'Asia/Tashkent')
+            
+            # Fetch trips associated with the current agent
+            trips = request.env['van.trip'].sudo().search([('agent_id', '=', request.env.uid)], order='date desc, id desc', limit=100)
+            res = []
+            
+            for trip in trips:
+                lines = []
+                total_amount = 0.0
+                total_qty = 0.0
+                
+                for l in trip.trip_line_ids:
+                    price = l.price_unit or 0.0
+                    subtotal = price * l.loaded_qty
+                    total_amount += subtotal
+                    total_qty += l.loaded_qty
+                    
+                    lines.append({
+                        'product_name': l.product_id.name,
+                        'qty': l.loaded_qty,
+                        'price': price,
+                        'subtotal': subtotal,
+                        'image_url': f'/web/image?model=van.product&id={l.product_id.id}&field=image_1920'
+                    })
+                
+                res.append({
+                    'id': trip.id,
+                    'name': trip.name,
+                    'date': str(trip.date) if trip.date else '',
+                    'agent_name': trip.agent_id.name if trip.agent_id else '',
+                    'state': trip.state,
+                    'total_amount': total_amount,
+                    'total_qty': total_qty,
+                    'lines': lines,
+                    'note': trip.note or ''
+                })
+            return {'success': True, 'trips': res}
+        except Exception as e:
+            return {'success': False, 'error': str(e)}

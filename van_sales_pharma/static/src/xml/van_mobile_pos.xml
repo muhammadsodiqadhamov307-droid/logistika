@@ -47,6 +47,10 @@
                         
                         <div style="height: 1px; background: #e5e7eb; margin: 5px 0;"></div>
                         
+                        <button t-on-click="() => { this.state.showActionMenu = false; this.openTripsList(); }" style="display: flex; align-items: center; width: 100%; text-align: left; background: none; border: none; padding: 10px; font-size: 15px; border-radius: 5px; color: #1e3a8a; font-weight: bold; margin-bottom: 5px;">
+                            <i class="fa fa-truck" style="margin-right: 10px; width: 15px;"></i> Mahsulot Yuklash
+                        </button>
+
                         <button t-on-click="() => { this.openRequestsList(); state.showActionMenu = false; }" style="display: flex; align-items: center; width: 100%; text-align: left; background: none; border: none; padding: 10px; font-size: 15px; border-radius: 5px; color: #3b82f6; font-weight: bold;">
                             <i class="fa fa-clipboard" style="margin-right: 10px; width: 15px;"></i> So'rovlar
                         </button>
@@ -421,6 +425,108 @@
                     </div>
                 </t>
 
+                <!-- TRIPS LIST SCREEN -->
+                <t t-if="state.screen === 'trips_list'">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <span style="font-weight: bold; font-size: 18px; color: #1e3a8a;">Mahsulot Yuklash Tarixi</span>
+                        <!-- New Trip Button -->
+                        <button t-on-click="() => state.screen = 'mahsulot_yuklash_form'" style="background: #2563eb; color: white; border: none; padding: 10px 15px; border-radius: 8px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                            + Yangi Yuklash
+                        </button>
+                    </div>
+
+                    <t t-if="state.tripsList.length === 0">
+                        <div style="text-align: center; padding: 20px; color: #6b7280; background: white; border-radius: 10px; border: 1px dashed #cbd5e1;">Hozircha hech qanday mahsulot yuklanmagan.</div>
+                    </t>
+                    <t t-else="">
+                        <div style="display: grid; grid-template-columns: 1fr; gap: 15px;">
+                            <t t-foreach="state.tripsList" t-as="trip" t-key="'trip-'+trip.id">
+                                <div t-on-click="() => this.viewTripDetails(trip)" style="background: white; border-radius: 8px; padding: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border-left: 4px solid #10b981; cursor: pointer; position: relative;">
+                                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+                                        <div style="font-weight: bold; font-size: 16px; color: #111827;"><t t-esc="trip.name"/></div>
+                                        <div t-if="trip.state === 'draft'" style="background: #eff6ff; color: #3b82f6; border: 1px solid #bfdbfe; border-radius: 12px; padding: 4px 10px; font-weight: bold; font-size: 11px;">Qoralama</div>
+                                        <div t-if="trip.state === 'validated'" style="background: #ecfdf5; color: #10b981; border: 1px solid #a7f3d0; border-radius: 12px; padding: 4px 10px; font-weight: bold; font-size: 11px;">Tasdiqlangan</div>
+                                    </div>
+                                    
+                                    <div style="font-size: 14px; margin-bottom: 5px; color: #374151; display: flex; align-items: center;">
+                                        <i class="fa fa-user-circle" style="color: #6b7280; width: 20px; text-align: center; margin-right: 5px;"></i> 
+                                        <span t-if="trip.agent_name" style="font-weight: bold;"><t t-esc="trip.agent_name"/></span>
+                                    </div>
+                                    
+                                    <div style="font-size: 13px; color: #6b7280; margin-bottom: 12px; display: flex; align-items: center;">
+                                        <i class="fa fa-calendar" style="width: 20px; text-align: center; margin-right: 5px;"></i> 
+                                        <span><t t-esc="trip.date"/></span>
+                                    </div>
+                                    
+                                    <div style="background: #f8fafc; border-radius: 6px; padding: 10px; border: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
+                                        <span style="font-size: 14px; font-weight: bold; color: #475569;">Jami Miqdor:</span>
+                                        <span style="font-size: 16px; font-weight: bold; color: #059669;"><t t-esc="trip.total_qty"/> ta mahsulot</span>
+                                    </div>
+                                    
+                                    <i class="fa fa-chevron-right" style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); color: #cbd5e1; font-size: 16px;"></i>
+                                </div>
+                            </t>
+                        </div>
+                    </t>
+                </t>
+
+                <!-- TRIP DETAILS SCREEN -->
+                <t t-if="state.screen === 'trip_details'">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <button t-on-click="goBack" style="background: none; border: none; font-size: 16px; color: #3b82f6; display: flex; align-items: center; font-weight: bold;">
+                            <i class="fa fa-arrow-left" style="margin-right: 8px;"></i> Ortga
+                        </button>
+                        <div t-if="state.activeTrip.state === 'validated'" style="background: #10b981; color: white; border-radius: 8px; padding: 8px 15px; font-weight: bold; font-size: 13px;">Tasdiqlangan</div>
+                    </div>
+
+                    <div style="background: white; border-radius: 10px; padding: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 15px;">
+                        <div style="font-weight: bold; font-size: 18px; color: #111827; margin-bottom: 12px; border-bottom: 1px solid #e5e7eb; padding-bottom: 8px;">
+                            <t t-esc="state.activeTrip.name"/>
+                        </div>
+                        <div style="font-size: 15px; margin-bottom: 8px; color: #374151; display: flex; align-items: center;">
+                            <i class="fa fa-user-circle" style="color: #6b7280; width: 20px; text-align: center; margin-right: 8px; font-size: 16px;"></i> 
+                            <span style="font-weight: bold;"><t t-esc="state.activeTrip.agent_name"/></span>
+                        </div>
+                        <div style="font-size: 14px; color: #6b7280; display: flex; align-items: center;">
+                            <i class="fa fa-calendar" style="width: 20px; text-align: center; margin-right: 8px; font-size: 16px;"></i> 
+                            <span><t t-esc="state.activeTrip.date"/></span>
+                        </div>
+                        <div t-if="state.activeTrip.note" style="margin-top: 10px; font-size: 14px; color: #4b5563; background: #f9fafb; padding: 10px; border-radius: 6px; border-left: 3px solid #cbd5e1;">
+                            Izoh: <t t-esc="state.activeTrip.note"/>
+                        </div>
+                    </div>
+
+                    <div style="background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 25px;">
+                        <div style="background: #f1f5f9; padding: 12px 15px; font-weight: bold; color: #475569; font-size: 14px; border-bottom: 1px solid #e2e8f0;">
+                            Yuklangan mahsulotlar (<t t-esc="state.activeTrip.lines.length"/>)
+                        </div>
+                        
+                        <t t-foreach="state.activeTrip.lines" t-as="line" t-key="'tripdet-'+line_index">
+                            <div style="padding: 12px 15px; border-bottom: 1px solid #f3f4f6; display: flex; align-items: flex-start; gap: 12px;">
+                                <div style="width: 48px; height: 48px; flex-shrink: 0; background-color: #f8fafc; border-radius: 6px; border: 1px solid #e2e8f0; overflow: hidden;">
+                                    <t t-if="line.image_url">
+                                        <img t-att-src="line.image_url" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.src='/van_sales_pharma/static/description/icon.png';"/>
+                                    </t>
+                                </div>
+                                
+                                <div style="flex-grow: 1; display: flex; flex-direction: column; justify-content: center;">
+                                    <div style="font-weight: bold; font-size: 14px; color: #1e293b; margin-bottom: 4px; line-height: 1.3;">
+                                        <t t-esc="line.product_name"/>
+                                    </div>
+                                    <div style="font-size: 15px; color: #059669; font-weight: bold;">
+                                        <t t-esc="line.qty"/> ta yuklandi
+                                    </div>
+                                </div>
+                            </div>
+                        </t>
+                        
+                        <div style="background: #ecfdf5; padding: 15px; border-top: 2px solid #a7f3d0; display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-weight: bold; font-size: 16px; color: #065f46;">JAMI MIQDOR:</span>
+                            <span style="font-weight: bold; font-size: 20px; color: #059669;"><t t-esc="state.activeTrip.total_qty"/> ta</span>
+                        </div>
+                    </div>
+                </t>
+
                 <!-- NEW REQUEST FORM SCREEN -->
                 <t t-if="state.screen === 'new_request_form'">
                     <div style="background: white; border-radius: 10px; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
@@ -472,6 +578,67 @@
                         </button>
                     </div>
                 </t>
+
+                <!-- MAHSULOT YUKLASH FORM SCREEN -->
+                <t t-if="state.screen === 'mahsulot_yuklash_form'">
+                    <div style="background: white; border-radius: 10px; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                            <span style="font-weight: bold; font-size: 18px; color: #1e3a8a;">Yangi Yuklash (Sayohat)</span>
+                            <button t-on-click="goBack" style="background: none; border: none; font-size: 16px; color: #6b7280;"><i class="fa fa-times" style="font-size: 20px;"></i></button>
+                        </div>
+                        
+                        <div style="margin-bottom: 15px;">
+                            <label style="display: block; font-size: 14px; font-weight: bold; margin-bottom: 5px; color: #374151;">Sana</label>
+                            <input type="date" t-model="state.tripDate" style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; box-sizing: border-box; outline: none;"/>
+                        </div>
+
+                        <div style="margin-bottom: 15px;">
+                            <label style="display: block; font-size: 14px; font-weight: bold; margin-bottom: 5px; color: #374151;">Agent (Kimga)</label>
+                            <button t-on-click="openAgentPicker" style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; background-color: white; color: #374151; display: flex; align-items: center; justify-content: space-between; cursor: pointer; text-align: left;">
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <div style="width: 30px; height: 30px; background-color: #e5e7eb; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #6b7280;">
+                                        <i class="fa fa-user-circle"></i>
+                                    </div>
+                                    <span t-if="state.tripAgentId" style="font-weight: bold;"><t t-esc="state.tripAgentName"/></span>
+                                    <span t-else="" style="color: #9ca3af;">-- Agentni tanlang (Majburiy) --</span>
+                                </div>
+                                <i class="fa fa-chevron-right" style="color: #9ca3af;"></i>
+                            </button>
+                        </div>
+
+                        <div style="margin-top: 20px; margin-bottom: 10px; font-weight: bold; color: #374151; font-size: 16px;">Mahsulotlar ro'yxati (<t t-esc="state.newTripLines.length"/>)</div>
+                        
+                        <t t-foreach="state.newTripLines" t-as="line" t-key="'newtrip-'+line_index">
+                            <div style="display: flex; gap: 10px; margin-bottom: 10px; background: #f9fafb; padding: 10px; border-radius: 8px; border: 1px solid #e5e7eb; align-items: center;">
+                                <div style="flex: 2; display: flex; align-items: center; gap: 10px;">
+                                    <img t-att-src="'/web/image?model=van.product&amp;id=' + line.product_id + '&amp;field=image_1920'" style="width: 40px; height: 40px; border-radius: 5px; object-fit: cover; border: 1px solid #d1d5db;" onerror="this.src='/van_sales_pharma/static/description/icon.png';"/>
+                                    <div>
+                                        <div style="font-weight: bold; font-size: 14px; color: #374151;"><t t-esc="line.product_name"/></div>
+                                    </div>
+                                </div>
+                                <div style="flex: 1;">
+                                    <input type="number" t-att-value="line.qty" t-on-change="(ev) => this.updateTripLineQty(line_index, ev)" placeholder="Soni" style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 5px; font-size: 14px; box-sizing: border-box; outline: none; text-align: center; font-weight: bold;"/>
+                                </div>
+                                <button t-on-click="() => { state.newTripLines.splice(line_index, 1); }" style="background: #fee2e2; border: none; color: #ef4444; width: 35px; height: 35px; border-radius: 5px; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                                    <i class="fa fa-trash"></i>
+                                </button>
+                            </div>
+                        </t>
+                        
+                        <button t-on-click="openProductPicker" style="width: 100%; padding: 12px; background: #eff6ff; border: 2px dashed #3b82f6; color: #3b82f6; border-radius: 8px; font-weight: bold; margin-bottom: 20px; cursor: pointer; font-size: 15px;">
+                            <i class="fa fa-plus-circle" style="margin-right: 5px;"></i> Mahsulot Qo'shish / Tanlash
+                        </button>
+
+                        <div style="margin-bottom: 20px;">
+                            <label style="display: block; font-size: 14px; font-weight: bold; margin-bottom: 5px; color: #374151;">Izoh</label>
+                            <input type="text" t-model="state.tripNote" placeholder="Qo'shimcha izoh..." style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; box-sizing: border-box; outline: none;"/>
+                        </div>
+
+                        <button t-on-click="submitTrip" style="width: 100%; padding: 15px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; color: white; cursor: pointer; background-color: #2563eb; box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.5);">
+                            Yuklashni Saqlash
+                        </button>
+                    </div>
+                </t>
             </div>
             
             <!-- Spacer so the last item isn't hidden by the bottom bar -->
@@ -492,40 +659,91 @@
             <!-- MODALS FOR YANGI SO'ROV FORM   -->
             <!-- ============================== -->
 
-            <!-- CLIENT PICKER MODAL -->
+            <!-- CLIENT PICKER FULLSCREEN MODAL -->
             <t t-if="state.showClientPickerModal">
-                <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: white; z-index: 1000; overflow-y: auto; -webkit-overflow-scrolling: touch;">
+                <div style="position: fixed; inset: 0; background-color: white; z-index: 1001; display: flex; flex-direction: column;">
+                    <!-- Modal Header -->
+                    <div style="background-color: #1e3a8a; color: white; padding: 15px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                        <div style="font-size: 18px; font-weight: bold;">Mijozni Tanlang</div>
+                        <button t-on-click="closeClientPicker" style="background: none; border: none; color: white; font-size: 24px; cursor: pointer;">
+                            <i class="fa fa-times"></i>
+                        </button>
+                    </div>
                     
-                    <!-- Header -->
-                    <div style="position: sticky; top: 0; background: white; z-index: 1010; padding: 15px; border-bottom: 1px solid #e5e7eb; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);">
-                        <div style="font-size: 18px; font-weight: bold; color: #111827;">Mijozni Tanlang</div>
-                        <button t-on-click="closeClientPicker" style="background: none; border: none; font-size: 24px; color: #6b7280;">×</button>
-                    </div>
-
                     <!-- Search Bar -->
-                    <div style="padding: 15px;">
-                        <input type="text" t-model="state.clientSearchModal" placeholder="Ism yoki nom bo'yicha qidirish..." style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; box-sizing: border-box; outline: none; background: #f9fafb;"/>
+                    <div style="padding: 15px; background-color: #f3f4f6; border-bottom: 1px solid #e5e7eb;">
+                        <input type="text" placeholder="Mijoz nomi bo'yicha qidirish..." t-model="state.clientSearchModal" style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #d1d5db; font-size: 16px; box-sizing: border-box; outline: none;"/>
                     </div>
-
-                    <!-- Client List Grid -->
-                    <div style="padding: 0 15px 30px 15px; display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px;">
-                        <t t-foreach="filteredModalClients" t-as="client" t-key="'mpclient-'+client.id">
-                            <div t-on-click="() => this.selectRequestClient(client)" style="background: white; border: 1px solid #e5e7eb; border-radius: 10px; padding: 15px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1); cursor: pointer; transition: all 0.2s;">
-                                <div style="width: 40px; height: 40px; background-color: #3b82f6; border-radius: 50%; color: white; display: flex; align-items: center; justify-content: center; margin: 0 auto 10px auto; font-size: 18px;">
-                                    <i class="fa fa-user"></i>
+                    
+                    <!-- Client List -->
+                    <div style="flex: 1; overflow-y: auto; padding: 15px; background-color: #f9fafb;">
+                        <t t-foreach="filteredModalClients" t-as="client" t-key="'modal-client-'+client.id">
+                            <div t-on-click="() => this.selectRequestClient(client)" style="background: white; border-radius: 10px; padding: 15px; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 1px 3px rgba(0,0,0,0.05); cursor: pointer; border: 1px solid #e5e7eb;">
+                                <div style="display: flex; align-items: center; gap: 15px;">
+                                    <div style="width: 45px; height: 45px; border-radius: 50%; background-color: #eff6ff; color: #3b82f6; display: flex; align-items: center; justify-content: center; font-size: 20px; border: 1px solid #bfdbfe;">
+                                        <i t-if="!client.image_url" class="fa fa-user"></i>
+                                        <img t-if="client.image_url" t-att-src="client.image_url" style="width:100%; height:100%; border-radius:50%; object-fit:cover;"/>
+                                    </div>
+                                    <div>
+                                        <div style="font-weight: bold; font-size: 16px; color: #1f2937;"><t t-esc="client.name"/></div>
+                                        <div t-if="client.phone" style="font-size: 13px; color: #6b7280; margin-top: 4px;"><i class="fa fa-phone" style="margin-right: 5px;"></i><t t-esc="client.phone"/></div>
+                                    </div>
                                 </div>
-                                <div style="font-weight: bold; font-size: 14px; color: #374151; word-wrap: break-word;"><t t-esc="client.name"/></div>
-                                <div t-if="client.phone" style="font-size: 12px; color: #6b7280; margin-top: 5px;"><t t-esc="client.phone"/></div>
+                                <i class="fa fa-chevron-right" style="color: #cbd5e1;"></i>
                             </div>
                         </t>
                         <t t-if="filteredModalClients.length === 0">
-                            <div style="grid-column: 1 / -1; text-align: center; padding: 30px; color: #6b7280;">Bunday mijoz topilmadi.</div>
+                            <div style="text-align: center; color: #9ca3af; padding: 30px;">
+                                <i class="fa fa-search" style="font-size: 30px; margin-bottom: 10px;"></i>
+                                <div>Mijoz topilmadi</div>
+                            </div>
                         </t>
                     </div>
-
                 </div>
             </t>
 
+            <!-- AGENT PICKER FULLSCREEN MODAL -->
+            <t t-if="state.showAgentPickerModal">
+                <div style="position: fixed; inset: 0; background-color: white; z-index: 1001; display: flex; flex-direction: column;">
+                    <!-- Modal Header -->
+                    <div style="background-color: #2563eb; color: white; padding: 15px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                        <div style="font-size: 18px; font-weight: bold;">Agentni Tanlang</div>
+                        <button t-on-click="closeAgentPicker" style="background: none; border: none; color: white; font-size: 24px; cursor: pointer;">
+                            <i class="fa fa-times"></i>
+                        </button>
+                    </div>
+                    
+                    <!-- Search Bar -->
+                    <div style="padding: 15px; background-color: #f3f4f6; border-bottom: 1px solid #e5e7eb;">
+                        <input type="text" placeholder="Agent izlash..." t-model="state.agentSearchModal" style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #d1d5db; font-size: 16px; box-sizing: border-box; outline: none;"/>
+                    </div>
+                    
+                    <!-- Agent List -->
+                    <div style="flex: 1; overflow-y: auto; padding: 15px; background-color: #f9fafb;">
+                        <t t-foreach="filteredModalAgents" t-as="agent" t-key="'modal-agent-'+agent.id">
+                            <div t-on-click="() => this.selectTripAgent(agent)" style="background: white; border-radius: 10px; padding: 15px; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 1px 3px rgba(0,0,0,0.05); cursor: pointer; border: 1px solid #e5e7eb;">
+                                <div style="display: flex; align-items: center; gap: 15px;">
+                                    <div style="width: 45px; height: 45px; border-radius: 50%; background-color: #eff6ff; color: #2563eb; display: flex; align-items: center; justify-content: center; font-size: 20px; border: 1px solid #bfdbfe;">
+                                        <i t-if="!agent.image_url" class="fa fa-user-tie"></i>
+                                        <img t-if="agent.image_url" t-att-src="agent.image_url" style="width:100%; height:100%; border-radius:50%; object-fit:cover;"/>
+                                    </div>
+                                    <div>
+                                        <div style="font-weight: bold; font-size: 16px; color: #1f2937;"><t t-esc="agent.name"/></div>
+                                        <div t-if="agent.phone" style="font-size: 13px; color: #6b7280; margin-top: 4px;"><i class="fa fa-phone" style="margin-right: 5px;"></i><t t-esc="agent.phone"/></div>
+                                    </div>
+                                </div>
+                                <i class="fa fa-chevron-right" style="color: #cbd5e1;"></i>
+                            </div>
+                        </t>
+                        <t t-if="filteredModalAgents.length === 0">
+                            <div style="text-align: center; color: #9ca3af; padding: 30px;">
+                                <i class="fa fa-search" style="font-size: 30px; margin-bottom: 10px;"></i>
+                                <div>Agent topilmadi</div>
+                            </div>
+                        </t>
+                    </div>
+                </div>
+            </t>
             <!-- PRODUCT MULTI-SELECT PICKER MODAL -->
             <t t-if="state.showProductPickerModal">
                 <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: white; z-index: 1000; overflow-y: auto; -webkit-overflow-scrolling: touch; display: flex; flex-direction: column;">

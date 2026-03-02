@@ -55,6 +55,18 @@ export class VanMobilePos extends Component {
             productSearchModal: '',
             tempSelectedProducts: new Set(),
 
+            // Mahsulot Yuklash (Trip Load) features
+            agents: [],
+            tripsList: [],
+            activeTrip: null,
+            tripDate: new Date().toISOString().split('T')[0], // Defaults to today
+            tripAgentId: '',
+            tripAgentName: '',
+            tripNote: '',
+            newTripLines: [],
+            showAgentPickerModal: false,
+            agentSearchModal: '',
+
             pollingInterval: null,
         });
 
@@ -69,7 +81,8 @@ export class VanMobilePos extends Component {
 
             await Promise.all([
                 this.loadClients(),
-                this.loadInventory()
+                this.loadInventory(),
+                this.loadAgents()
             ]);
 
             this.state.pollingInterval = setInterval(() => {
@@ -101,6 +114,38 @@ export class VanMobilePos extends Component {
             this.state.inventory = await rpc("/van/pos/get_inventory", {});
         } catch (e) {
             this.state.error = "Xatolik: Omborni yuklash imkonsiz.";
+        }
+        this.state.loading = false;
+    }
+
+    async loadAgents() {
+        try {
+            this.state.agents = await rpc("/van/pos/get_agents", {});
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    async openTripsList() {
+        this.state.loading = true;
+        try {
+            const result = await rpc("/van/pos/get_trips", {});
+            if (result.success) {
+                this.state.tripsList = result.trips || [];
+                this.state.screen = 'trips_list';
+
+                // reset trip creation form
+                this.state.tripDate = new Date().toISOString().split('T')[0];
+                this.state.tripAgentId = '';
+                this.state.tripAgentName = '';
+                this.state.tripNote = '';
+                this.state.newTripLines = [];
+                this.state.activeTrip = null;
+            } else {
+                this.state.error = result.error || "Sayohatlarni o'qishda xatolik";
+            }
+        } catch (e) {
+            this.state.error = "Tarmoqda xatolik: Sayohatlarni o'qish xatosi";
         }
         this.state.loading = false;
     }
@@ -137,6 +182,16 @@ export class VanMobilePos extends Component {
     get filteredClients() {
         if (!this.state.searchQuery) return this.state.clients;
         return this.state.clients.filter(c => c.name.toLowerCase().includes(this.state.searchQuery.toLowerCase()));
+    }
+
+    get filteredModalAgents() {
+        if (!this.state.agentSearchModal) {
+            return this.state.agents;
+        }
+        const search = this.state.agentSearchModal.toLowerCase();
+        return this.state.agents.filter(a =>
+            a.name.toLowerCase().includes(search)
+        );
     }
 
     get filteredInventory() {
@@ -189,10 +244,29 @@ export class VanMobilePos extends Component {
         this.closeClientPicker();
     }
 
+    openAgentPicker() {
+        this.state.agentSearchModal = '';
+        this.state.showAgentPickerModal = true;
+    }
+
+    closeAgentPicker() {
+        this.state.showAgentPickerModal = false;
+    }
+
+    selectTripAgent(agent) {
+        this.state.tripAgentId = agent.id;
+        this.state.tripAgentName = agent.name;
+        this.closeAgentPicker();
+    }
+
     openProductPicker() {
         this.state.productSearchModal = '';
-        // Pre-fill temp selection
-        this.state.tempSelectedProducts = new Set(this.state.newRequestLines.map(l => l.product_id));
+        // Pre-fill temp selection based on active screen
+        if (this.state.screen === 'mahsulot_yuklash_form') {
+            this.state.tempSelectedProducts = new Set(this.state.newTripLines.map(l => l.product_id));
+        } else {
+            this.state.tempSelectedProducts = new Set(this.state.newRequestLines.map(l => l.product_id));
+        }
         this.state.showProductPickerModal = true;
     }
 
@@ -212,7 +286,9 @@ export class VanMobilePos extends Component {
 
     confirmProductSelection() {
         const currentLinesMap = new Map();
-        this.state.newRequestLines.forEach(l => {
+        const activeContainer = this.state.screen === 'mahsulot_yuklash_form' ? this.state.newTripLines : this.state.newRequestLines;
+
+        activeContainer.forEach(l => {
             currentLinesMap.set(l.product_id, l);
         });
 
@@ -233,7 +309,13 @@ export class VanMobilePos extends Component {
                 });
             }
         }
-        this.state.newRequestLines = newLines;
+
+        if (this.state.screen === 'mahsulot_yuklash_form') {
+            this.state.newTripLines = newLines;
+        } else {
+            this.state.newRequestLines = newLines;
+        }
+
         this.closeProductPicker();
     }
 
@@ -443,6 +525,10 @@ export class VanMobilePos extends Component {
         this.state.newRequestLines[index].qty = ev.target.value;
     }
 
+    updateTripLineQty(index, ev) {
+        this.state.newTripLines[index].qty = ev.target.value;
+    }
+
     async updateRequestState(requestId, newState) {
         this.state.loading = true;
         try {
@@ -499,6 +585,45 @@ export class VanMobilePos extends Component {
         this.state.screen = 'request_details';
     }
 
+    viewTripDetails(trip) {
+        this.state.activeTrip = trip;
+        this.state.screen = 'trip_details';
+    }
+
+    async submitTrip() {
+        if (!this.state.tripAgentId) {
+            this.state.error = "Iltimos agentni tanlang.";
+            return;
+        }
+
+        const validLines = this.state.newTripLines.filter(l => l.product_id && parseFloat(l.qty) > 0);
+
+        if (validLines.length === 0) {
+            this.state.error = "Iltimos kamida bitta mahsulot tanlang.";
+            return;
+        }
+
+        this.state.loading = true;
+        try {
+            const result = await rpc("/van/pos/submit_trip", {
+                agent_id: parseInt(this.state.tripAgentId),
+                date: this.state.tripDate,
+                note: this.state.tripNote,
+                lines: validLines
+            });
+
+            if (result.success) {
+                this.loadInventorySilent(); // Trigger stock push to UI
+                await this.openTripsList();
+            } else {
+                this.state.error = result.error || "Sayohatni saqlash muvaffaqiyatsiz.";
+            }
+        } catch (e) {
+            this.state.error = "Tarmoqda xatolik: Sayohat saqlanmadi.";
+        }
+        this.state.loading = false;
+    }
+
     goBack() {
         if (this.state.screen === 'clients') {
             this.state.screen = 'products';
@@ -511,6 +636,13 @@ export class VanMobilePos extends Component {
         } else if (this.state.screen === 'request_details') {
             this.state.activeRequest = null;
             this.state.screen = 'requests_list';
+        } else if (this.state.screen === 'trips_list') {
+            this.state.screen = 'products';
+        } else if (this.state.screen === 'mahsulot_yuklash_form') {
+            this.state.screen = 'trips_list';
+        } else if (this.state.screen === 'trip_details') {
+            this.state.activeTrip = null;
+            this.state.screen = 'trips_list';
         }
     }
 
