@@ -6,8 +6,8 @@
         <field name="priority" eval="90"/>
         <field name="inherit_id" ref="base.res_config_settings_view_form"/>
         <field name="arch" type="xml">
-            <xpath expr="//div[hasclass('settings')]" position="inside">
-                <div class="app_settings_block" data-string="Van Sales" string="Van Sales" data-key="van_sales_pharma" groups="base.group_system">
+            <xpath expr="//form" position="inside">
+                <app data-string="Van Sales" string="Van Sales" name="van_sales_pharma" groups="base.group_system">
                     <h2>Telegram Bot Setup</h2>
                     <div class="row mt16 o_settings_container" name="telegram_bot_setting_container">
                         <div class="col-12 col-lg-6 o_setting_box" id="telegram_bot_token_setting">
@@ -26,18 +26,15 @@
                             </div>
                         </div>
                     </div>
-                </div>
+                </app>
             </xpath>
         </field>
     </record>
 
     <record id="van_sales_config_settings_action" model="ir.actions.act_window">
         <field name="name">Sozlamalar</field>
-        <field name="type">ir.actions.act_window</field>
         <field name="res_model">res.config.settings</field>
-        <field name="view_id" ref="res_config_settings_view_form"/>
         <field name="view_mode">form</field>
-        <field name="target">inline</field>
         <field name="context">{'module' : 'van_sales_pharma', 'bin_size': False}</field>
     </record>
 
