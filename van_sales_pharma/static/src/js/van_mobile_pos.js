@@ -368,11 +368,18 @@ export class VanMobilePos extends Component {
             });
 
             if (result.success) {
-                this.state.newNasiyaId = result.nasiya_id;
-                this.state.nasiyaAmount = result.nasiya_amount;
-                this.state.kirimAmount = result.nasiya_amount; // Default kirim to total sum
-                this.state.screen = 'kirim';
                 this.loadInventorySilent(); // Trigger immediate stock update
+
+                if (this.state.selectedClient.id === false) {
+                    // Naqt savdo: money is already received, skip payment screen.
+                    this.resetToStart();
+                } else {
+                    // Nasiya: prompt for partial/full payment.
+                    this.state.newNasiyaId = result.nasiya_id;
+                    this.state.nasiyaAmount = result.nasiya_amount;
+                    this.state.kirimAmount = result.nasiya_amount;
+                    this.state.screen = 'kirim';
+                }
             } else {
                 this.state.error = result.error || "Savdo amalga oshmadi.";
             }
