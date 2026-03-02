@@ -50,8 +50,8 @@
             </div>
         </xpath>
         
-        <!-- Hide the default logo -->
-        <xpath expr="//img[hasclass('img-fluid')]" position="replace">
+        <!-- Hide the default logo container -->
+        <xpath expr="//div[hasclass('pb-3')][hasclass('border-bottom')]" position="replace">
             <div style="display:none;"></div>
         </xpath>
     </template>
