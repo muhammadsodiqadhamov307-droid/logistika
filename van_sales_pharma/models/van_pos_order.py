@@ -90,6 +90,28 @@ class VanPosOrder(models.Model):
             order.nasiya_id = nasiya.id
             
             order.state = 'done'
+
+            # 3. Telegram Notification
+            if order.partner_id and order.partner_id.telegram_chat_id:
+                # Recalculate debt 
+                order.partner_id._compute_van_nasiya_stats()
+                
+                import pytz
+                user_tz = pytz.timezone(self.env.user.tz or 'Asia/Tashkent')
+                local_dt = pytz.utc.localize(order.date).astimezone(user_tz)
+                date_str = local_dt.strftime('%Y-%m-%d %H:%M')
+                
+                msg = f"🧾 <b>Savdo cheki</b>\n"
+                msg += f"📅 {date_str}\n"
+                msg += f"👤 Agent: {order.agent_id.name}\n\n"
+                msg += f"📦 Mahsulotlar:\n"
+                for line in order.line_ids:
+                    msg += f"- {line.product_id.name} x{int(line.qty)} — {line.subtotal:,.0f} so'm\n"
+                msg += f"\n💵 Jami: {order.amount_total:,.0f} so'm\n"
+                msg += f"💳 Qarz: {order.partner_id.x_van_total_due:,.0f} so'm"
+                
+                self.env['van.telegram.utils'].send_message(order.partner_id.telegram_chat_id, msg)
+
         return True
 
 class VanPosOrderLine(models.Model):

@@ -6,6 +6,7 @@ _logger = logging.getLogger(__name__)
 class ResPartner(models.Model):
     _inherit = 'res.partner'
     currency_id = fields.Many2one('res.currency', string='Valyuta', related='company_id.currency_id', readonly=True)
+    telegram_chat_id = fields.Char(string='Telegram Chat ID', help="Avtomatik ravishda bot orqali to'ldiriladi.")
 
     x_van_total_due = fields.Monetary(
         string='Jami Nasiya Qarzi',

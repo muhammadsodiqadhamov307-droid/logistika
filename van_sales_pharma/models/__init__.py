@@ -12,3 +12,5 @@ from . import van_pos_order
 from . import van_dashboard_detail
 from . import van_request
 from . import van_product
+from . import telegram_utils
+from . import res_config_settings

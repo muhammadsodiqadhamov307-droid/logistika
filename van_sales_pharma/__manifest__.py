@@ -30,6 +30,7 @@
         'views/van_mobile_pos_action.xml',
         'report/van_load_act_report.xml',
         'report/van_trip_report.xml',
+        'views/res_config_settings_views.xml',
     ],
     'assets': {
         'web.assets_backend': [

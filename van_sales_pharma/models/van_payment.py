@@ -42,4 +42,24 @@ class VanPayment(models.Model):
         for vals in vals_list:
             if vals.get('name', _('Yangi')) == _('Yangi'):
                 vals['name'] = self.env['ir.sequence'].next_by_code('van.payment') or _('Yangi')
-        return super().create(vals_list)
+        records = super().create(vals_list)
+        
+        # 3. Telegram Notification for Inbound Payments
+        for rec in records:
+            if rec.payment_type == 'in' and rec.partner_id and rec.partner_id.telegram_chat_id:
+                # Recalculate debt dynamically
+                rec.partner_id._compute_van_nasiya_stats()
+                
+                import pytz
+                user_tz = pytz.timezone(self.env.user.tz or 'Asia/Tashkent')
+                local_dt = pytz.utc.localize(rec.date).astimezone(user_tz)
+                date_str = local_dt.strftime('%Y-%m-%d %H:%M')
+                
+                msg = f"✅ <b>To'lov qabul qilindi</b>\n"
+                msg += f"📅 {date_str}\n"
+                msg += f"💵 Miqdor: {rec.amount:,.0f} so'm\n"
+                msg += f"💳 Qolgan qarz: {rec.partner_id.x_van_total_due:,.0f} so'm"
+                
+                self.env['van.telegram.utils'].send_message(rec.partner_id.telegram_chat_id, msg)
+                
+        return records

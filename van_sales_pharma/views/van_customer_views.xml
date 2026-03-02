@@ -75,9 +75,14 @@
                     <field name="customer_rank" invisible="1"/>
                     <field name="is_company" invisible="1"/>
 
-                    <group string="Manzil">
-                        <field name="street" placeholder="Ko'cha, Uy raqami"/>
-                        <field name="city" placeholder="Shahar / Tuman"/>
+                    <group>
+                        <group string="Manzil">
+                            <field name="street" placeholder="Ko'cha, Uy raqami"/>
+                            <field name="city" placeholder="Shahar / Tuman"/>
+                        </group>
+                        <group string="Telegram">
+                            <field name="telegram_chat_id" placeholder="Masalan: 123456789"/>
+                        </group>
                     </group>
 
                     <notebook>
