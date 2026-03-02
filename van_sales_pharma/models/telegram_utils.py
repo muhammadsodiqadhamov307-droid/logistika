@@ -9,7 +9,7 @@ class TelegramUtils(models.AbstractModel):
     _description = 'Telegram Bot Utility'
 
     @api.model
-    def send_message(self, chat_id, text):
+    def send_message(self, chat_id, text, reply_markup=None):
         """ Sends a generic text message to a Telegram Chat ID """
         if not chat_id:
             return False
@@ -26,6 +26,9 @@ class TelegramUtils(models.AbstractModel):
             'text': text,
             'parse_mode': 'HTML'
         }
+        
+        if reply_markup is not None:
+            payload['reply_markup'] = reply_markup
 
         try:
             response = requests.post(url, json=payload, timeout=5)

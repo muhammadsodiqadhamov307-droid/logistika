@@ -28,6 +28,7 @@
         'views/van_dashboard_detail_views.xml',
         'views/van_pos_order_views.xml',
         'views/van_mobile_pos_action.xml',
+        'views/client_request_template.xml',
         'report/van_load_act_report.xml',
         'report/van_trip_report.xml',
         'views/res_config_settings_views.xml',

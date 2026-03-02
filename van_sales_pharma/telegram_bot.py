@@ -241,12 +241,21 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             
             for l in lines:
                 p_name = l['product_id'][1]
-                msg += f" ▪️ {p_name}\n    {int(l['qty'])} ta x {l['price_unit']:,.0f} = {l['subtotal']:,.0f} so'm\n"
+                msg += f" ▪️ {p_name}\n    {int(l['qty'])} x {l['price_unit']:,.0f} = {l['subtotal']:,.0f} so'm\n"
             
             msg += f"💰 <b>Jami: {o['amount_total']:,.0f} so'm</b>\n"
             msg += "---------------------------------\n\n"
             
-        await query.edit_message_text(msg, parse_mode='HTML', reply_markup=build_main_menu())
+        base_url = models.execute_kw(ODOO_DB, uid, ODOO_PASSWORD, 'ir.config_parameter', 'get_param', ['van_telegram_odoo_url', ''])
+        web_app_url = f"{base_url}/van/client/request?chat_id={chat_id}"
+        
+        reply_markup = {
+            "inline_keyboard": [[
+                {"text": "🛒 Zakaz berish", "web_app": {"url": web_app_url}}
+            ]]
+        }
+            
+        await query.edit_message_text(msg, parse_mode='HTML', reply_markup=reply_markup)
 
 
 async def generic_text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):

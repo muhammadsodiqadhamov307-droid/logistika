@@ -106,11 +106,21 @@ class VanPosOrder(models.Model):
                 msg += f"👤 Agent: {order.agent_id.name}\n\n"
                 msg += f"📦 Mahsulotlar:\n"
                 for line in order.line_ids:
-                    msg += f"- {line.product_id.name} x{int(line.qty)} — {line.subtotal:,.0f} so'm\n"
+                    msg += f"▪️ {line.product_id.name}\n    {int(line.qty)} x {line.price_unit:,.0f} = {line.subtotal:,.0f} so'm\n"
                 msg += f"\n💵 Jami: {order.amount_total:,.0f} so'm\n"
                 msg += f"💳 Qarz: {order.partner_id.x_van_total_due:,.0f} so'm"
                 
-                self.env['van.telegram.utils'].send_message(order.partner_id.telegram_chat_id, msg)
+                # Attach Web App Button for Zakaz Berish
+                base_url = self.env['ir.config_parameter'].sudo().get_param('van_telegram_odoo_url', self.env['ir.config_parameter'].sudo().get_param('web.base.url', ''))
+                web_app_url = f"{base_url}/van/client/request?chat_id={order.partner_id.telegram_chat_id}"
+                
+                reply_markup = {
+                    "inline_keyboard": [[
+                        {"text": "🛒 Zakaz berish", "web_app": {"url": web_app_url}}
+                    ]]
+                }
+                
+                self.env['van.telegram.utils'].send_message(order.partner_id.telegram_chat_id, msg, reply_markup=reply_markup)
 
         return True
 

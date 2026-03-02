@@ -266,3 +266,76 @@ class VanPosController(http.Controller):
             return {'success': True, 'trips': res}
         except Exception as e:
             return {'success': False, 'error': str(e)}
+
+    # ==========================================
+    # CLIENT TELEGRAM WEB APP ROUTES (PUBLIC)
+    # ==========================================
+
+    @http.route('/van/client/request', type='http', auth='public', website=True)
+    def client_request_page(self, chat_id=None, **kwargs):
+        if not chat_id:
+            return "Telegram Chat ID is missing. Iltimos bot orqali kiring."
+            
+        # Validate partner
+        partner = request.env['res.partner'].sudo().search([('telegram_chat_id', '=', str(chat_id))], limit=1)
+        if not partner:
+            return "Kechirasiz, sizning hisobingiz topilmadi. Iltimos botdan qayta ro'yxatdan o'ting."
+            
+        # Get active products
+        products = request.env['van.product'].sudo().search([])
+        product_data = []
+        for p in products:
+            product_data.append({
+                'id': p.id,
+                'name': p.name,
+                'price': p.list_price,
+                'price_str': f"{p.list_price:,.0f}",
+                'image_url': f"/web/image?model=van.product&id={p.id}&field=image_1920" if p.image_1920 else ""
+            })
+            
+        base_url = request.env['ir.config_parameter'].sudo().get_param('van_telegram_odoo_url', request.env['ir.config_parameter'].sudo().get_param('web.base.url', ''))
+
+        values = {
+            'partner_id': partner.id,
+            'partner_name': partner.name,
+            'products': product_data,
+            'odoo_url': base_url
+        }
+        
+        return request.render('van_sales_pharma.client_request_template', values)
+
+    @http.route('/van/client/submit_request', type='jsonrpc', auth='public', csrf=False)
+    def client_submit_request(self, partner_id, lines, notes=''):
+        try:
+            if not partner_id:
+                return {'success': False, 'error': 'Missing partner ID'}
+            
+            partner = request.env['res.partner'].sudo().browse(int(partner_id))
+            if not partner.exists():
+                return {'success': False, 'error': 'Partner not found'}
+                
+            # Create request without an agent originally. 
+            # Later we can assign to an active agent in that region or leave it generic for office.
+            # We'll assign it to the admin User for now, or just leave agent_id empty if schema permits.
+            # Usually we need an agent_id. Let's find the first valid agent.
+            admin = request.env.ref('base.user_admin')
+            
+            request_vals = {
+                'agent_id': admin.id, 
+                'partner_id': partner.id,
+                'notes': f"TELEGRAM WEB APP ORQALI:\n{notes}",
+                'line_ids': [(0, 0, {
+                    'product_id': l['product_id'],
+                    'qty': float(l['qty'])
+                }) for l in lines]
+            }
+            
+            new_request = request.env['van.request'].sudo().create(request_vals)
+            
+            # Send confirmation message to client
+            msg = f"✅ <b>Sizning so'rovingiz qabul qilindi!</b>\n\n🔖 Raqam: #{new_request.id}\nBiz tez orada siz bilan bog'lanamiz."
+            request.env['van.telegram.utils'].sudo().send_message(partner.telegram_chat_id, msg)
+            
+            return {'success': True, 'request_id': new_request.id}
+        except Exception as e:
+            return {'success': False, 'error': str(e)}
