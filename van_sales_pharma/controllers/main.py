@@ -100,7 +100,8 @@ class VanPosController(http.Controller):
         try:
             import pytz
             user_tz = pytz.timezone(request.env.user.tz or 'Asia/Tashkent')
-            requests = request.env['van.request'].search([('agent_id', '=', request.env.uid)], order='date desc', limit=100)
+            # Show all requests to all agents as requested by the user
+            requests = request.env['van.request'].sudo().search([], order='date desc', limit=200)
             res = []
             for req in requests:
                 lines = []
@@ -139,7 +140,8 @@ class VanPosController(http.Controller):
     @http.route('/van/pos/update_request_state', type='jsonrpc', auth='user')
     def update_request_state(self, request_id, state):
         try:
-            req = request.env['van.request'].sudo().search([('id', '=', int(request_id)), ('agent_id', '=', request.env.uid)])
+            # Sudo allows agents to update any request state, even if they didn't create it
+            req = request.env['van.request'].sudo().search([('id', '=', int(request_id))])
             if req:
                 req.sudo().write({'state': state})
                 return {'success': True}
