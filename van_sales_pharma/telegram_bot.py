@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 
 # Basic Odoo Connection Setup 
 # In a real environment, read these from environment variables or a config file
-ODOO_URL = "http://localhost:8069"
+ODOO_URL = "https://logistics1234.duckdns.org"
 ODOO_DB = "default"
 ODOO_USER = "admin"  # Hardcoded per instructions for local script
 ODOO_PASSWORD = "admin" # Adjust if your local db admin password is different
@@ -55,8 +55,13 @@ def get_bot_token():
     models, uid = get_odoo_models()
     if not models:
         return None
-    token = models.execute_kw(ODOO_DB, uid, ODOO_PASSWORD, 'ir.config_parameter', 'get_param', ['van.telegram.bot.token'])
-    return token
+    records = models.execute_kw(ODOO_DB, uid, ODOO_PASSWORD, 'ir.config_parameter', 'search_read', 
+        [[('key', '=', 'van.telegram.bot.token')]], 
+        {'fields': ['value'], 'limit': 1}
+    )
+    if records:
+        return records[0].get('value')
+    return None
 
 def build_main_menu():
     keyboard = [

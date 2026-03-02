@@ -19,8 +19,12 @@
                                 </div>
                                 <div class="content-group">
                                     <div class="row mt16">
-                                        <label for="van_telegram_bot_token" class="col-lg-3 o_light_label"/>
+                                        <label for="van_telegram_bot_token" class="col-lg-3 o_light_label" string="Token"/>
                                         <field name="van_telegram_bot_token" class="col-lg-9"/>
+                                    </div>
+                                    <div class="row mt16">
+                                        <label for="van_telegram_odoo_url" class="col-lg-3 o_light_label" string="Odoo URL"/>
+                                        <field name="van_telegram_odoo_url" class="col-lg-9"/>
                                     </div>
                                 </div>
                             </div>

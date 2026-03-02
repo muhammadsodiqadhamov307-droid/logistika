@@ -8,3 +8,9 @@ class ResConfigSettings(models.TransientModel):
         config_parameter='van.telegram.bot.token',
         help="Paste the HTTP API Token provided by BotFather here."
     )
+
+    van_telegram_odoo_url = fields.Char(
+        string='Odoo URL for Telegram Bot',
+        config_parameter='van.telegram.odoo.url',
+        help="Paste the external Odoo URL here (e.g. https://logistics1234.duckdns.org)."
+    )
