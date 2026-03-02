@@ -11,7 +11,8 @@ class VanDashboardDetail(models.Model):
 
     name = fields.Char('Hujjat Raqami', readonly=True)
     date = fields.Datetime('Sana', readonly=True)
-    partner_id = fields.Many2one('res.partner', 'Mijoz', readonly=True)
+    partner_id = fields.Many2one('res.partner', 'Mijoz_Obyekt', readonly=True)
+    partner_name = fields.Char('Mijoz', readonly=True)
     agent_id = fields.Many2one('res.users', 'Agent', readonly=True)
     amount = fields.Float('Summa', readonly=True)
     payment_method = fields.Selection([
@@ -66,6 +67,7 @@ class VanDashboardDetail(models.Model):
                     po.agent_id AS agent_id,
                     po.date AS date,
                     po.partner_id AS partner_id,
+                    COALESCE((SELECT name FROM res_partner WHERE id = po.partner_id), 'Naqt savdo') AS partner_name,
                     po.amount_total AS amount,
                     'cash' AS payment_method, -- All sales are considered cash initially unless partially nasiya'd, but we track that separately
                     'sale' AS transaction_type,
@@ -89,6 +91,7 @@ class VanDashboardDetail(models.Model):
                     vp.agent_id AS agent_id,
                     vp.date AS date,
                     vp.partner_id AS partner_id,
+                    COALESCE((SELECT name FROM res_partner WHERE id = vp.partner_id), 'Naqt yig''im') AS partner_name,
                     vp.amount AS amount,
                     vp.payment_method AS payment_method,
                     CASE WHEN vp.payment_type = 'in' THEN 'kirim' ELSE 'chiqim' END AS transaction_type,

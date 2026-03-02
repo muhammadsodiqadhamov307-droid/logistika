@@ -7,6 +7,7 @@
             <search string="Qidiruv">
                 <field name="name"/>
                 <field name="partner_id"/>
+                <field name="partner_name"/>
                 <field name="agent_id"/>
                 <filter string="Naqt" name="cash" domain="[('payment_method', '=', 'cash')]"/>
                 <filter string="Karta" name="card" domain="[('payment_method', '=', 'card')]"/>
@@ -26,7 +27,7 @@
             <list string="Moliyaviy Amaliyotlar" create="0" edit="0" decoration-success="transaction_type == 'kirim'" decoration-danger="transaction_type == 'chiqim'" decoration-info="transaction_type == 'sale'">
                 <field name="date"/>
                 <field name="name" column_invisible="1"/>
-                <field name="partner_id"/>
+                <field name="partner_name"/>
                 <field name="agent_id" widget="many2one_avatar_user"/>
                 <field name="transaction_type" widget="badge" decoration-success="transaction_type == 'kirim'" decoration-danger="transaction_type == 'chiqim'" decoration-info="transaction_type == 'sale'"/>
                 <field name="payment_method" column_invisible="1"/>
@@ -55,7 +56,7 @@
                     <group>
                         <group>
                             <field name="date" readonly="1"/>
-                            <field name="partner_id" readonly="1"/>
+                            <field name="partner_name" readonly="1"/>
                             <field name="agent_id" readonly="1" widget="many2one_avatar_user"/>
                             <field name="transaction_type" readonly="1"/>
                         </group>
