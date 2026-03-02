@@ -249,10 +249,14 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         base_url = models.execute_kw(ODOO_DB, uid, ODOO_PASSWORD, 'ir.config_parameter', 'get_param', ['van_telegram_odoo_url', ''])
         web_app_url = f"{base_url}/van/client/request?chat_id={chat_id}"
         
+        button = {"text": "🛒 Zakaz berish"}
+        if web_app_url.startswith('https://'):
+            button["web_app"] = {"url": web_app_url}
+        else:
+            button["url"] = web_app_url
+            
         reply_markup = {
-            "inline_keyboard": [[
-                {"text": "🛒 Zakaz berish", "web_app": {"url": web_app_url}}
-            ]]
+            "inline_keyboard": [[button]]
         }
             
         await query.edit_message_text(msg, parse_mode='HTML', reply_markup=reply_markup)

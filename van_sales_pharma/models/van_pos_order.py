@@ -114,10 +114,14 @@ class VanPosOrder(models.Model):
                 base_url = self.env['ir.config_parameter'].sudo().get_param('van_telegram_odoo_url', self.env['ir.config_parameter'].sudo().get_param('web.base.url', ''))
                 web_app_url = f"{base_url}/van/client/request?chat_id={order.partner_id.telegram_chat_id}"
                 
+                button = {"text": "🛒 Zakaz berish"}
+                if web_app_url.startswith('https://'):
+                    button["web_app"] = {"url": web_app_url}
+                else:
+                    button["url"] = web_app_url
+                    
                 reply_markup = {
-                    "inline_keyboard": [[
-                        {"text": "🛒 Zakaz berish", "web_app": {"url": web_app_url}}
-                    ]]
+                    "inline_keyboard": [[button]]
                 }
                 
                 self.env['van.telegram.utils'].send_message(order.partner_id.telegram_chat_id, msg, reply_markup=reply_markup)
