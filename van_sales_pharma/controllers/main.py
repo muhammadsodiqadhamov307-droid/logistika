@@ -168,22 +168,20 @@ class VanPosController(http.Controller):
         except Exception as e:
             return {'success': False, 'error': str(e)}
 
-    @http.route('/van/pos/get_agents', type='jsonrpc', auth='user')
-    def get_agents(self):
+    @http.route('/van/pos/get_current_agent', type='jsonrpc', auth='user')
+    def get_current_agent(self):
         try:
-            # Only users in the van sales agent group
-            agents = request.env.ref('van_sales_pharma.group_van_agent').users
-            res = []
-            for agent in agents:
-                res.append({
-                    'id': agent.id,
-                    'name': agent.name,
-                    'phone': agent.phone or '',
-                    'image_url': f'/web/image?model=res.users&id={agent.id}&field=avatar_128'
-                })
-            return res
+            user = request.env.user
+            if request.env.ref('van_sales_pharma.group_van_agent') in user.groups_id:
+                return {
+                    'id': user.id,
+                    'name': user.name,
+                    'phone': user.phone or '',
+                    'image_url': f'/web/image?model=res.users&id={user.id}&field=avatar_128'
+                }
+            return None
         except Exception as e:
-            return []
+            return None
 
     @http.route('/van/pos/submit_trip', type='jsonrpc', auth='user')
     def submit_trip(self, agent_id, date, note, lines):

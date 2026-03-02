@@ -56,16 +56,12 @@ export class VanMobilePos extends Component {
             tempSelectedProducts: new Set(),
 
             // Mahsulot Yuklash (Trip Load) features
-            agents: [],
+            currentAgent: null,
             tripsList: [],
             activeTrip: null,
             tripDate: new Date().toISOString().split('T')[0], // Defaults to today
-            tripAgentId: '',
-            tripAgentName: '',
             tripNote: '',
             newTripLines: [],
-            showAgentPickerModal: false,
-            agentSearchModal: '',
 
             pollingInterval: null,
         });
@@ -82,7 +78,7 @@ export class VanMobilePos extends Component {
             await Promise.all([
                 this.loadClients(),
                 this.loadInventory(),
-                this.loadAgents()
+                this.loadCurrentAgent()
             ]);
 
             this.state.pollingInterval = setInterval(() => {
@@ -118,9 +114,9 @@ export class VanMobilePos extends Component {
         this.state.loading = false;
     }
 
-    async loadAgents() {
+    async loadCurrentAgent() {
         try {
-            this.state.agents = await rpc("/van/pos/get_agents", {});
+            this.state.currentAgent = await rpc("/van/pos/get_current_agent", {});
         } catch (e) {
             console.error(e);
         }
@@ -136,8 +132,6 @@ export class VanMobilePos extends Component {
 
                 // reset trip creation form
                 this.state.tripDate = new Date().toISOString().split('T')[0];
-                this.state.tripAgentId = '';
-                this.state.tripAgentName = '';
                 this.state.tripNote = '';
                 this.state.newTripLines = [];
                 this.state.activeTrip = null;
@@ -184,15 +178,7 @@ export class VanMobilePos extends Component {
         return this.state.clients.filter(c => c.name.toLowerCase().includes(this.state.searchQuery.toLowerCase()));
     }
 
-    get filteredModalAgents() {
-        if (!this.state.agentSearchModal) {
-            return this.state.agents;
-        }
-        const search = this.state.agentSearchModal.toLowerCase();
-        return this.state.agents.filter(a =>
-            a.name.toLowerCase().includes(search)
-        );
-    }
+
 
     get filteredInventory() {
         let base = this.state.inventory.filter(p => p.remaining > 0);
@@ -242,21 +228,6 @@ export class VanMobilePos extends Component {
         this.state.requestPartnerId = client.id;
         this.state.requestPartnerName = client.name;
         this.closeClientPicker();
-    }
-
-    openAgentPicker() {
-        this.state.agentSearchModal = '';
-        this.state.showAgentPickerModal = true;
-    }
-
-    closeAgentPicker() {
-        this.state.showAgentPickerModal = false;
-    }
-
-    selectTripAgent(agent) {
-        this.state.tripAgentId = agent.id;
-        this.state.tripAgentName = agent.name;
-        this.closeAgentPicker();
     }
 
     openProductPicker() {
@@ -591,8 +562,8 @@ export class VanMobilePos extends Component {
     }
 
     async submitTrip() {
-        if (!this.state.tripAgentId) {
-            this.state.error = "Iltimos agentni tanlang.";
+        if (!this.state.currentAgent) {
+            this.state.error = "Sizning akkauntingizga agent biriktirilmagan.";
             return;
         }
 
@@ -606,7 +577,7 @@ export class VanMobilePos extends Component {
         this.state.loading = true;
         try {
             const result = await rpc("/van/pos/submit_trip", {
-                agent_id: parseInt(this.state.tripAgentId),
+                agent_id: parseInt(this.state.currentAgent.id),
                 date: this.state.tripDate,
                 note: this.state.tripNote,
                 lines: validLines

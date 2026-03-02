@@ -594,16 +594,30 @@
 
                         <div style="margin-bottom: 15px;">
                             <label style="display: block; font-size: 14px; font-weight: bold; margin-bottom: 5px; color: #374151;">Agent (Kimga)</label>
-                            <button t-on-click="openAgentPicker" style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; background-color: white; color: #374151; display: flex; align-items: center; justify-content: space-between; cursor: pointer; text-align: left;">
-                                <div style="display: flex; align-items: center; gap: 10px;">
-                                    <div style="width: 30px; height: 30px; background-color: #e5e7eb; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #6b7280;">
-                                        <i class="fa fa-user-circle"></i>
+                            <t t-if="state.currentAgent">
+                                <div style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; background-color: #f3f4f6; color: #374151; display: flex; align-items: center; justify-content: space-between; cursor: not-allowed; text-align: left;">
+                                    <div style="display: flex; align-items: center; gap: 10px;">
+                                        <div style="width: 30px; height: 30px; background-color: #e5e7eb; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #6b7280; overflow: hidden;">
+                                            <t t-if="state.currentAgent.image_url">
+                                                <img t-att-src="state.currentAgent.image_url" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.src='/van_sales_pharma/static/description/icon.png';"/>
+                                            </t>
+                                            <t t-else="">
+                                                <i class="fa fa-user-circle"></i>
+                                            </t>
+                                        </div>
+                                        <div style="display: flex; flex-direction: column;">
+                                            <span style="font-weight: bold; line-height: 1.2;"><t t-esc="state.currentAgent.name"/></span>
+                                            <span t-if="state.currentAgent.phone" style="font-size: 12px; color: #6b7280;"><t t-esc="state.currentAgent.phone"/></span>
+                                        </div>
                                     </div>
-                                    <span t-if="state.tripAgentId" style="font-weight: bold;"><t t-esc="state.tripAgentName"/></span>
-                                    <span t-else="" style="color: #9ca3af;">-- Agentni tanlang (Majburiy) --</span>
+                                    <i class="fa fa-lock" style="color: #9ca3af;"></i>
                                 </div>
-                                <i class="fa fa-chevron-right" style="color: #9ca3af;"></i>
-                            </button>
+                            </t>
+                            <t t-else="">
+                                <div style="background-color: #fee2e2; color: #b91c1c; padding: 12px; border-radius: 8px; font-size: 14px; text-align: center; border: 1px solid #fca5a5;">
+                                    <i class="fa fa-exclamation-triangle" style="margin-right: 5px;"></i> Sizning akkauntingizga agent biriktirilmagan. Iltimos, administratorga murojaat qiling.
+                                </div>
+                            </t>
                         </div>
 
                         <div style="margin-top: 20px; margin-bottom: 10px; font-weight: bold; color: #374151; font-size: 16px;">Mahsulotlar ro'yxati (<t t-esc="state.newTripLines.length"/>)</div>
