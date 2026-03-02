@@ -65,10 +65,9 @@ def get_bot_token():
 
 def build_main_menu():
     keyboard = [
-        [InlineKeyboardButton("📦 Mahsulotlar (Kirim tarixi)", callback_data='menu_mahsulotlar')],
         [InlineKeyboardButton("💰 Balans (Qarz)", callback_data='menu_balans')],
         [InlineKeyboardButton("📋 Barcha tranzaksiyalar", callback_data='menu_tranzaksiyalar')],
-        [InlineKeyboardButton("📥 Tovar kirimlar (Buyurtmalar)", callback_data='menu_kirimlar')]
+        [InlineKeyboardButton("🧾 Savdo cheklari (Batafsil)", callback_data='menu_savdo_cheklari')]
     ]
     return InlineKeyboardMarkup(keyboard)
 
@@ -201,31 +200,6 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 reply_markup=build_main_menu()
             )
             
-    elif data == 'menu_mahsulotlar':
-        # Fetch all pos.order.line where order is paid/done
-        orders = models.execute_kw(ODOO_DB, uid, ODOO_PASSWORD, 'pos.order', 'search', [[('partner_id', '=', partner_id), ('state', 'in', ['paid', 'done', 'invoiced'])]])
-        if not orders:
-            await query.edit_message_text("Hali hech qanday mahsulot xarid qilinmagan.", reply_markup=build_main_menu())
-            return
-            
-        lines = models.execute_kw(ODOO_DB, uid, ODOO_PASSWORD, 'pos.order.line', 'search_read', [
-            [('order_id', 'in', orders)]
-        ], {'fields': ['product_id', 'qty', 'price_unit'], 'limit': 50})
-        
-        # Aggregate by product
-        inventory = {}
-        for l in lines:
-            p_name = l['product_id'][1]
-            if p_name not in inventory:
-                inventory[p_name] = {'qty': 0, 'price': l['price_unit']}
-            inventory[p_name]['qty'] += l['qty']
-            
-        msg = "📦 <b>Xarid qilingan mahsulotlar:</b>\n\n"
-        for name, data in inventory.items():
-            msg += f"▪️ {name}\n   {int(data['qty'])} ta x {data['price']:,.0f} so'm\n"
-            
-        await query.edit_message_text(msg, parse_mode='HTML', reply_markup=build_main_menu())
-        
     elif data == 'menu_tranzaksiyalar':
         # Fetch van.dashboard.detail for this partner
         records = models.execute_kw(ODOO_DB, uid, ODOO_PASSWORD, 'van.dashboard.detail', 'search_read', [
@@ -244,21 +218,33 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             msg += f"📅 {dt[:16]}\n  {icon} | {r['amount']:,.0f} so'm\n\n"
             
         await query.edit_message_text(msg, parse_mode='HTML', reply_markup=build_main_menu())
-        
-    elif data == 'menu_kirimlar':
-        # Fetch pos.order list
+
+    elif data == 'menu_savdo_cheklari':
+        # Fetch last 5 pos.order list
         orders = models.execute_kw(ODOO_DB, uid, ODOO_PASSWORD, 'pos.order', 'search_read', [
             [('partner_id', '=', partner_id), ('state', 'in', ['paid', 'done', 'invoiced'])]
-        ], {'fields': ['name', 'date_order', 'amount_total'], 'order': 'date_order desc', 'limit': 10})
+        ], {'fields': ['name', 'date_order', 'amount_total', 'lines'], 'order': 'date_order desc', 'limit': 5})
         
         if not orders:
-             await query.edit_message_text("Tovar kirimlar tarixi bo'sh.", reply_markup=build_main_menu())
+             await query.edit_message_text("Savdo cheklari tarixi bo'sh.", reply_markup=build_main_menu())
              return
              
-        msg = "📥 <b>So'nggi tovar kirimlar:</b>\n\n"
+        msg = "🧾 <b>So'nggi 5 ta savdo cheki (Batafsil):</b>\n\n"
         for o in orders:
-            dt = o['date_order']
-            msg += f"📄 {o['name']} | 📅 {dt[:16]}\n  Summa: {o['amount_total']:,.0f} so'm\n\n"
+            dt = o['date_order'][:16]
+            msg += f"📄 <b>{o['name']}</b> | 📅 {dt}\n"
+            
+            # Fetch lines for this order
+            lines = models.execute_kw(ODOO_DB, uid, ODOO_PASSWORD, 'pos.order.line', 'read', [
+                o['lines'], ['product_id', 'qty', 'price_unit', 'price_subtotal']
+            ])
+            
+            for l in lines:
+                p_name = l['product_id'][1]
+                msg += f" ▪️ {p_name}\n    {int(l['qty'])} ta x {l['price_unit']:,.0f} = {l['price_subtotal']:,.0f} so'm\n"
+            
+            msg += f"💰 <b>Jami: {o['amount_total']:,.0f} so'm</b>\n"
+            msg += "---------------------------------\n\n"
             
         await query.edit_message_text(msg, parse_mode='HTML', reply_markup=build_main_menu())
 
