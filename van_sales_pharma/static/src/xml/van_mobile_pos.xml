@@ -37,13 +37,15 @@
                     <div t-if="state.showActionMenu and (state.screen === 'clients' or state.screen === 'products')" 
                          style="position: absolute; top: 100%; right: 0; background: white; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06); padding: 5px; margin-top: 10px; min-width: 150px; z-index: 100;">
                         
-                        <button t-on-click="() => { this.openQuickAction('kirim'); state.showActionMenu = false; }" style="display: flex; align-items: center; width: 100%; text-align: left; background: none; border: none; padding: 10px; font-size: 15px; border-radius: 5px; color: #10b981; font-weight: bold; margin-bottom: 5px;">
-                            <i class="fa fa-plus-circle" style="margin-right: 10px; width: 15px;"></i> Kirim
-                        </button>
-                        
-                        <button t-on-click="() => { this.openQuickAction('chiqim'); state.showActionMenu = false; }" style="display: flex; align-items: center; width: 100%; text-align: left; background: none; border: none; padding: 10px; font-size: 15px; border-radius: 5px; color: #ef4444; font-weight: bold; margin-bottom: 5px;">
-                            <i class="fa fa-minus-circle" style="margin-right: 10px; width: 15px;"></i> Chiqim
-                        </button>
+                        <t t-if="state.selectedClient and state.selectedClient.id !== false">
+                            <button t-on-click="() => { this.openQuickAction('kirim'); state.showActionMenu = false; }" style="display: flex; align-items: center; width: 100%; text-align: left; background: none; border: none; padding: 10px; font-size: 15px; border-radius: 5px; color: #10b981; font-weight: bold; margin-bottom: 5px;">
+                                <i class="fa fa-plus-circle" style="margin-right: 10px; width: 15px;"></i> Kirim
+                            </button>
+                            
+                            <button t-on-click="() => { this.openQuickAction('chiqim'); state.showActionMenu = false; }" style="display: flex; align-items: center; width: 100%; text-align: left; background: none; border: none; padding: 10px; font-size: 15px; border-radius: 5px; color: #ef4444; font-weight: bold; margin-bottom: 5px;">
+                                <i class="fa fa-minus-circle" style="margin-right: 10px; width: 15px;"></i> Chiqim
+                            </button>
+                        </t>
                         
                         <div style="height: 1px; background: #e5e7eb; margin: 5px 0;"></div>
                         
@@ -253,14 +255,15 @@
                             </div>
                         </t>
                         <div style="padding: 15px; background-color: #f9fafb; display: flex; justify-content: space-between; font-size: 18px; font-weight: bold;">
-                            <span>Jami (Nasiya):</span>
-                            <span style="color: #dc2626;"><t t-esc="cartTotal.toLocaleString()"/></span>
+                            <span>Jami (<t t-esc="state.selectedClient.id === false ? 'Naqt' : 'Nasiya'"/>):</span>
+                            <span t-attf-style="color: {{ state.selectedClient.id === false ? '#10b981' : '#dc2626' }};"><t t-esc="cartTotal.toLocaleString()"/></span>
                         </div>
                     </div>
 
                     <div style="margin-top: 25px;">
-                        <button t-on-click="submitOrder" style="width: 100%; padding: 15px; background-color: #dc2626; color: white; font-size: 18px; font-weight: bold; border: none; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(220, 38, 38, 0.4);">
-                            NASIYA BILAN SOTISH
+                        <button t-on-click="submitOrder" t-attf-style="width: 100%; padding: 15px; color: white; font-size: 18px; font-weight: bold; border: none; border-radius: 8px; background-color: {{ state.selectedClient.id === false ? '#10b981' : '#dc2626' }}; box-shadow: 0 4px 6px -1px rgba({{ state.selectedClient.id === false ? '16, 185, 129' : '220, 38, 38' }}, 0.4);">
+                            <t t-if="state.selectedClient.id === false">NAQT SOTISH</t>
+                            <t t-else="">NASIYA BILAN SOTISH</t>
                         </button>
                     </div>
                 </t>
