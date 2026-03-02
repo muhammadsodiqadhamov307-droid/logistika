@@ -220,10 +220,10 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text(msg, parse_mode='HTML', reply_markup=build_main_menu())
 
     elif data == 'menu_savdo_cheklari':
-        # Fetch last 5 pos.order list
-        orders = models.execute_kw(ODOO_DB, uid, ODOO_PASSWORD, 'pos.order', 'search_read', [
-            [('partner_id', '=', partner_id), ('state', 'in', ['paid', 'done', 'invoiced'])]
-        ], {'fields': ['name', 'date_order', 'amount_total', 'lines'], 'order': 'date_order desc', 'limit': 5})
+        # Fetch last 5 van.pos.order list
+        orders = models.execute_kw(ODOO_DB, uid, ODOO_PASSWORD, 'van.pos.order', 'search_read', [
+            [('partner_id', '=', partner_id), ('state', '=', 'done')]
+        ], {'fields': ['name', 'date', 'amount_total', 'line_ids'], 'order': 'date desc', 'limit': 5})
         
         if not orders:
              await query.edit_message_text("Savdo cheklari tarixi bo'sh.", reply_markup=build_main_menu())
@@ -231,17 +231,17 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
              
         msg = "🧾 <b>So'nggi 5 ta savdo cheki (Batafsil):</b>\n\n"
         for o in orders:
-            dt = o['date_order'][:16]
+            dt = o['date'][:16]
             msg += f"📄 <b>{o['name']}</b> | 📅 {dt}\n"
             
             # Fetch lines for this order
-            lines = models.execute_kw(ODOO_DB, uid, ODOO_PASSWORD, 'pos.order.line', 'read', [
-                o['lines'], ['product_id', 'qty', 'price_unit', 'price_subtotal']
+            lines = models.execute_kw(ODOO_DB, uid, ODOO_PASSWORD, 'van.pos.order.line', 'read', [
+                o['line_ids'], ['product_id', 'qty', 'price_unit', 'subtotal']
             ])
             
             for l in lines:
                 p_name = l['product_id'][1]
-                msg += f" ▪️ {p_name}\n    {int(l['qty'])} ta x {l['price_unit']:,.0f} = {l['price_subtotal']:,.0f} so'm\n"
+                msg += f" ▪️ {p_name}\n    {int(l['qty'])} ta x {l['price_unit']:,.0f} = {l['subtotal']:,.0f} so'm\n"
             
             msg += f"💰 <b>Jami: {o['amount_total']:,.0f} so'm</b>\n"
             msg += "---------------------------------\n\n"
