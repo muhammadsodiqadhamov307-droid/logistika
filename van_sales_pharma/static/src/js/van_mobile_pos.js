@@ -633,6 +633,10 @@ export class VanMobilePos extends Component {
             tag: 'reload',
         });
     }
+
+    logout() {
+        window.location.href = '/web/session/logout';
+    }
 }
 
 VanMobilePos.template = "van_sales_pharma.VanMobilePos";

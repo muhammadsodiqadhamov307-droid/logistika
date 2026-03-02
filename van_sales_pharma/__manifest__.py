@@ -29,6 +29,9 @@
         'views/van_pos_order_views.xml',
         'views/van_mobile_pos_action.xml',
         'views/client_request_template.xml',
+        'views/web_layout_inherit.xml',
+        'views/login_layout_inherit.xml',
+        'views/client_request_template.xml',
         'report/van_load_act_report.xml',
         'report/van_trip_report.xml',
         'views/res_config_settings_views.xml',
@@ -36,6 +39,7 @@
     'assets': {
         'web.assets_backend': [
             'van_sales_pharma/static/src/css/van_sales.css',
+            'van_sales_pharma/static/src/js/van_agent_locker.js',
             'van_sales_pharma/static/src/js/van_dashboard.js',
             'van_sales_pharma/static/src/xml/van_dashboard.xml',
             'van_sales_pharma/static/src/js/van_mobile_pos.js',

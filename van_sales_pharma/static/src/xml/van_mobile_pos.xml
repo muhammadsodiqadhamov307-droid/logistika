@@ -53,6 +53,12 @@
                         <button t-on-click="() => { this.openRequestsList(); state.showActionMenu = false; }" style="display: flex; align-items: center; width: 100%; text-align: left; background: none; border: none; padding: 10px; font-size: 15px; border-radius: 5px; color: #3b82f6; font-weight: bold;">
                             <i class="fa fa-clipboard" style="margin-right: 10px; width: 15px;"></i> So'rovlar
                         </button>
+
+                        <div style="height: 1px; background: #e5e7eb; margin: 5px 0;"></div>
+                        
+                        <button t-on-click="logout" style="display: flex; align-items: center; width: 100%; text-align: left; background: none; border: none; padding: 10px; font-size: 15px; border-radius: 5px; color: #6b7280; font-weight: bold;">
+                            <i class="fa fa-sign-out" style="margin-right: 10px; width: 15px;"></i> Tizimdan chiqish
+                        </button>
                     </div>
                 </div>
             </div>
