@@ -172,7 +172,7 @@ class VanPosController(http.Controller):
     def get_current_agent(self):
         try:
             user = request.env.user
-            if request.env.ref('van_sales_pharma.group_van_agent') in user.groups_id:
+            if user.has_group('van_sales_pharma.group_van_agent') or user.has_group('base.group_system'):
                 return {
                     'id': user.id,
                     'name': user.name,
