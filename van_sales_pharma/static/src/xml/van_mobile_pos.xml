@@ -36,16 +36,13 @@
                     <!-- Dropdown Menu Content -->
                     <div t-if="state.showActionMenu and (state.screen === 'clients' or state.screen === 'products')" 
                          style="position: absolute; top: 100%; right: 0; background: white; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06); padding: 5px; margin-top: 10px; min-width: 150px; z-index: 100;">
+                        <button t-on-click="() => { this.openQuickAction('kirim'); state.showActionMenu = false; }" style="display: flex; align-items: center; width: 100%; text-align: left; background: none; border: none; padding: 10px; font-size: 15px; border-radius: 5px; color: #10b981; font-weight: bold; margin-bottom: 5px;">
+                            <i class="fa fa-plus-circle" style="margin-right: 10px; width: 15px;"></i> Kirim
+                        </button>
                         
-                        <t t-if="state.selectedClient and state.selectedClient.id !== false">
-                            <button t-on-click="() => { this.openQuickAction('kirim'); state.showActionMenu = false; }" style="display: flex; align-items: center; width: 100%; text-align: left; background: none; border: none; padding: 10px; font-size: 15px; border-radius: 5px; color: #10b981; font-weight: bold; margin-bottom: 5px;">
-                                <i class="fa fa-plus-circle" style="margin-right: 10px; width: 15px;"></i> Kirim
-                            </button>
-                            
-                            <button t-on-click="() => { this.openQuickAction('chiqim'); state.showActionMenu = false; }" style="display: flex; align-items: center; width: 100%; text-align: left; background: none; border: none; padding: 10px; font-size: 15px; border-radius: 5px; color: #ef4444; font-weight: bold; margin-bottom: 5px;">
-                                <i class="fa fa-minus-circle" style="margin-right: 10px; width: 15px;"></i> Chiqim
-                            </button>
-                        </t>
+                        <button t-on-click="() => { this.openQuickAction('chiqim'); state.showActionMenu = false; }" style="display: flex; align-items: center; width: 100%; text-align: left; background: none; border: none; padding: 10px; font-size: 15px; border-radius: 5px; color: #ef4444; font-weight: bold; margin-bottom: 5px;">
+                            <i class="fa fa-minus-circle" style="margin-right: 10px; width: 15px;"></i> Chiqim
+                        </button>
                         
                         <div style="height: 1px; background: #e5e7eb; margin: 5px 0;"></div>
                         
