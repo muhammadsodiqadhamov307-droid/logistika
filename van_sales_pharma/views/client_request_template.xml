@@ -100,6 +100,13 @@
                     </div>
                 </div>
 
+                <!-- Fallback Button for standard browsers (HTTP environments) -->
+                <div id="fallbackSubmitContainer" class="fixed bottom-0 left-0 right-0 p-4 border-t border-gray-200 z-50" style="display: none; background-color: var(--tg-theme-bg-color, #ffffff); padding-bottom: calc(1rem + env(safe-area-inset-bottom));">
+                    <button id="fallbackSubmitBtn" class="w-full text-white font-bold py-3 px-4 rounded-xl flex items-center justify-center shadow-md transition-transform active:scale-95" style="background-color: var(--tg-theme-button-color, #10b981); color: var(--tg-theme-button-text-color, #ffffff);">
+                        <span id="fallbackBtnText">SO'ROVNI YUBORISH (0 so'm)</span>
+                    </button>
+                </div>
+
                 <!-- Web App Main Button Integration Scripts -->
                 <script type="text/javascript">
                     <![CDATA[
@@ -123,6 +130,8 @@
                     const totalItemsBadge = document.getElementById('totalItemsBadge');
                     const searchInput = document.getElementById('searchInput');
                     
+                    const isNativeWebApp = tg.platform && tg.platform !== "unknown";
+                    
                     function updateMainButton() {
                         let totalAmount = 0;
                         let totalItems = 0;
@@ -132,11 +141,22 @@
                             totalItems++;
                         }
                         
+                        const btnText = `SO'ROVNI YUBORISH (${totalAmount.toLocaleString()} so'm)`;
+                        
                         if (totalAmount > 0) {
-                            tg.MainButton.text = `SO'ROVNI YUBORISH (${totalAmount.toLocaleString()} so'm)`;
-                            tg.MainButton.show();
+                            if (isNativeWebApp) {
+                                tg.MainButton.text = btnText;
+                                tg.MainButton.show();
+                            } else {
+                                document.getElementById('fallbackSubmitContainer').style.display = 'block';
+                                document.getElementById('fallbackBtnText').textContent = btnText;
+                            }
                         } else {
-                            tg.MainButton.hide();
+                            if (isNativeWebApp) {
+                                tg.MainButton.hide();
+                            } else {
+                                document.getElementById('fallbackSubmitContainer').style.display = 'none';
+                            }
                         }
                         
                         // Update UI
@@ -259,7 +279,9 @@
                             }
                         };
                         
-                        tg.MainButton.showProgress();
+                        if (isNativeWebApp) tg.MainButton.showProgress();
+                        document.getElementById('fallbackSubmitBtn').style.opacity = '0.5';
+                        document.getElementById('fallbackSubmitBtn').disabled = true;
                         
                         try {
                             const response = await fetch(`${odooUrl}/van/client/submit_request`, {
@@ -272,25 +294,49 @@
                             
                             const data = await response.json();
                             if (data.result && data.result.success) {
-                                if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
-                                // Use TG Native popup before closing
-                                tg.showAlert("Sizning so'rovingiz muvaffaqiyatli jo'natildi! 🎉", function() {
-                                    tg.close();
-                                });
+                                if (tg.HapticFeedback && isNativeWebApp) tg.HapticFeedback.notificationOccurred('success');
+                                
+                                if (isNativeWebApp) {
+                                    tg.showAlert("Sizning so'rovingiz muvaffaqiyatli jo'natildi! 🎉", function() {
+                                        tg.close();
+                                    });
+                                } else {
+                                    alert("Sizning so'rovingiz muvaffaqiyatli jo'natildi! 🎉");
+                                    document.getElementById('app').innerHTML = `
+                                        <div class="flex flex-col items-center justify-center min-h-screen p-6 text-center">
+                                            <i class="fa fa-check-circle text-6xl text-green-500 mb-4"></i>
+                                            <h2 class="text-2xl font-bold mb-2">Muvaffaqiyatli!</h2>
+                                            <p class="text-gray-500">So'rovingiz qabul qilindi. Ushbu oynani yopishingiz mumkin.</p>
+                                        </div>
+                                    `;
+                                    document.getElementById('fallbackSubmitContainer').style.display = 'none';
+                                }
                             } else {
-                                if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('error');
-                                tg.showAlert("Xatolik yuz berdi: " + (data.result ? data.result.error : 'Noma\'lum xato.'));
+                                const err = data.result ? data.result.error : 'Noma\'lum xato.';
+                                if (isNativeWebApp) {
+                                    if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('error');
+                                    tg.showAlert("Xatolik yuz berdi: " + err);
+                                } else {
+                                    alert("Xatolik yuz berdi: " + err);
+                                }
                             }
                         } catch (error) {
-                            if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('error');
-                            tg.showAlert("Tarmoqda xatolik: " + error.message);
+                            if (isNativeWebApp) {
+                                if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('error');
+                                tg.showAlert("Tarmoqda xatolik: " + error.message);
+                            } else {
+                                alert("Tarmoqda xatolik: " + error.message);
+                            }
                         } finally {
-                            tg.MainButton.hideProgress();
+                            if (isNativeWebApp) tg.MainButton.hideProgress();
+                            document.getElementById('fallbackSubmitBtn').style.opacity = '1';
+                            document.getElementById('fallbackSubmitBtn').disabled = false;
                         }
                     }
                     
-                    // Bind main button click
+                    // Bind main button clicks
                     tg.MainButton.onClick(submitData);
+                    document.getElementById('fallbackSubmitBtn').addEventListener('click', submitData);
                     
                     // Initial state
                     updateMainButton();
