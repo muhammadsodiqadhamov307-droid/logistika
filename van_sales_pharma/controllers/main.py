@@ -280,21 +280,16 @@ class VanPosController(http.Controller):
         if not product.exists() or not product.image_1920:
             return request.not_found()
             
-        status, headers, content = request.env['ir.http'].sudo().binary_content(
-            model='van.product', id=product.id, field='image_1920',
-            env=request.env(user=request.env.ref('base.public_user'))
-        )
-        if status == 304:
-            return request.make_response('', headers=headers, status=304)
-        elif status == 301:
-            return request.redirect(content, code=301)
-        elif status != 200:
-            return request.not_found()
-            
         import base64
-        image_base64 = base64.b64decode(content)
-        headers.append(('Content-Length', len(image_base64)))
-        return request.make_response(image_base64, headers)
+        try:
+            image_base64 = base64.b64decode(product.image_1920)
+            headers = [
+                ('Content-Type', 'image/jpeg'),
+                ('Content-Length', str(len(image_base64)))
+            ]
+            return request.make_response(image_base64, headers)
+        except Exception:
+            return request.not_found()
 
     @http.route('/van/client/request', type='http', auth='public', website=True, cors='*')
     def client_request_page(self, chat_id=None, **kwargs):

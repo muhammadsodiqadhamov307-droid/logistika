@@ -15,14 +15,13 @@
                 
                 <style>
                     body {
-                        background-color: var(--tg-theme-bg-color, #ffffff);
-                        color: var(--tg-theme-text-color, #000000);
+                        background-color: #f8fafc; /* Very light gray */
+                        color: #1e293b; /* Dark text */
                         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
                         padding-bottom: 80px;
                     }
-                    .hint-color { color: var(--tg-theme-hint-color, #999999); }
-                    .link-color { color: var(--tg-theme-link-color, #2481cc); }
-                    .button-color { background-color: var(--tg-theme-button-color, #2481cc); color: var(--tg-theme-button-text-color, #ffffff); }
+                    .hint-color { color: #64748b; }
+                    .link-color { color: #2563eb; }
                     
                     /* Custom Scrollbar for products */
                     ::-webkit-scrollbar { width: 6px; height: 6px; }
@@ -35,9 +34,9 @@
                 <div id="app" class="max-w-md mx-auto relative min-h-screen flex flex-col" t-att-data-partner-id="partner_id" t-att-data-odoo-url="odoo_url">
                     
                     <!-- Header -->
-                    <div class="px-5 pt-6 pb-4 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white z-10 shadow-sm" style="background-color: var(--tg-theme-bg-color, #ffffff);">
+                    <div class="px-5 pt-6 pb-4 flex items-center justify-between sticky top-0 z-10 shadow-md" style="background-color: #1e293b; color: #ffffff;">
                         <h1 class="text-xl font-bold">Yangi So'rov 🛍️</h1>
-                        <div class="flex items-center space-x-2 bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-sm font-semibold">
+                        <div class="flex items-center space-x-2 bg-white/20 text-white px-3 py-1 rounded-full text-sm font-semibold border border-white/10">
                             <i class="fa fa-user"></i>
                             <span id="clientName"><t t-esc="partner_name"/></span>
                         </div>
@@ -62,7 +61,7 @@
 
                         <div class="mb-6">
                             <label class="block text-sm font-bold mb-2 hint-color">Izoh (Ixtiyoriy)</label>
-                            <textarea id="requestNotes" rows="2" placeholder="Qo'shimcha talablaringiz..." class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition text-sm bg-gray-50" style="color: var(--tg-theme-text-color, #000000); background-color: var(--tg-theme-secondary-bg-color, #f3f4f6);"></textarea>
+                            <textarea id="requestNotes" rows="2" placeholder="Qo'shimcha talablaringiz..." class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition text-sm bg-white text-gray-800 shadow-sm"></textarea>
                         </div>
 
                         <!-- Error Banner (Hidden by Default) -->
@@ -86,13 +85,13 @@
                                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                         <i class="fa fa-search text-gray-400"></i>
                                     </div>
-                                    <input type="text" id="searchInput" placeholder="Nomi bo'yicha qidirish..." class="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-sm bg-gray-50" style="color: var(--tg-theme-text-color, #000000); background-color: var(--tg-theme-secondary-bg-color, #f3f4f6);"/>
+                                    <input type="text" id="searchInput" placeholder="Nomi bo'yicha qidirish..." class="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-sm bg-white text-gray-800 shadow-sm"/>
                                 </div>
                             </div>
 
                             <div id="productGrid" class="grid grid-cols-2 gap-3 pb-8">
                                 <t t-foreach="products" t-as="p">
-                                    <div class="product-card bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition cursor-pointer flex flex-col" style="background-color: var(--tg-theme-bg-color, #ffffff);" t-att-data-id="p['id']" t-att-data-name="p['name']" t-att-data-price="p['price']" t-att-data-img="p['image_url']">
+                                    <div class="product-card bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition cursor-pointer flex flex-col" t-att-data-id="p['id']" t-att-data-name="p['name']" t-att-data-price="p['price']" t-att-data-img="p['image_url']">
                                         <div class="h-28 bg-gray-50 flex items-center justify-center p-2 relative">
                                             <t t-if="p['image_url']">
                                                 <img t-att-src="p['image_url']" onerror="this.src='/van_sales_pharma/static/description/icon.png';" class="max-h-full max-w-full object-contain rounded-md"/>
@@ -113,8 +112,8 @@
                 </div>
 
                 <!-- Fallback Button for standard browsers (HTTP environments) -->
-                <div id="fallbackSubmitContainer" class="fixed bottom-0 left-0 right-0 p-4 border-t border-gray-200 z-50" style="display: none; background-color: var(--tg-theme-bg-color, #ffffff); padding-bottom: calc(1rem + env(safe-area-inset-bottom));">
-                    <button id="fallbackSubmitBtn" class="w-full text-white font-bold py-3 px-4 rounded-xl flex items-center justify-center shadow-md transition-transform active:scale-95" style="background-color: var(--tg-theme-button-color, #10b981); color: var(--tg-theme-button-text-color, #ffffff);">
+                <div id="fallbackSubmitContainer" class="fixed bottom-0 left-0 right-0 p-4 border-t border-gray-200 z-50 bg-white" style="display: none; padding-bottom: calc(1rem + env(safe-area-inset-bottom));">
+                    <button id="fallbackSubmitBtn" class="w-full text-white font-bold py-3 px-4 rounded-xl flex items-center justify-center shadow-md transition-transform active:scale-95 bg-blue-600 hover:bg-blue-700">
                         <span id="fallbackBtnText">SO'ROVNI YUBORISH (0 so'm)</span>
                     </button>
                 </div>
