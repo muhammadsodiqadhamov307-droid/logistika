@@ -60,6 +60,17 @@ class VanPayment(models.Model):
                 msg += f"💵 Miqdor: {rec.amount:,.0f} so'm\n"
                 msg += f"💳 Qolgan qarz: {rec.partner_id.x_van_total_due:,.0f} so'm"
                 
-                self.env['van.telegram.utils'].send_message(rec.partner_id.telegram_chat_id, msg)
+                # Attach Web App Button for Zakaz Berish
+                base_url = self.env['ir.config_parameter'].sudo().get_param('van_telegram_odoo_url', self.env['ir.config_parameter'].sudo().get_param('web.base.url', ''))
+                if not base_url.startswith('http'):
+                    base_url = "https://" + base_url.lstrip('/')
+                elif base_url.startswith('http://') and not ('localhost' in base_url or '127.0.0.1' in base_url):
+                    base_url = base_url.replace('http://', 'https://')
+                base_url = base_url.rstrip('/')
                 
+                web_app_url = f"{base_url}/van/client/request?chat_id={rec.partner_id.telegram_chat_id}"
+                button = {"text": "🛒 Zakaz berish", "web_app": {"url": web_app_url}}
+                reply_markup = {"inline_keyboard": [[button]]}
+                
+                self.env['van.telegram.utils'].send_message(rec.partner_id.telegram_chat_id, msg, reply_markup=reply_markup)
         return records

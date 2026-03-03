@@ -364,9 +364,21 @@ class VanPosController(http.Controller):
             
             new_request = request.env['van.request'].sudo().create(request_vals)
             
+            # Attach Web App Button for Zakaz Berish
+            base_url = request.env['ir.config_parameter'].sudo().get_param('van_telegram_odoo_url', request.env['ir.config_parameter'].sudo().get_param('web.base.url', ''))
+            if not base_url.startswith('http'):
+                base_url = "https://" + base_url.lstrip('/')
+            elif base_url.startswith('http://') and not ('localhost' in base_url or '127.0.0.1' in base_url):
+                base_url = base_url.replace('http://', 'https://')
+            base_url = base_url.rstrip('/')
+            
+            web_app_url = f"{base_url}/van/client/request?chat_id={partner.telegram_chat_id}"
+            button = {"text": "🛒 Zakaz berish", "web_app": {"url": web_app_url}}
+            reply_markup = {"inline_keyboard": [[button]]}
+
             # Send confirmation message to client
             msg = f"✅ <b>Sizning so'rovingiz qabul qilindi!</b>\n\n🔖 Raqam: #{new_request.id}\nBiz tez orada siz bilan bog'lanamiz."
-            request.env['van.telegram.utils'].sudo().send_message(partner.telegram_chat_id, msg)
+            request.env['van.telegram.utils'].sudo().send_message(partner.telegram_chat_id, msg, reply_markup=reply_markup)
             
             return {'success': True, 'request_id': new_request.id}
         except Exception as e:
