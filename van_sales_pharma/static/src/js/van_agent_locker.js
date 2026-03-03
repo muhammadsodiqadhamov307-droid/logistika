@@ -5,19 +5,8 @@ import { browser } from "@web/core/browser/browser";
 import { registry } from "@web/core/registry";
 
 if (session.is_van_agent) {
-    const expectedHash = "#action=van_sales_pharma.action_van_mobile_pos";
-
-    // 1. Immediate Hash Change
-    if (browser.location.hash !== expectedHash) {
-        browser.location.replace('/web' + expectedHash);
-    }
-
-    // 2. Prevent navigating away
-    window.addEventListener("hashchange", () => {
-        if (browser.location.hash !== expectedHash) {
-            browser.location.replace('/web' + expectedHash);
-        }
-    });
+    // 1. We rely entirely on the Action Service patch now
+    // as modifying location.replace() causes an infinite reload loop in Odoo 19.
 
     // 3. Patch Action Service to block everything else
     registry.category("services").add("van_agent_locker", {
