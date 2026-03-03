@@ -112,14 +112,16 @@ class VanPosOrder(models.Model):
                 
                 # Attach Web App Button for Zakaz Berish
                 base_url = self.env['ir.config_parameter'].sudo().get_param('van_telegram_odoo_url', self.env['ir.config_parameter'].sudo().get_param('web.base.url', ''))
+                if not base_url.startswith('http'):
+                    base_url = "https://" + base_url.lstrip('/')
+                elif base_url.startswith('http://') and not ('localhost' in base_url or '127.0.0.1' in base_url):
+                    base_url = base_url.replace('http://', 'https://')
+                    
+                base_url = base_url.rstrip('/')
                 web_app_url = f"{base_url}/van/client/request?chat_id={order.partner_id.telegram_chat_id}"
                 
-                button = {"text": "🛒 Zakaz berish"}
-                if web_app_url.startswith('https://'):
-                    button["web_app"] = {"url": web_app_url}
-                else:
-                    button["url"] = web_app_url
-                    
+                button = {"text": "🛒 Zakaz berish", "web_app": {"url": web_app_url}}
+                
                 reply_markup = {
                     "inline_keyboard": [[button]]
                 }

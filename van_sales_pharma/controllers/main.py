@@ -273,6 +273,29 @@ class VanPosController(http.Controller):
     # CLIENT TELEGRAM WEB APP ROUTES (PUBLIC)
     # ==========================================
 
+    @http.route('/van/public/image/<int:product_id>', type='http', auth='public', cors='*')
+    def public_product_image(self, product_id, **kwargs):
+        """Serve product images to public WebApp without session auth restrictions"""
+        product = request.env['van.product'].sudo().browse(product_id)
+        if not product.exists() or not product.image_1920:
+            return request.not_found()
+            
+        status, headers, content = request.env['ir.http'].sudo().binary_content(
+            model='van.product', id=product.id, field='image_1920',
+            env=request.env(user=request.env.ref('base.public_user'))
+        )
+        if status == 304:
+            return request.make_response('', headers=headers, status=304)
+        elif status == 301:
+            return request.redirect(content, code=301)
+        elif status != 200:
+            return request.not_found()
+            
+        import base64
+        image_base64 = base64.b64decode(content)
+        headers.append(('Content-Length', len(image_base64)))
+        return request.make_response(image_base64, headers)
+
     @http.route('/van/client/request', type='http', auth='public', website=True, cors='*')
     def client_request_page(self, chat_id=None, **kwargs):
         if not chat_id:
@@ -284,6 +307,11 @@ class VanPosController(http.Controller):
             return "Kechirasiz, sizning hisobingiz topilmadi. Iltimos botdan qayta ro'yxatdan o'ting."
             
         base_url = request.env['ir.config_parameter'].sudo().get_param('van_telegram_odoo_url', request.env['ir.config_parameter'].sudo().get_param('web.base.url', ''))
+        if not base_url.startswith('http'):
+            base_url = "https://" + base_url.lstrip('/')
+        elif base_url.startswith('http://') and not ('localhost' in base_url or '127.0.0.1' in base_url):
+            base_url = base_url.replace('http://', 'https://')
+        base_url = base_url.rstrip('/')
         
         # Get active products
         products = request.env['van.product'].sudo().search([])
@@ -294,7 +322,7 @@ class VanPosController(http.Controller):
                 'name': p.name,
                 'price': p.list_price,
                 'price_str': f"{p.list_price:,.0f}",
-                'image_url': f"{base_url}/web/image?model=van.product&id={p.id}&field=image_1920" if p.image_1920 else ""
+                'image_url': f"{base_url}/van/public/image/{p.id}" if p.image_1920 else ""
             })
             
         values = {
