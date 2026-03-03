@@ -25,10 +25,10 @@ class VanLedgerReportWizard(models.TransientModel):
         total_ostatka = sum(o.amount for o in ostatkas)
         
         # 1b. Historical POS Orders (Debit/Qarz for Client)
-        past_pos_orders = self.env['pos.order'].search([
+        past_pos_orders = self.env['van.pos.order'].search([
             ('partner_id', '=', partner.id),
-            ('state', 'in', ['paid', 'done', 'invoiced']),
-            ('date_order', '<', str(date_from))
+            ('state', '=', 'done'),
+            ('date', '<', str(date_from))
         ])
         past_sales = sum(o.amount_total for o in past_pos_orders)
         
@@ -86,24 +86,24 @@ class VanLedgerReportWizard(models.TransientModel):
             })
             
         # POS Orders in range (As debt/Debit)
-        range_pos = self.env['pos.order'].search([
+        range_pos = self.env['van.pos.order'].search([
             ('partner_id', '=', partner.id),
-            ('state', 'in', ['paid', 'done', 'invoiced']),
-            ('date_order', '>=', str(date_from)),
-            ('date_order', '<=', str(date_to) + " 23:59:59")
+            ('state', '=', 'done'),
+            ('date', '>=', str(date_from)),
+            ('date', '<=', str(date_to) + " 23:59:59")
         ])
         for pos in range_pos:
             product_details = []
-            for line in pos.lines:
+            for line in pos.line_ids:
                 product_details.append({
                     'name': line.product_id.name,
                     'qty': line.qty,
                     'price': line.price_unit,
-                    'subtotal': line.price_subtotal_incl
+                    'subtotal': line.subtotal
                 })
             lines.append({
-                'date': pos.date_order.date(),
-                'ref': pos.pos_reference or pos.name,
+                'date': pos.date.date(),
+                'ref': pos.name,
                 'type': 'Sotuv (POS)',
                 'debit': pos.amount_total,
                 'credit': 0.0,
