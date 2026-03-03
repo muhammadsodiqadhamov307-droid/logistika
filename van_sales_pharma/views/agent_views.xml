@@ -207,6 +207,7 @@
                                 </div>
                             </div>
                         </div>
+                        <!-- Temporarily commented out to fix upgrade parse error
                         <div class="col-12 col-md-3">
                             <div class="card text-center text-bg-danger shadow-sm" style="border: none; border-radius: 8px;">
                                 <div class="card-body">
@@ -215,6 +216,7 @@
                                 </div>
                             </div>
                         </div>
+                        -->
                     </div>
                     
                     <h4 class="mt-4 mb-3 border-bottom pb-2">Olib Yurgan Mahsulotlar Ro'yxati</h4>
