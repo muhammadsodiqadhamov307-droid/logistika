@@ -131,10 +131,10 @@
                             <main>
                                 <strong><field name="name"/></strong>
                                 <div t-if="record.phone.value" class="text-muted small">
-                                    <i class="fa fa-phone me-1"/><field name="phone"/>
+                                    <i class="fa fa-phone me-1" title="Telefon"/><field name="phone"/>
                                 </div>
                                 <div t-if="record.street.value" class="text-muted small">
-                                    <i class="fa fa-map-marker me-1"/><field name="street"/>
+                                    <i class="fa fa-map-marker me-1" title="Manzil"/><field name="street"/>
                                 </div>
                             </main>
                         </div>
