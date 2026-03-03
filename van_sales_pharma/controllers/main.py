@@ -283,6 +283,8 @@ class VanPosController(http.Controller):
         if not partner:
             return "Kechirasiz, sizning hisobingiz topilmadi. Iltimos botdan qayta ro'yxatdan o'ting."
             
+        base_url = request.env['ir.config_parameter'].sudo().get_param('van_telegram_odoo_url', request.env['ir.config_parameter'].sudo().get_param('web.base.url', ''))
+        
         # Get active products
         products = request.env['van.product'].sudo().search([])
         product_data = []
@@ -292,11 +294,9 @@ class VanPosController(http.Controller):
                 'name': p.name,
                 'price': p.list_price,
                 'price_str': f"{p.list_price:,.0f}",
-                'image_url': f"/web/image?model=van.product&id={p.id}&field=image_1920" if p.image_1920 else ""
+                'image_url': f"{base_url}/web/image?model=van.product&id={p.id}&field=image_1920" if p.image_1920 else ""
             })
             
-        base_url = request.env['ir.config_parameter'].sudo().get_param('van_telegram_odoo_url', request.env['ir.config_parameter'].sudo().get_param('web.base.url', ''))
-
         values = {
             'partner_id': partner.id,
             'partner_name': partner.name,
