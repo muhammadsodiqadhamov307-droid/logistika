@@ -12,6 +12,8 @@ from . import van_pos_order
 from . import van_dashboard_detail
 from . import ir_http
 from . import van_request
+from . import van_taminotchi
+from . import van_taminotchi_ledger_wizard
 from . import van_product
 from . import telegram_utils
 from . import res_config_settings

@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ======== TAMINOTCHI VIEWS ======== -->
+
+    <record id="view_van_taminotchi_tree" model="ir.ui.view">
+        <field name="name">van.taminotchi.tree</field>
+        <field name="model">van.taminotchi</field>
+        <field name="arch" type="xml">
+            <list string="Taminotchilar (Suppliers)">
+                <field name="name"/>
+                <field name="phone"/>
+                <field name="balance" fg_color="#dc2626:balance &gt; 0;#16a34a:balance &lt;= 0;" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                <field name="currency_id" column_invisible="1"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_van_taminotchi_form" model="ir.ui.view">
+        <field name="name">van.taminotchi.form</field>
+        <field name="model">van.taminotchi</field>
+        <field name="arch" type="xml">
+            <form string="Taminotchi">
+                <sheet>
+                    <!-- Smarts Box Area -->
+                    <div class="oe_button_box" name="button_box">
+                        <button class="oe_stat_button" icon="fa-balance-scale">
+                            <div class="o_stat_info">
+                                <span class="o_stat_value" t-attf-style="color: {{record.balance.raw_value &gt; 0 and '#dc2626' or '#16a34a'}} !important; font-weight: bold;">
+                                    <field name="balance" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                                </span>
+                                <span class="o_stat_text">Balans</span>
+                            </div>
+                        </button>
+                    </div>
+
+                    <div class="oe_title">
+                        <h1>
+                            <field name="name" placeholder="Taminotchi Ismi yoki Korxona..."/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="phone" widget="phone"/>
+                            <field name="address"/>
+                            <field name="currency_id" invisible="1"/>
+                        </group>
+                    </group>
+
+                    <!-- Large Button to trigger Ledger -->
+                    <div class="text-center mt-3 mb-3">
+                        <button name="action_view_ledger" type="object" string="Taminotchi Hisoboti (Ledger)" class="btn btn-primary" icon="fa-file-text-o"/>
+                    </div>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- ======== TAMINOTCHI LEDGER WIZARD ======== -->
+
+    <record id="view_van_taminotchi_ledger_wizard_form" model="ir.ui.view">
+        <field name="name">van.taminotchi.ledger.wizard.form</field>
+        <field name="model">van.taminotchi.ledger.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Taminotchi Hisoboti">
+                <group invisible="report_html">
+                    <group>
+                        <!-- Only allow admin to change Taminotchi -->
+                        <field name="taminotchi_id" readonly="context.get('default_taminotchi_id', False)"/>
+                    </group>
+                    <group>
+                        <field name="date_from"/>
+                        <field name="date_to"/>
+                    </group>
+                </group>
+
+                <!-- This HTML field displays the final rendered UI Table -->
+                <field name="report_html" nolabel="1" readonly="1" invisible="not report_html"/>
+                
+                <footer>
+                    <button string="Ko'rish" name="action_generate_report" type="object" class="btn-primary" invisible="report_html"/>
+                    <button string="Yangi Hisobot" class="btn-secondary" special="cancel" invisible="not report_html"/>
+                    <button string="Yopish" class="btn-secondary" special="cancel" invisible="report_html"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- ======== ACTION ======== -->
+
+    <record id="action_van_taminotchi" model="ir.actions.act_window">
+        <field name="name">Taminotchilar</field>
+        <field name="res_model">van.taminotchi</field>
+        <field name="view_mode">list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Birinchi Taminotchini yarating
+            </p>
+            <p>
+                Taminotchi barcha yuklangan mahsulotlar va to'langan chiqimlarni balansida saqlaydi.
+            </p>
+        </field>
+    </record>
+
+</odoo>

@@ -19,6 +19,7 @@
                     </div>
                     <group>
                         <group>
+                            <field name="taminotchi_id" required="1" readonly="state != 'draft'"/>
                             <field name="agent_id" readonly="state != 'draft'"/>
                             <field name="location_id" readonly="state != 'draft'"/>
                         </group>
@@ -53,6 +54,7 @@
         <field name="arch" type="xml">
             <list string="Sayohatlar" decoration-muted="state == 'draft'" decoration-success="state == 'validated'">
                 <field name="name"/>
+                <field name="taminotchi_id" optional="show"/>
                 <field name="agent_id"/>
                 <field name="date"/>
                 <field name="state" widget="badge"/>

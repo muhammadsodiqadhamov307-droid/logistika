@@ -16,6 +16,7 @@ class VanPayment(models.Model):
     agent_id = fields.Many2one('res.users', string='Agent', required=True, default=lambda self: self.env.user)
     sale_order_id = fields.Many2one('van.sale.order', string='Sotuv', ondelete='cascade')
     nasiya_id = fields.Many2one('van.nasiya', string='Nasiya', ondelete='cascade')
+    taminotchi_id = fields.Many2one('van.taminotchi', string="Taminotchi (Yetkazib beruvchi)", ondelete='cascade')
 
     payment_type = fields.Selection([
         ('in', 'Kirim (+)') ,

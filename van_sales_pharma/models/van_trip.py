@@ -13,6 +13,7 @@ class VanTrip(models.Model):
     company_id = fields.Many2one('res.company', string='Korxona', default=lambda self: self.env.company)
     currency_id = fields.Many2one('res.currency', related='company_id.currency_id', store=True)
 
+    taminotchi_id = fields.Many2one('van.taminotchi', string="Taminotchi (Yetkazib beruvchi)", required=True)
     agent_id = fields.Many2one('res.users', string='Savdo Agenti', required=True, default=lambda self: self.env.user)
     location_id = fields.Many2one('stock.location', string='Mashina Ombori', required=True, domain=[('usage', '=', 'internal')])
     
@@ -25,8 +26,9 @@ class VanTrip(models.Model):
 
     trip_line_ids = fields.One2many('van.trip.line', 'trip_id', string='Yuklangan Mahsulotlar')
 
-    # Quantities
+    # Quantities & Financials
     x_loaded_qty = fields.Float(string='Yuklangan Miqdor', compute='_compute_quantities')
+    amount_cost_total = fields.Monetary(string="Jami Tan Narx", compute='_compute_quantities', currency_field='currency_id')
 
     note = fields.Text(string='Izoh')
 
@@ -63,10 +65,11 @@ class VanTrip(models.Model):
 
         return super().unlink()
 
-    @api.depends('trip_line_ids.loaded_qty')
+    @api.depends('trip_line_ids.loaded_qty', 'trip_line_ids.product_id.cost_price')
     def _compute_quantities(self):
         for trip in self:
             trip.x_loaded_qty = sum(trip.trip_line_ids.mapped('loaded_qty'))
+            trip.amount_cost_total = sum((line.loaded_qty * line.product_id.cost_price) for line in trip.trip_line_ids)
 
     def action_validate(self):
         for trip in self:
