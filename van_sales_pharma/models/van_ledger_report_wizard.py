@@ -27,8 +27,8 @@ class VanLedgerReportWizard(models.TransientModel):
         excluded_nasiya_ids = all_pos_orders.mapped('nasiya_id').ids
 
         # 1. Calculate Initial Balance Setup (Before date_from)
-        # 1a. Ostatka Qarzi (Opening Debts)
-        ostatkas = self.env['van.ostatka.qarzi'].search([('partner_id', '=', partner.id), ('date', '<', date_from)])
+        # 1a. ALL Ostatka Qarzi (Opening Debts) - Regardless of date
+        ostatkas = self.env['van.ostatka.qarzi'].search([('partner_id', '=', partner.id)])
         total_ostatka = sum(o.amount for o in ostatkas)
         
         # 1b. Historical POS Orders (Debit/Qarz for Client)
@@ -63,21 +63,7 @@ class VanLedgerReportWizard(models.TransientModel):
         # 2. Fetch Records within Range
         lines = []
         
-        # Ostatka in range
-        range_ostatkas = self.env['van.ostatka.qarzi'].search([
-            ('partner_id', '=', partner.id),
-            ('date', '>=', date_from),
-            ('date', '<=', date_to)
-        ])
-        for o in range_ostatkas:
-            lines.append({
-                'date': o.date,
-                'ref': o.note or 'Ostatka Qarzi',
-                'type': 'Qarz (Ostatka)',
-                'debit': o.amount,
-                'credit': 0.0,
-                'is_foldable': False,
-            })
+        # Ostatka is completely removed from range lines since it's all in opening balance
             
         # Nasiya in range (As debt/Debit)
         domain_range_nasiyas = [
@@ -155,26 +141,28 @@ class VanLedgerReportWizard(models.TransientModel):
         # 4. Generate HTML
         html = f"""
         <style>
-            .ledger-table {{ width: 100%; border-collapse: collapse; margin-top: 15px; font-family: -apple-system, sans-serif; }}
+            .ledger-table {{ width: 100%; table-layout: fixed; border-collapse: collapse; margin-top: 15px; font-family: -apple-system, sans-serif; }}
             .ledger-table th {{ background-color: #f1f5f9; color: #334155; padding: 12px 8px; text-align: left; font-size: 13px; text-transform: uppercase; border-bottom: 2px solid #cbd5e1; }}
             .ledger-table td {{ padding: 10px 8px; border-bottom: 1px solid #e2e8f0; font-size: 14px; vertical-align: middle; }}
             .ledger-row:hover {{ background-color: #f8fafc; }}
             
-            .col-date {{ white-space: nowrap; width: 1%; }}
+            .col-date {{ white-space: nowrap; }}
             .col-num {{ text-align: right; white-space: nowrap; }}
             .text-success {{ color: #16a34a; font-weight: bold; }}
             .text-danger {{ color: #dc2626; font-weight: bold; }}
             .text-primary {{ color: #2563eb; font-weight: bold; }}
             
-            summary {{ outline: none; cursor: pointer; list-style: none; font-weight: 600; color: #0f172a; display: flex; align-items: center; }}
-            summary::before {{ content: '▶'; font-size: 10px; color: #94a3b8; margin-right: 8px; transition: transform 0.2s; }}
-            details[open] summary::before {{ transform: rotate(90deg); }}
+            summary {{ outline: none; cursor: pointer; list-style: none; font-weight: 600; color: #0f172a; width: 100%; box-sizing: border-box; }}
             summary::-webkit-details-marker {{ display: none; }}
+            .summary-content {{ display: flex; align-items: center; width: 100%; }}
+            .summary-icon {{ font-size: 10px; color: #94a3b8; margin-right: 6px; transition: transform 0.2s; display: inline-block; }}
+            details[open] summary .summary-icon {{ transform: rotate(90deg); }}
             
-            .drilled-down-table {{ width: 95%; margin: 10px auto; background-color: #f8fafc; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; }}
-            .drilled-down-table td {{ padding: 6px 12px; font-size: 13px; border-bottom: 1px dashed #cbd5e1; }}
+            .drilled-down-table {{ width: 95%; margin: 10px auto; background-color: #fef9c3; border-radius: 6px; box-shadow: inset 0 1px 3px rgba(0,0,0,0.05); border: 1px solid #fde047; }}
+            .drilled-down-table td {{ padding: 6px 12px; font-size: 13px; border-bottom: 1px dashed #fde047; }}
             .drilled-down-table tr:last-child td {{ border-bottom: none; }}
             .muted {{ color: #64748b; font-size: 12px; }}
+            .badge {{ display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 12px; text-align: center; white-space: nowrap; }}
         </style>
         
         <div style="background: white; padding: 20px; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
@@ -188,20 +176,20 @@ class VanLedgerReportWizard(models.TransientModel):
             <table class="ledger-table">
                 <thead>
                     <tr>
-                        <th class="col-date">Sana</th>
-                        <th>Hujjat</th>
-                        <th>Turi</th>
-                        <th class="col-num">Qarz / Sotuv (+)</th>
-                        <th class="col-num">Kirim / To'lov (-)</th>
-                        <th class="col-num">Qoldiq Balans</th>
+                        <th style="width: 17%;">Sana</th>
+                        <th style="width: 23%;">Hujjat</th>
+                        <th style="width: 15%; text-align: center;">Turi</th>
+                        <th class="col-num" style="width: 15%;">Qarz / Sotuv (+)</th>
+                        <th class="col-num" style="width: 15%;">Kirim / To'lov (-)</th>
+                        <th class="col-num" style="width: 15%;">Qoldiq Balans</th>
                     </tr>
                 </thead>
                 <tbody>
                     <!-- Opening Balance Row -->
                     <tr style="background-color: #f8fafc; font-weight: bold; border-bottom: 2px solid #cbd5e1;">
                         <td class="col-date">{date_from.strftime('%d.%m.%Y')}</td>
-                        <td>Davr Boshidagi Qoldiq</td>
-                        <td>-</td>
+                        <td style="word-wrap: break-word;">Davr Boshidagi Qoldiq</td>
+                        <td style="text-align: center;">-</td>
                         <td class="col-num">-</td>
                         <td class="col-num">-</td>
                         <td class="col-num {'text-danger' if opening_balance > 0 else 'text-success'}">{opening_balance:,.0f} so'm</td>
@@ -236,22 +224,24 @@ class VanLedgerReportWizard(models.TransientModel):
                     <tr class="ledger-row">
                         <td colspan="6" style="padding: 0;">
                             <details>
-                                <summary style="padding: 10px 8px;">
-                                    <div style="flex:1" class="col-date">{date_str}</div>
-                                    <div style="flex:2">{line['ref']}</div>
-                                    <div style="flex:2"><span style="background:#e0f2fe; color:#0369a1; padding:2px 8px; border-radius:12px; font-size:12px;">{line['type']}</span></div>
-                                    <div style="flex:2; text-align:right" class="text-danger">{debit_str}</div>
-                                    <div style="flex:2; text-align:right" class="text-success">{credit_str}</div>
-                                    <div style="flex:2; text-align:right; padding-right:8px;" class="{balance_class}">{balance_str}</div>
+                                <summary style="padding: 10px 0;">
+                                    <div class="summary-content">
+                                        <div style="width: 17%; white-space: nowrap; padding-left: 8px;"><span class="summary-icon">▶</span> {date_str}</div>
+                                        <div style="width: 23%; word-wrap: break-word; padding: 0 8px;">{line['ref']}</div>
+                                        <div style="width: 15%; text-align: center;"><span class="badge" style="background:#e0f2fe; color:#0369a1;">{line['type']}</span></div>
+                                        <div style="width: 15%; padding: 0 8px;" class="col-num text-danger">{debit_str}</div>
+                                        <div style="width: 15%; padding: 0 8px;" class="col-num text-success">{credit_str}</div>
+                                        <div style="width: 15%; padding: 0 8px;" class="col-num {balance_class}">{balance_str}</div>
+                                    </div>
                                 </summary>
                                 <table class="drilled-down-table">
                 """
                 for p in line['products']:
                     html += f"""
                                     <tr>
-                                        <td width="50%"><b>{p['name']}</b></td>
+                                        <td width="55%" style="padding-left: 25px;"><b>• {p['name']}</b></td>
                                         <td width="20%" class="muted">{p['qty']} x {p['price']:,.0f}</td>
-                                        <td width="30%" style="text-align:right;"><b>{p['subtotal']:,.0f} so'm</b></td>
+                                        <td width="25%" style="text-align:right;"><b>{p['subtotal']:,.0f} so'm</b></td>
                                     </tr>
                     """
                 html += """
@@ -262,15 +252,15 @@ class VanLedgerReportWizard(models.TransientModel):
                 """
             else:
                 # Flat row
-                type_badge = f"<span style='background:#f1f5f9; padding:2px 8px; border-radius:12px; font-size:12px;'>{line['type']}</span>"
+                type_badge = f"<span class='badge' style='background:#f1f5f9; color:#334155;'>{line['type']}</span>"
                 if 'Kirim' in line['type']:
-                    type_badge = f"<span style='background:#dcfce7; color:#166534; padding:2px 8px; border-radius:12px; font-size:12px;'>{line['type']}</span>"
+                    type_badge = f"<span class='badge' style='background:#dcfce7; color:#166534;'>{line['type']}</span>"
                 
                 html += f"""
                     <tr class="ledger-row">
                         <td class="col-date">{date_str}</td>
-                        <td>{line['ref']}</td>
-                        <td>{type_badge}</td>
+                        <td style="word-wrap: break-word;">{line['ref']}</td>
+                        <td style="text-align: center;">{type_badge}</td>
                         <td class="col-num text-danger">{debit_str}</td>
                         <td class="col-num text-success">{credit_str}</td>
                         <td class="col-num {balance_class}">{balance_str}</td>
@@ -283,8 +273,8 @@ class VanLedgerReportWizard(models.TransientModel):
                     <!-- Closing Balance Row -->
                     <tr style="background-color: #f8fafc; border-top: 2px solid #cbd5e1; font-weight: bold;">
                         <td class="col-date">{date_to.strftime('%d.%m.%Y')}</td>
-                        <td>Davr Oxiridagi Qoldiq</td>
-                        <td>-</td>
+                        <td style="word-wrap: break-word;">Davr Oxiridagi Qoldiq</td>
+                        <td style="text-align: center;">-</td>
                         <td class="col-num">-</td>
                         <td class="col-num">-</td>
                         <td class="col-num {final_balance_class}">{current_balance:,.0f} so'm</td>
