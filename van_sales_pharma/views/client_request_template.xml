@@ -102,18 +102,15 @@
                                         </div>
                                         <div class="p-3 flex-1 flex flex-col">
                                             <div class="font-semibold text-sm mb-1 leading-tight line-clamp-2 flex-1 product-name"><t t-esc="p['name']"/></div>
-                                            <div class="flex justify-between items-end mt-2">
-                                                <div class="text-xs text-green-600 font-bold"><t t-esc="p['price_str']"/> UZS</div>
-                                                <div class="text-xs font-semibold text-gray-500">Qoldiq: <t t-esc="p['qty']"/></div>
-                                            </div>
+                                            <div class="text-xs text-green-600 font-bold mt-2"><t t-esc="p['price_str']"/> UZS</div>
                                         </div>
                                         <!-- Real-time Quantity Controllers -->
                                         <div class="p-2 border-t border-gray-100 bg-gray-50">
                                             <div class="flex items-center justify-between border border-blue-200 rounded-lg overflow-hidden h-9 bg-white">
                                                 <button t-att-onclick="'changeQtyFromCard(\'' + str(p['id']) + '\', -1, \'' + p['name'] + '\', ' + str(p['price']) + ', \'' + p['image_url'] + '\'); event.stopPropagation();'" class="w-10 h-full flex items-center justify-center text-blue-600 font-bold bg-blue-50 hover:bg-blue-100 transition border-r border-blue-200 active:bg-blue-200">
-                                                    <i class="fa fa-minus text-xs"></i>
+                                                    <i t-att-id="'minus-icon-' + str(p['id'])" class="fa fa-minus text-xs"></i>
                                                 </button>
-                                                <div t-att-id="'qty-' + str(p['id'])" class="flex-1 text-center font-bold text-sm text-gray-800">0</div>
+                                                <input type="number" t-att-id="'qty-' + str(p['id'])" t-att-onchange="'setQtyFromCard(\'' + str(p['id']) + '\', this.value, \'' + p['name'] + '\', ' + str(p['price']) + ', \'' + p['image_url'] + '\');'" t-att-onclick="'event.stopPropagation();'" class="flex-1 text-center font-bold text-sm text-gray-800 border-none outline-none bg-transparent w-full h-full m-0 p-0" value="0" />
                                                 <button t-att-onclick="'changeQtyFromCard(\'' + str(p['id']) + '\', 1, \'' + p['name'] + '\', ' + str(p['price']) + ', \'' + p['image_url'] + '\'); event.stopPropagation();'" class="w-10 h-full flex items-center justify-center text-blue-600 font-bold bg-blue-50 hover:bg-blue-100 transition border-l border-blue-200 active:bg-blue-200">
                                                     <i class="fa fa-plus text-xs"></i>
                                                 </button>
@@ -203,8 +200,17 @@
                             if (!qtyEl) return;
                             
                             const inCartQty = cart[id] ? cart[id].qty : 0;
-                            qtyEl.textContent = inCartQty;
+                            qtyEl.value = inCartQty;
                             
+                            const minusIcon = document.getElementById('minus-icon-' + id);
+                            if (minusIcon) {
+                                if (inCartQty === 1) {
+                                    minusIcon.className = "fa fa-trash text-red-500 text-xs";
+                                } else {
+                                    minusIcon.className = "fa fa-minus text-xs";
+                                }
+                            }
+
                             if (inCartQty > 0) {
                                 // Highlight
                                 card.classList.replace('border-gray-200', 'border-blue-500');
@@ -217,6 +223,21 @@
                                 card.classList.remove('bg-blue-50');
                             }
                         });
+                    }
+
+                    function setQtyFromCard(id, newValue, name, price, img) {
+                        let parsed = parseInt(newValue);
+                        if (isNaN(parsed) || parsed <= 0) {
+                            if (cart[id]) delete cart[id];
+                        } else {
+                            if (!cart[id]) {
+                                cart[id] = { name, price: parseFloat(price), qty: parsed, img };
+                            } else {
+                                cart[id].qty = parsed;
+                            }
+                        }
+                        updateMainButton();
+                        if (tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
                     }
 
                     function changeQtyFromCard(id, delta, name, price, img) {

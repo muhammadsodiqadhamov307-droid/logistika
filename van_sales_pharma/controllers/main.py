@@ -322,7 +322,6 @@ class VanPosController(http.Controller):
             product_data.append({
                 'id': p.id,
                 'name': p.name,
-                'qty': p.qty,
                 'price': p.list_price,
                 'price_str': f"{p.list_price:,.0f}",
                 'image_url': f"{base_url}/van/public/image/{p.id}" if p.image_1920 else ""
