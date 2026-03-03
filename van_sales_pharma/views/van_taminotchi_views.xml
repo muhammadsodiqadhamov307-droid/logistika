@@ -26,8 +26,8 @@
                     <div class="oe_button_box" name="button_box">
                         <button class="oe_stat_button" icon="fa-balance-scale">
                             <div class="o_stat_info">
-                                <span class="o_stat_value" t-attf-style="color: {{record.balance.raw_value &gt; 0 and '#dc2626' or '#16a34a'}} !important; font-weight: bold;">
-                                    <field name="balance" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                                <span class="o_stat_value" style="font-weight: bold;">
+                                    <field name="balance" decoration-danger="balance &gt; 0" decoration-success="balance &lt;= 0" widget="monetary" options="{'currency_field': 'currency_id'}"/>
                                 </span>
                                 <span class="o_stat_text">Balans</span>
                             </div>
