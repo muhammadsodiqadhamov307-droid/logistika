@@ -273,7 +273,7 @@ class VanPosController(http.Controller):
     # CLIENT TELEGRAM WEB APP ROUTES (PUBLIC)
     # ==========================================
 
-    @http.route('/van/client/request', type='http', auth='public', website=True)
+    @http.route('/van/client/request', type='http', auth='public', website=True, cors='*')
     def client_request_page(self, chat_id=None, **kwargs):
         if not chat_id:
             return "Telegram Chat ID is missing. Iltimos bot orqali kiring."
@@ -306,7 +306,7 @@ class VanPosController(http.Controller):
         
         return request.render('van_sales_pharma.client_request_template', values)
 
-    @http.route('/van/client/submit_request', type='jsonrpc', auth='public', csrf=False)
+    @http.route('/van/client/submit_request', type='jsonrpc', auth='public', csrf=False, cors='*')
     def client_submit_request(self, partner_id, lines, notes=''):
         try:
             if not partner_id:
