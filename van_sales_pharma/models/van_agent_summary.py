@@ -62,19 +62,22 @@ class VanAgentSummary(models.Model):
 
     total_inventory_qty = fields.Float(string='Jami Mahsulotlar Soni', compute='_compute_inventory_dashboard')
     total_inventory_value = fields.Monetary(string='Jami Summa (Sotuv)', currency_field='currency_id', compute='_compute_inventory_dashboard')
+    total_inventory_cost_value = fields.Monetary(string='Jami Summa (Olish Narxida)', currency_field='currency_id', compute='_compute_inventory_dashboard')
     expected_net_profit = fields.Monetary(string='Kutilayotgan Foyda', currency_field='currency_id', compute='_compute_inventory_dashboard')
 
     @api.depends('inventory_line_ids.remaining_qty', 'inventory_line_ids.price_unit', 'inventory_line_ids.cost_price')
     def _compute_inventory_dashboard(self):
         for rec in self:
-            qty = val = profit = 0.0
+            qty = val = cost_val = profit = 0.0
             for line in rec.active_inventory_line_ids:
                 qty += line.remaining_qty
                 val += line.remaining_qty * line.price_unit
                 cost = line.cost_price
+                cost_val += line.remaining_qty * cost
                 profit += (line.price_unit - cost) * line.remaining_qty
             rec.total_inventory_qty = qty
             rec.total_inventory_value = val
+            rec.total_inventory_cost_value = cost_val
             rec.expected_net_profit = profit
 
     @api.depends('inventory_line_ids.remaining_qty')

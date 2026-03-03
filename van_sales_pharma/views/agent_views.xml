@@ -183,7 +183,7 @@
             <form string="Agent Inventari" create="0" edit="0">
                 <sheet>
                     <div class="row mb-4">
-                        <div class="col-12 col-md-4">
+                        <div class="col-12 col-md-3">
                             <div class="card text-center text-bg-primary shadow-sm" style="border: none; border-radius: 8px;">
                                 <div class="card-body">
                                     <h6 class="card-title text-uppercase text-white-50 mb-1" style="font-size: 0.85rem; font-weight: 600;">Jami Mahsulotlar Soni</h6>
@@ -191,7 +191,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="col-12 col-md-4">
+                        <div class="col-12 col-md-3">
                             <div class="card text-center text-bg-success shadow-sm" style="border: none; border-radius: 8px;">
                                 <div class="card-body">
                                     <h6 class="card-title text-uppercase text-white-50 mb-1" style="font-size: 0.85rem; font-weight: 600;">Jami Summa (Sotuv Narxida)</h6>
@@ -199,11 +199,19 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="col-12 col-md-4">
+                        <div class="col-12 col-md-3">
                             <div class="card text-center text-bg-warning shadow-sm" style="border: none; border-radius: 8px;">
                                 <div class="card-body">
                                     <h6 class="card-title text-uppercase text-dark-50 mb-1" style="font-size: 0.85rem; font-weight: 600;">Kutilayotgan Foyda</h6>
                                     <h2 class="mb-0 text-dark" style="font-weight: 700;"><field name="expected_net_profit" widget="monetary" options="{'currency_field': 'currency_id'}"/></h2>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-md-3">
+                            <div class="card text-center text-bg-danger shadow-sm" style="border: none; border-radius: 8px;">
+                                <div class="card-body">
+                                    <h6 class="card-title text-uppercase text-white-50 mb-1" style="font-size: 0.85rem; font-weight: 600;">Jami Summa (Olish Narxida)</h6>
+                                    <h2 class="mb-0 text-white" style="font-weight: 700;"><field name="total_inventory_cost_value" widget="monetary" options="{'currency_field': 'currency_id'}"/></h2>
                                 </div>
                             </div>
                         </div>
