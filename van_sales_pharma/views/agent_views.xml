@@ -202,7 +202,7 @@
                         <div class="col-12 col-md-4">
                             <div class="card text-center text-bg-warning shadow-sm" style="border: none; border-radius: 8px;">
                                 <div class="card-body">
-                                    <h6 class="card-title text-uppercase text-dark-50 mb-1" style="font-size: 0.85rem; font-weight: 600;">Kutilayotgan Sof Foyda</h6>
+                                    <h6 class="card-title text-uppercase text-dark-50 mb-1" style="font-size: 0.85rem; font-weight: 600;">Kutilayotgan Foyda</h6>
                                     <h2 class="mb-0 text-dark" style="font-weight: 700;"><field name="expected_net_profit" widget="monetary" options="{'currency_field': 'currency_id'}"/></h2>
                                 </div>
                             </div>

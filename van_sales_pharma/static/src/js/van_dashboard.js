@@ -153,7 +153,7 @@ export class VanSalesDashboard extends Component {
         }
         this.action.doAction({
             type: 'ir.actions.act_window',
-            name: `Sof Foyda Detallari`,
+            name: `Foyda Detallari`,
             res_model: 'van.pos.order.line',
             view_mode: 'list,form',
             views: [[this.state.margin_view_id, 'list'], [false, 'form']],

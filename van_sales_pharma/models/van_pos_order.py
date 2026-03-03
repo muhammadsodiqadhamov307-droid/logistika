@@ -144,7 +144,7 @@ class VanPosOrderLine(models.Model):
     
     # Cost and Margin
     cost_price = fields.Float(string='Kelish Narxi', related='product_id.cost_price', readonly=True, store=True)
-    margin = fields.Monetary(string='Sof Foyda', compute='_compute_margin', store=True, currency_field='currency_id')
+    margin = fields.Monetary(string='Foyda', compute='_compute_margin', store=True, currency_field='currency_id')
 
     @api.depends('qty', 'price_unit')
     def _compute_subtotal(self):

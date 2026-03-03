@@ -91,7 +91,7 @@
         <field name="name">van.pos.margin.list</field>
         <field name="model">van.pos.order.line</field>
         <field name="arch" type="xml">
-            <list string="Sof Foyda Detallari" create="0" edit="0" delete="0">
+            <list string="Foyda Detallari" create="0" edit="0" delete="0">
                 <field name="order_id"/>
                 <field name="product_id"/>
                 <field name="qty"/>

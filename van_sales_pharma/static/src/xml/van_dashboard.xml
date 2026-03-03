@@ -64,7 +64,7 @@
                         <div class="col">
                             <div class="card shadow-sm border-0 h-100" t-on-click="openMarginDetails" style="cursor: pointer; background: linear-gradient(135deg, #20c997 0%, #158b68 100%);">
                                 <div class="card-body text-center p-3">
-                                    <h6 class="card-title fw-bold mb-2" style="color: white !important;">Sof Foyda</h6>
+                                    <h6 class="card-title fw-bold mb-2" style="color: white !important;">Foyda</h6>
                                     <h3 class="fw-bold m-0" style="color: white !important;">
                                         <t t-esc="formatPrice(state.margin_today)"/>
                                     </h3>
