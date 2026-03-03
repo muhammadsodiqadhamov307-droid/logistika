@@ -43,7 +43,7 @@
 
     <menuitem id="menu_van_ledger_report" 
               name="Mijozlar hisoboti" 
-              parent="van_sales_pharma.menu_van_customers_main" 
+              parent="van_sales_pharma.menu_van_customers_root_folder" 
               action="action_van_ledger_report_wizard" 
               sequence="20"/>
 </odoo>

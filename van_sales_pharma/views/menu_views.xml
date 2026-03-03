@@ -19,8 +19,9 @@
     <!-- Mahsulotlar (Products) -->
     <menuitem id="menu_van_products" name="Mahsulotlar" parent="menu_van_sales_root" action="action_van_product" sequence="30"/>
 
-    <!-- Mijozlar (Customers) -->
-    <menuitem id="menu_van_customers_main" name="Mijozlar" parent="menu_van_sales_root" action="action_van_customers_v2" sequence="40"/>
+    <!-- Mijozlar (Customers) Folder -->
+    <menuitem id="menu_van_customers_root_folder" name="Mijozlar" parent="menu_van_sales_root" sequence="40"/>
+    <menuitem id="menu_van_customers_list" name="Mijozlar Ro'yxati" parent="menu_van_customers_root_folder" action="action_van_customers_v2" sequence="10"/>
 
     <!-- Agentlar -->
     <menuitem id="menu_van_agents_root" name="Agentlar" parent="menu_van_sales_root" sequence="50"/>

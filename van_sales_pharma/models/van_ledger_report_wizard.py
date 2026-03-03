@@ -130,7 +130,8 @@ class VanLedgerReportWizard(models.TransientModel):
             })
             
         # 3. Sort chronologically
-        lines.sort(key=lambda x: x['date'])
+        # Ensure all dates are compared as datetime.date objects to prevent TypeError
+        lines.sort(key=lambda x: x['date'].date() if hasattr(x['date'], 'date') else x['date'])
         
         # 4. Generate HTML
         html = f"""
