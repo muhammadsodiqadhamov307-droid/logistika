@@ -21,11 +21,13 @@ if (session.is_van_agent) {
                 }
 
                 // Allow the mobile POS client action, login/logout routes
-                if (
-                    actionRequest === 'van_sales_pharma.action_van_mobile_pos' ||
-                    actionTag === 'van_sales_pharma.MobilePosClientAction' ||
-                    actionTag === 'reload'
-                ) {
+                // Also explicitly allow the agent to view their own summary form
+                let isAllowed = false;
+                if (actionRequest === 'van_sales_pharma.action_van_mobile_pos') isAllowed = true;
+                if (actionTag === 'van_sales_pharma.MobilePosClientAction' || actionTag === 'reload') isAllowed = true;
+                if (actionRequest && actionRequest.res_model === 'van.agent.summary') isAllowed = true;
+
+                if (isAllowed) {
                     return originalDoAction(actionRequest, options);
                 }
 
@@ -42,7 +44,7 @@ if (session.is_van_agent) {
         .o_main_navbar { display: none !important; }
         .o_web_client { padding-top: 0 !important; }
         .o_content { overflow: auto !important; height: 100vh !important; }
-        .o_control_panel { display: none !important; }
+        /* Notice: Removed blocking of .o_control_panel so the breadcrumb back button is visible on form views */
     `;
     document.head.appendChild(style);
 }
