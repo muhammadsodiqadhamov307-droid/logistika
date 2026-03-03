@@ -70,5 +70,18 @@
             <field name="domain_force">[(1, '=', 1)]</field>
             <field name="groups" eval="[(4, ref('group_van_admin'))]"/>
         </record>
+        <!-- van.agent.summary -->
+        <record id="rule_van_agent_summary_agent" model="ir.rule">
+            <field name="name">Agent Summary - Own</field>
+            <field name="model_id" ref="model_van_agent_summary"/>
+            <field name="domain_force">[('agent_id', '=', user.id)]</field>
+            <field name="groups" eval="[(4, ref('group_van_agent'))]"/>
+        </record>
+        <record id="rule_van_agent_summary_admin" model="ir.rule">
+            <field name="name">Agent Summary - All</field>
+            <field name="model_id" ref="model_van_agent_summary"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('group_van_admin'))]"/>
+        </record>
     </data>
 </odoo>
