@@ -657,7 +657,7 @@ export class VanMobilePos extends Component {
             type: 'ir.actions.act_window',
             name: 'Agent Hisoboti',
             res_model: 'van.agent.summary',
-            res_id: this.state.currentAgent.id,
+            res_id: this.state.currentAgent.summary_id,
             view_mode: 'form',
             views: [[false, 'form']],
             target: 'current',

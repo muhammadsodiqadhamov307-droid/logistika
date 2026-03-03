@@ -175,8 +175,15 @@ class VanPosController(http.Controller):
         try:
             user = request.env.user
             if user.has_group('van_sales_pharma.group_van_agent') or user.has_group('base.group_system'):
+                # Get the summary ID for this agent
+                summary = request.env['van.agent.summary'].sudo().search([('agent_id', '=', user.id)], limit=1)
+                if not summary:
+                    summary = request.env['van.agent.summary'].sudo().create({'agent_id': user.id})
+                summary_id = summary.id
+                
                 return {
                     'id': user.id,
+                    'summary_id': summary_id,
                     'name': user.name,
                     'phone': user.phone or '',
                     'image_url': f'/web/image?model=res.users&id={user.id}&field=avatar_128'
