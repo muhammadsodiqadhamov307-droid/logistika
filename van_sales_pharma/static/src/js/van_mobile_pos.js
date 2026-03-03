@@ -637,6 +637,10 @@ export class VanMobilePos extends Component {
     logout() {
         window.location.href = '/web/session/logout';
     }
+
+    goToDashboard() {
+        this.action.doAction('van_sales_pharma.action_van_sales_dashboard');
+    }
 }
 
 VanMobilePos.template = "van_sales_pharma.VanMobilePos";
