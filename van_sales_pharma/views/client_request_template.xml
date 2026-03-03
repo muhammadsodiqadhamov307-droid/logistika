@@ -45,19 +45,7 @@
                     <!-- Main Content -->
                     <div class="flex-1 p-4 mb-20">
                         
-                        <div class="mb-5 flex items-center justify-between">
-                            <h2 class="font-bold text-lg">Xarid qutisi</h2>
-                            <span id="totalItemsBadge" class="bg-gray-100 text-gray-600 text-xs font-bold px-2 py-1 rounded-md">0 ta mahsulot</span>
-                        </div>
-                        
-                        <!-- Selected Products List -->
-                        <div id="cartList" class="space-y-3 mb-6">
-                            <!-- Populated by JS -->
-                            <div id="emptyCart" class="text-center py-8 px-4 border-2 border-dashed border-gray-200 rounded-xl hint-color">
-                                <i class="fa fa-box-open text-4xl mb-3 opacity-50"></i>
-                                <p class="text-sm font-medium">Savat bo'sh. Pastdan mahsulot qo'shing.</p>
-                            </div>
-                        </div>
+                        <!-- Removed Xarid qutisi as requested -->
 
                         <div class="mb-6">
                             <label class="block text-sm font-bold mb-2 hint-color">Izoh (Ixtiyoriy)</label>
@@ -106,13 +94,13 @@
                                         </div>
                                         <!-- Real-time Quantity Controllers -->
                                         <div class="p-2 border-t border-gray-100 bg-gray-50">
-                                            <div class="flex items-center justify-between border border-blue-200 rounded-lg overflow-hidden h-9 bg-white">
-                                                <button t-att-onclick="'changeQtyFromCard(\'' + str(p['id']) + '\', -1, \'' + p['name'] + '\', ' + str(p['price']) + ', \'' + p['image_url'] + '\'); event.stopPropagation();'" class="w-10 h-full flex items-center justify-center text-blue-600 font-bold bg-blue-50 hover:bg-blue-100 transition border-r border-blue-200 active:bg-blue-200">
-                                                    <i t-att-id="'minus-icon-' + str(p['id'])" class="fa fa-minus text-xs"></i>
+                                            <div class="flex items-center justify-between border border-gray-300 rounded-lg overflow-hidden h-10 bg-white">
+                                                <button t-att-onclick="'changeQtyFromCard(\'' + str(p['id']) + '\', -1, \'' + p['name'] + '\', ' + str(p['price']) + ', \'' + p['image_url'] + '\'); event.stopPropagation();'" class="w-12 h-full flex items-center justify-center text-red-600 font-bold bg-gray-100 hover:bg-gray-200 transition border-r border-gray-300 active:bg-gray-300">
+                                                    <i t-att-id="'minus-icon-' + str(p['id'])" class="fa fa-minus text-sm font-black"></i>
                                                 </button>
-                                                <input type="number" t-att-id="'qty-' + str(p['id'])" t-att-onchange="'setQtyFromCard(\'' + str(p['id']) + '\', this.value, \'' + p['name'] + '\', ' + str(p['price']) + ', \'' + p['image_url'] + '\');'" t-att-onclick="'event.stopPropagation();'" class="flex-1 text-center font-bold text-sm text-gray-800 border-none outline-none bg-transparent w-full h-full m-0 p-0" value="0" />
-                                                <button t-att-onclick="'changeQtyFromCard(\'' + str(p['id']) + '\', 1, \'' + p['name'] + '\', ' + str(p['price']) + ', \'' + p['image_url'] + '\'); event.stopPropagation();'" class="w-10 h-full flex items-center justify-center text-blue-600 font-bold bg-blue-50 hover:bg-blue-100 transition border-l border-blue-200 active:bg-blue-200">
-                                                    <i class="fa fa-plus text-xs"></i>
+                                                <input type="number" t-att-id="'qty-' + str(p['id'])" t-att-onchange="'setQtyFromCard(\'' + str(p['id']) + '\', this.value, \'' + p['name'] + '\', ' + str(p['price']) + ', \'' + p['image_url'] + '\');'" t-att-onclick="'event.stopPropagation();'" class="flex-1 text-center font-bold text-base text-black bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 w-full h-full m-0 p-0" value="0" />
+                                                <button t-att-onclick="'changeQtyFromCard(\'' + str(p['id']) + '\', 1, \'' + p['name'] + '\', ' + str(p['price']) + ', \'' + p['image_url'] + '\'); event.stopPropagation();'" class="w-12 h-full flex items-center justify-center text-white font-bold bg-blue-600 hover:bg-blue-700 transition border-l border-blue-700 active:bg-blue-800">
+                                                    <i class="fa fa-plus text-sm font-black"></i>
                                                 </button>
                                             </div>
                                         </div>
@@ -151,9 +139,6 @@
                     tg.MainButton.color = tg.themeParams.button_color || "#10b981"; // Emerald green
                     
                     // UI Elements
-                    const emptyCart = document.getElementById('emptyCart');
-                    const cartList = document.getElementById('cartList');
-                    const totalItemsBadge = document.getElementById('totalItemsBadge');
                     const searchInput = document.getElementById('searchInput');
                     
                     const isNativeWebApp = tg.platform && tg.platform !== "unknown";
@@ -185,12 +170,8 @@
                             }
                         }
                         
-                        // Update UI
-                        emptyCart.style.display = totalItems === 0 ? 'block' : 'none';
-                        totalItemsBadge.textContent = `${totalItems} ta turdagi mahsulot`;
-                        
+                        // Removed global cart view updates
                         syncCards();
-                        renderCart();
                     }
                     
                     function syncCards() {
@@ -213,12 +194,14 @@
 
                             if (inCartQty > 0) {
                                 // Highlight
-                                card.classList.replace('border-gray-200', 'border-blue-500');
+                                card.classList.replace('border-gray-200', 'border-blue-600');
+                                card.classList.add('border-2');
                                 card.classList.add('bg-blue-50');
                                 card.classList.remove('bg-white');
                             } else {
                                 // Default
-                                card.classList.replace('border-blue-500', 'border-gray-200');
+                                card.classList.replace('border-blue-600', 'border-gray-200');
+                                card.classList.remove('border-2');
                                 card.classList.add('bg-white');
                                 card.classList.remove('bg-blue-50');
                             }
@@ -227,14 +210,18 @@
 
                     function setQtyFromCard(id, newValue, name, price, img) {
                         let parsed = parseInt(newValue);
+                        let qtyEl = document.getElementById('qty-' + id);
+                        
                         if (isNaN(parsed) || parsed <= 0) {
                             if (cart[id]) delete cart[id];
+                            if (qtyEl) qtyEl.value = 0; // Fix deleting input text leaving it blank
                         } else {
                             if (!cart[id]) {
                                 cart[id] = { name, price: parseFloat(price), qty: parsed, img };
                             } else {
                                 cart[id].qty = parsed;
                             }
+                            if (qtyEl) qtyEl.value = parsed;
                         }
                         updateMainButton();
                         if (tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
@@ -270,47 +257,7 @@
                         }
                     }
 
-                    function setQty(id, value) {
-                        let qty = parseInt(value);
-                        if (isNaN(qty) || qty <= 0) {
-                            delete cart[id];
-                        } else {
-                            cart[id].qty = qty;
-                        }
-                        updateMainButton();
-                    }
-                    
-                    function renderCart() {
-                        // Keep emptyCart logic separate
-                        Array.from(cartList.children).forEach(child => {
-                            if (child.id !== 'emptyCart') cartList.removeChild(child);
-                        });
-                        
-                        for (let id in cart) {
-                            const item = cart[id];
-                            const doc = document.createElement('div');
-                            doc.className = "flex items-center justify-between p-3 bg-white rounded-xl shadow-sm border border-gray-100";
-                            doc.style.backgroundColor = "var(--tg-theme-bg-color, #ffffff)";
-                            
-                            doc.innerHTML = `
-                                <div class="flex items-center space-x-3 flex-1 overflow-hidden">
-                                    <div class="h-10 w-10 bg-gray-50 rounded-lg flex-shrink-0 flex items-center justify-center border border-gray-100 p-1">
-                                        ${item.img ? `<img src="${item.img}" class="max-h-full object-contain" onerror="this.style.display='none'"/>` : `<i class="fa fa-box text-gray-300"></i>`}
-                                    </div>
-                                    <div class="flex-1 min-w-0">
-                                        <div class="font-bold text-sm truncate">${item.name}</div>
-                                        <div class="text-xs text-green-600 font-semibold">${item.price.toLocaleString()} UZS</div>
-                                    </div>
-                                </div>
-                                <div class="flex items-center space-x-1 ml-2 bg-gray-50 rounded-lg p-1 border border-gray-200">
-                                    <button onclick="changeQty('${id}', -1)" class="w-8 h-8 flex items-center justify-center text-red-500 font-bold bg-white rounded shadow-sm hover:bg-gray-100 transition"><i class="fa ${item.qty === 1 ? 'fa-trash' : 'fa-minus'} text-sm"></i></button>
-                                    <input type="number" onchange="setQty('${id}', this.value)" value="${item.qty}" class="w-10 text-center font-bold text-sm bg-transparent border-none outline-none m-0 p-0 text-gray-800" style="color:var(--tg-theme-text-color)"/>
-                                    <button onclick="changeQty('${id}', 1)" class="w-8 h-8 flex items-center justify-center text-blue-500 font-bold bg-white rounded shadow-sm hover:bg-gray-100 transition"><i class="fa fa-plus text-sm"></i></button>
-                                </div>
-                            `;
-                            cartList.appendChild(doc);
-                        }
-                    }
+                    // renderCart() removed as requested
 
                     // Search Feature
                     searchInput.addEventListener('input', function(e) {
