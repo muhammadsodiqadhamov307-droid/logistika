@@ -641,6 +641,29 @@ export class VanMobilePos extends Component {
         }
     }
 
+    openAgentSummary() {
+        if (!this.state.currentAgent) {
+            this.state.error = "Akkauntingizga agent biriktirilmagan.";
+            return;
+        }
+
+        // Remove popstate listener briefly so standard Odoo back buttons work
+        if (this.popStateHandler) {
+            window.removeEventListener('popstate', this.popStateHandler);
+        }
+
+        // Directly open the agent summary form view for the current agent
+        this.action.doAction({
+            type: 'ir.actions.act_window',
+            name: 'Agent Hisoboti',
+            res_model: 'van.agent.summary',
+            res_id: this.state.currentAgent.id,
+            view_mode: 'form',
+            views: [[false, 'form']],
+            target: 'current',
+        });
+    }
+
     closePos() {
         if (this.popStateHandler) {
             window.removeEventListener('popstate', this.popStateHandler);

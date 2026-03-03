@@ -62,6 +62,12 @@
                         
                         <div style="height: 1px; background: #e5e7eb; margin: 5px 0;"></div>
                         
+                        <button t-on-click="() => { this.openAgentSummary(); state.showActionMenu = false; }" style="display: flex; align-items: center; width: 100%; text-align: left; background: none; border: none; padding: 10px; font-size: 15px; border-radius: 5px; color: #8b5cf6; font-weight: bold; margin-bottom: 5px;">
+                            <i class="fa fa-file-text-o" style="margin-right: 10px; width: 15px;"></i> Agent Hisoboti
+                        </button>
+                        
+                        <div style="height: 1px; background: #e5e7eb; margin: 5px 0;"></div>
+                        
                         <button t-on-click="logout" style="display: flex; align-items: center; width: 100%; text-align: left; background: none; border: none; padding: 10px; font-size: 15px; border-radius: 5px; color: #6b7280; font-weight: bold;">
                             <i class="fa fa-sign-out" style="margin-right: 10px; width: 15px;"></i> Tizimdan chiqish
                         </button>
