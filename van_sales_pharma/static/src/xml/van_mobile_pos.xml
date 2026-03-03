@@ -54,7 +54,7 @@
                             <i class="fa fa-clipboard" style="margin-right: 10px; width: 15px;"></i> So'rovlar
                         </button>
 
-                        <button t-if="!session.is_van_agent" t-on-click="() => { this.goToDashboard(); state.showActionMenu = false; }" style="display: flex; align-items: center; width: 100%; text-align: left; background: none; border: none; padding: 10px; font-size: 15px; border-radius: 5px; color: #10b981; font-weight: bold; margin-bottom: 5px;">
+                        <button t-if="!this.session.is_van_agent" t-on-click="() => { this.goToDashboard(); state.showActionMenu = false; }" style="display: flex; align-items: center; width: 100%; text-align: left; background: none; border: none; padding: 10px; font-size: 15px; border-radius: 5px; color: #10b981; font-weight: bold; margin-bottom: 5px;">
                             <i class="fa fa-tachometer" style="margin-right: 10px; width: 15px;"></i> Bosh Panel
                         </button>
                         

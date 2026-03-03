@@ -4,10 +4,12 @@ import { registry } from "@web/core/registry";
 import { Component, useState, onWillStart, onWillDestroy } from "@odoo/owl";
 import { useService } from "@web/core/utils/hooks";
 import { rpc } from "@web/core/network/rpc";
+import { session } from "@web/session";
 
 export class VanMobilePos extends Component {
     setup() {
         this.action = useService("action");
+        this.session = session;
 
         this.state = useState({
             screen: 'products', // clients, products, checkout, kirim
