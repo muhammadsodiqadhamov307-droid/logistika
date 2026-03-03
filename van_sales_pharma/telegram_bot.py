@@ -63,12 +63,39 @@ def get_bot_token():
         return records[0].get('value')
     return None
 
-def build_main_menu():
+def get_web_app_button(chat_id):
+    """Returns an InlineKeyboardButton for the Telegram Web App, fully resolving the URL"""
+    models, uid = get_odoo_models()
+    if not models:
+        return None
+        
+    base_url = models.execute_kw(ODOO_DB, uid, ODOO_PASSWORD, 'ir.config_parameter', 'get_param', ['van_telegram_odoo_url', ''])
+    if not base_url:
+        base_url = models.execute_kw(ODOO_DB, uid, ODOO_PASSWORD, 'ir.config_parameter', 'get_param', ['web.base.url', ''])
+        
+    if not base_url.startswith('http'):
+        base_url = "https://" + base_url.lstrip('/')
+    elif base_url.startswith('http://') and not ('localhost' in base_url or '127.0.0.1' in base_url):
+        base_url = base_url.replace('http://', 'https://')
+        
+    base_url = base_url.rstrip('/')
+    web_app_url = f"{base_url}/van/client/request?chat_id={chat_id}"
+    
+    return InlineKeyboardButton(text="🛒 Zakaz berish", web_app={"url": web_app_url})
+
+def build_main_menu(chat_id=None):
     keyboard = [
         [InlineKeyboardButton("💰 Balans (Qarz)", callback_data='menu_balans')],
         [InlineKeyboardButton("📋 Barcha tranzaksiyalar", callback_data='menu_tranzaksiyalar')],
         [InlineKeyboardButton("🧾 Savdo cheklari (Batafsil)", callback_data='menu_savdo_cheklari')]
     ]
+    
+    # Append the Zakaz Berish button to the top if chat_id is provided
+    if chat_id:
+        req_button = get_web_app_button(chat_id)
+        if req_button:
+            keyboard.insert(0, [req_button])
+            
     return InlineKeyboardMarkup(keyboard)
 
 # --- REGISTRATION CONVERSATION ---
@@ -87,7 +114,7 @@ async def start_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         # Already registered
         await update.message.reply_text(
             "Assalomu alaykum! Siz allaqachon ro'yxatdan o'tgansiz.\nQuyidagi menyudan foydalanishingiz mumkin:",
-            reply_markup=build_main_menu()
+            reply_markup=build_main_menu(chat_id)
         )
         return ConversationHandler.END
         
@@ -157,7 +184,7 @@ async def handle_phone(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
     
     await update.message.reply_text(
         "Asosiy Menu:",
-        reply_markup=build_main_menu()
+        reply_markup=build_main_menu(chat_id)
     )
     return ConversationHandler.END
 
@@ -207,7 +234,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ], {'fields': ['date', 'transaction_type', 'amount'], 'order': 'date desc', 'limit': 15})
         
         if not records:
-             await query.edit_message_text("Tranzaksiyalar tarixi bo'sh.", reply_markup=build_main_menu())
+             await query.edit_message_text("Tranzaksiyalar tarixi bo'sh.", reply_markup=build_main_menu(chat_id))
              return
              
         msg = "📋 <b>So'nggi 15 ta tranzaksiya:</b>\n\n"
@@ -217,7 +244,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             icon = "✅ Kirim" if ttype == "kirim" else ("🛍 Savdo" if ttype == "sale" else "➖ Chiqim")
             msg += f"📅 {dt[:16]}\n  {icon} | {r['amount']:,.0f} so'm\n\n"
             
-        await query.edit_message_text(msg, parse_mode='HTML', reply_markup=build_main_menu())
+        await query.edit_message_text(msg, parse_mode='HTML', reply_markup=build_main_menu(chat_id))
 
     elif data == 'menu_savdo_cheklari':
         # Fetch last 5 van.pos.order list
@@ -226,7 +253,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ], {'fields': ['name', 'date', 'amount_total', 'line_ids'], 'order': 'date desc', 'limit': 5})
         
         if not orders:
-             await query.edit_message_text("Savdo cheklari tarixi bo'sh.", reply_markup=build_main_menu())
+             await query.edit_message_text("Savdo cheklari tarixi bo'sh.", reply_markup=build_main_menu(chat_id))
              return
              
         msg = "🧾 <b>So'nggi 5 ta savdo cheki (Batafsil):</b>\n\n"
@@ -246,20 +273,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             msg += f"💰 <b>Jami: {o['amount_total']:,.0f} so'm</b>\n"
             msg += "---------------------------------\n\n"
             
-        base_url = models.execute_kw(ODOO_DB, uid, ODOO_PASSWORD, 'ir.config_parameter', 'get_param', ['van_telegram_odoo_url', ''])
-        web_app_url = f"{base_url}/van/client/request?chat_id={chat_id}"
-        
-        button = {"text": "🛒 Zakaz berish"}
-        if web_app_url.startswith('https://'):
-            button["web_app"] = {"url": web_app_url}
-        else:
-            button["url"] = web_app_url
-            
-        reply_markup = {
-            "inline_keyboard": [[button]]
-        }
-            
-        await query.edit_message_text(msg, parse_mode='HTML', reply_markup=reply_markup)
+        await query.edit_message_text(msg, parse_mode='HTML', reply_markup=build_main_menu(chat_id))
 
 
 async def generic_text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -268,7 +282,8 @@ async def generic_text_handler(update: Update, context: ContextTypes.DEFAULT_TYP
 
 async def menu_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Fallback command to reshow the main menu without registering"""
-    await update.message.reply_text("Asosiy Menu:", reply_markup=build_main_menu())
+    chat_id = str(update.effective_chat.id)
+    await update.message.reply_text("Asosiy Menu:", reply_markup=build_main_menu(chat_id))
 
 def main():
     token = get_bot_token()
