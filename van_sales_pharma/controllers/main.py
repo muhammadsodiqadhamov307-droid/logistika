@@ -209,7 +209,13 @@ class VanPosController(http.Controller):
             if not location:
                 return {'success': False, 'error': "Ombor topilmadi!"}
 
+            # Fetch a default Taminotchi
+            taminotchi = request.env['van.taminotchi'].sudo().search([], limit=1)
+            if not taminotchi:
+                return {'success': False, 'error': "Taminotchi (Yetkazib beruvchi) topilmadi! Iltimos bazaga Taminotchi qo'shing."}
+
             trip_vals = {
+                'taminotchi_id': taminotchi.id,
                 'agent_id': int(agent_id),
                 'location_id': location.id,
                 'date': date,
