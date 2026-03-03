@@ -20,6 +20,7 @@
         'views/van_sale_order_views.xml',
         'views/agent_views.xml',
         'views/van_customer_views.xml',
+        'views/van_ledger_report_wizard_views.xml',
         'views/van_nasiya_views.xml',
         'views/van_payment_views.xml',
         'views/van_request_views.xml',

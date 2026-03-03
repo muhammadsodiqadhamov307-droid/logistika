@@ -31,3 +31,4 @@ access_van_request_line_admin,van.request.line admin,model_van_request_line,van_
 access_van_request_line_agent,van.request.line agent,model_van_request_line,van_sales_pharma.group_van_agent,1,1,1,0
 access_van_ostatka_admin,van.ostatka.qarzi admin,model_van_ostatka_qarzi,van_sales_pharma.group_van_admin,1,1,1,1
 access_van_ostatka_agent,van.ostatka.qarzi agent,model_van_ostatka_qarzi,van_sales_pharma.group_van_agent,1,0,0,0
+access_van_ledger_report_wizard,van.ledger.report.wizard admin,model_van_ledger_report_wizard,van_sales_pharma.group_van_admin,1,1,1,1

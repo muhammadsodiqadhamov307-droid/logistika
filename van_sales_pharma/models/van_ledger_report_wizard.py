@@ -1,0 +1,264 @@
+# -*- coding: utf-8 -*-
+from odoo import models, fields, api, _
+from odoo.exceptions import UserError
+import datetime
+
+class VanLedgerReportWizard(models.TransientModel):
+    _name = 'van.ledger.report.wizard'
+    _description = 'Mijozlar Hisoboti Wizard'
+
+    partner_id = fields.Many2one('res.partner', string="Mijoz (Partner)", required=True)
+    date_from = fields.Date(string="Sana dan", required=True, default=lambda self: fields.Date.context_today(self).replace(day=1))
+    date_to = fields.Date(string="Sana gacha", required=True, default=fields.Date.context_today)
+    report_html = fields.Html(string="Hisobot", sanitize=False, readonly=True)
+
+    def action_generate_report(self):
+        self.ensure_one()
+        
+        partner = self.partner_id
+        date_from = self.date_from
+        date_to = self.date_to
+        
+        # 1. Calculate Initial Balance Setup (Before date_from)
+        # 1a. Ostatka Qarzi (Opening Debts)
+        ostatkas = self.env['van.ostatka.qarzi'].search([('partner_id', '=', partner.id), ('date', '<', date_from)])
+        total_ostatka = sum(o.amount for o in ostatkas)
+        
+        # 1b. Historical POS Orders (Debit/Qarz for Client)
+        past_pos_orders = self.env['pos.order'].search([
+            ('partner_id', '=', partner.id),
+            ('state', 'in', ['paid', 'done', 'invoiced']),
+            ('date_order', '<', str(date_from))
+        ])
+        past_sales = sum(o.amount_total for o in past_pos_orders)
+        
+        # 1c. Nasiya historically (already converted to payments if paid or outstanding). 
+        # Using the same Nasiya logic as partner:
+        past_nasiyas = self.env['van.nasiya'].search([('partner_id', '=', partner.id), ('date', '<', date_from)])
+        past_nasiya_total = sum(n.amount_total for n in past_nasiyas)
+        
+        # 1d. Historical Payments (Credit/To'lov for Client)
+        past_payments = self.env['van.payment'].search([
+            ('partner_id', '=', partner.id),
+            ('date', '<', date_from),
+            ('state', '=', 'received')
+        ])
+        past_kirim = sum(p.amount for p in past_payments if p.payment_type == 'in')
+        past_chiqim = sum(p.amount for p in past_payments if p.payment_type == 'out')
+        
+        # Initial Balance (Positive means the client owes us - Qarz)
+        # Balans = (Ostatka + Past Sales + Past Nasiyas + Past Chiqim) - Past Kirim
+        opening_balance = total_ostatka + past_sales + past_nasiya_total + past_chiqim - past_kirim
+
+        # 2. Fetch Records within Range
+        lines = []
+        
+        # Ostatka in range
+        range_ostatkas = self.env['van.ostatka.qarzi'].search([
+            ('partner_id', '=', partner.id),
+            ('date', '>=', date_from),
+            ('date', '<=', date_to)
+        ])
+        for o in range_ostatkas:
+            lines.append({
+                'date': o.date,
+                'ref': o.note or 'Ostatka Qarzi',
+                'type': 'Qarz (Ostatka)',
+                'debit': o.amount,
+                'credit': 0.0,
+                'is_foldable': False,
+            })
+            
+        # Nasiya in range (As debt/Debit)
+        range_nasiyas = self.env['van.nasiya'].search([
+            ('partner_id', '=', partner.id),
+            ('date', '>=', date_from),
+            ('date', '<=', date_to)
+        ])
+        for n in range_nasiyas:
+            lines.append({
+                'date': n.date,
+                'ref': n.name or 'Nasiya Savdo',
+                'type': 'Sotuv (Nasiya)',
+                'debit': n.amount_total,
+                'credit': 0.0,
+                'is_foldable': False, # Nasiya doesn't have product lines natively by default in this logic
+            })
+            
+        # POS Orders in range (As debt/Debit)
+        range_pos = self.env['pos.order'].search([
+            ('partner_id', '=', partner.id),
+            ('state', 'in', ['paid', 'done', 'invoiced']),
+            ('date_order', '>=', str(date_from)),
+            ('date_order', '<=', str(date_to) + " 23:59:59")
+        ])
+        for pos in range_pos:
+            product_details = []
+            for line in pos.lines:
+                product_details.append({
+                    'name': line.product_id.name,
+                    'qty': line.qty,
+                    'price': line.price_unit,
+                    'subtotal': line.price_subtotal_incl
+                })
+            lines.append({
+                'date': pos.date_order.date(),
+                'ref': pos.pos_reference or pos.name,
+                'type': 'Sotuv (POS)',
+                'debit': pos.amount_total,
+                'credit': 0.0,
+                'is_foldable': True,
+                'products': product_details
+            })
+            
+        # Payments in range (Kirim as Credit, Chiqim as Debit)
+        range_payments = self.env['van.payment'].search([
+            ('partner_id', '=', partner.id),
+            ('date', '>=', date_from),
+            ('date', '<=', date_to),
+            ('state', '=', 'received')
+        ])
+        for pay in range_payments:
+            is_kirim = pay.payment_type == 'in'
+            lines.append({
+                'date': pay.date,
+                'ref': pay.name or 'To\'lov',
+                'type': 'Kirim' if is_kirim else 'Chiqim (Qaytarildi)',
+                'debit': 0.0 if is_kirim else pay.amount,
+                'credit': pay.amount if is_kirim else 0.0,
+                'is_foldable': False,
+            })
+            
+        # 3. Sort chronologically
+        lines.sort(key=lambda x: x['date'])
+        
+        # 4. Generate HTML
+        html = f"""
+        <style>
+            .ledger-table {{ width: 100%; border-collapse: collapse; margin-top: 15px; font-family: -apple-system, sans-serif; }}
+            .ledger-table th {{ background-color: #f1f5f9; color: #334155; padding: 12px 8px; text-align: left; font-size: 13px; text-transform: uppercase; border-bottom: 2px solid #cbd5e1; }}
+            .ledger-table td {{ padding: 10px 8px; border-bottom: 1px solid #e2e8f0; font-size: 14px; vertical-align: middle; }}
+            .ledger-row:hover {{ background-color: #f8fafc; }}
+            
+            .col-num {{ text-align: right; white-space: nowrap; }}
+            .text-success {{ color: #16a34a; font-weight: bold; }}
+            .text-danger {{ color: #dc2626; font-weight: bold; }}
+            .text-primary {{ color: #2563eb; font-weight: bold; }}
+            
+            summary {{ outline: none; cursor: pointer; list-style: none; font-weight: 600; color: #0f172a; display: flex; align-items: center; }}
+            summary::before {{ content: '▶'; font-size: 10px; color: #94a3b8; margin-right: 8px; transition: transform 0.2s; }}
+            details[open] summary::before {{ transform: rotate(90deg); }}
+            summary::-webkit-details-marker {{ display: none; }}
+            
+            .drilled-down-table {{ width: 95%; margin: 10px auto; background-color: #f8fafc; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; }}
+            .drilled-down-table td {{ padding: 6px 12px; font-size: 13px; border-bottom: 1px dashed #cbd5e1; }}
+            .drilled-down-table tr:last-child td {{ border-bottom: none; }}
+            .muted {{ color: #64748b; font-size: 12px; }}
+        </style>
+        
+        <div style="background: white; padding: 20px; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+            <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #e2e8f0;">
+                <div>
+                    <h2 style="margin: 0; color: #0f172a; font-size: 20px;">{partner.name} - Hisob-kitob Daftari</h2>
+                    <p style="margin: 5px 0 0 0; color: #64748b; font-size: 14px;"><strong>Davr:</strong> {date_from.strftime('%d.%m.%Y')} — {date_to.strftime('%d.%m.%Y')}</p>
+                </div>
+            </div>
+            
+            <table class="ledger-table">
+                <thead>
+                    <tr>
+                        <th>Sana</th>
+                        <th>Hujjat</th>
+                        <th>Turi</th>
+                        <th class="col-num">Qarz / Sotuv (+)</th>
+                        <th class="col-num">Kirim / To'lov (-)</th>
+                        <th class="col-num">Qoldiq Balans</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Opening Balance Row -->
+                    <tr style="background-color: #fffbeb; font-weight: bold;">
+                        <td>{date_from.strftime('%d.%m.%Y')}</td>
+                        <td>Boshlang'ich Qoldiq (Ostatka)</td>
+                        <td>-</td>
+                        <td class="col-num">-</td>
+                        <td class="col-num">-</td>
+                        <td class="col-num {'text-danger' if opening_balance > 0 else 'text-success'}">{opening_balance:,.0f} so'm</td>
+                    </tr>
+        """
+        
+        # Iteratively build rows
+        current_balance = opening_balance
+        for line in lines:
+            current_balance = current_balance + line['debit'] - line['credit']
+            
+            date_str = line['date'].strftime('%d.%m.%Y')
+            debit_str = f"{line['debit']:,.0f}" if line['debit'] else ""
+            credit_str = f"{line['credit']:,.0f}" if line['credit'] else ""
+            balance_str = f"{current_balance:,.0f}"
+            balance_class = "text-danger" if current_balance > 0 else "text-success" if current_balance < 0 else ""
+            
+            if line['is_foldable'] and line.get('products'):
+                # Foldable row
+                html += f"""
+                    <tr class="ledger-row">
+                        <td colspan="6" style="padding: 0;">
+                            <details>
+                                <summary style="padding: 10px 8px;">
+                                    <div style="flex:1">{date_str}</div>
+                                    <div style="flex:2">{line['ref']}</div>
+                                    <div style="flex:2"><span style="background:#e0f2fe; color:#0369a1; padding:2px 8px; border-radius:12px; font-size:12px;">{line['type']}</span></div>
+                                    <div style="flex:2; text-align:right" class="text-danger">{debit_str}</div>
+                                    <div style="flex:2; text-align:right" class="text-success">{credit_str}</div>
+                                    <div style="flex:2; text-align:right; padding-right:8px;" class="{balance_class}">{balance_str}</div>
+                                </summary>
+                                <table class="drilled-down-table">
+                """
+                for p in line['products']:
+                    html += f"""
+                                    <tr>
+                                        <td width="50%"><b>{p['name']}</b></td>
+                                        <td width="20%" class="muted">{p['qty']} x {p['price']:,.0f}</td>
+                                        <td width="30%" style="text-align:right;"><b>{p['subtotal']:,.0f} so'm</b></td>
+                                    </tr>
+                    """
+                html += """
+                                </table>
+                            </details>
+                        </td>
+                    </tr>
+                """
+            else:
+                # Flat row
+                type_badge = f"<span style='background:#f1f5f9; padding:2px 8px; border-radius:12px; font-size:12px;'>{line['type']}</span>"
+                if 'Kirim' in line['type']:
+                    type_badge = f"<span style='background:#dcfce7; color:#166534; padding:2px 8px; border-radius:12px; font-size:12px;'>{line['type']}</span>"
+                
+                html += f"""
+                    <tr class="ledger-row">
+                        <td>{date_str}</td>
+                        <td>{line['ref']}</td>
+                        <td>{type_badge}</td>
+                        <td class="col-num text-danger">{debit_str}</td>
+                        <td class="col-num text-success">{credit_str}</td>
+                        <td class="col-num {balance_class}">{balance_str}</td>
+                    </tr>
+                """
+        
+        # Close table
+        html += """
+                </tbody>
+            </table>
+        </div>
+        """
+        
+        self.report_html = html
+        
+        # Return the same view, but with the HTML populated. We can use a special form view for this or simply reload.
+        return {
+            'type': 'ir.actions.act_window',
+            'res_model': 'van.ledger.report.wizard',
+            'view_mode': 'form',
+            'res_id': self.id,
+            'target': 'new',
+        }

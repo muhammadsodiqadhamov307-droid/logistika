@@ -16,3 +16,4 @@ from . import van_product
 from . import telegram_utils
 from . import res_config_settings
 from . import van_ostatka_qarzi
+from . import van_ledger_report_wizard
