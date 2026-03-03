@@ -160,6 +160,7 @@ class VanLedgerReportWizard(models.TransientModel):
             .ledger-table td {{ padding: 10px 8px; border-bottom: 1px solid #e2e8f0; font-size: 14px; vertical-align: middle; }}
             .ledger-row:hover {{ background-color: #f8fafc; }}
             
+            .col-date {{ white-space: nowrap; width: 1%; }}
             .col-num {{ text-align: right; white-space: nowrap; }}
             .text-success {{ color: #16a34a; font-weight: bold; }}
             .text-danger {{ color: #dc2626; font-weight: bold; }}
@@ -187,7 +188,7 @@ class VanLedgerReportWizard(models.TransientModel):
             <table class="ledger-table">
                 <thead>
                     <tr>
-                        <th>Sana</th>
+                        <th class="col-date">Sana</th>
                         <th>Hujjat</th>
                         <th>Turi</th>
                         <th class="col-num">Qarz / Sotuv (+)</th>
@@ -198,7 +199,7 @@ class VanLedgerReportWizard(models.TransientModel):
                 <tbody>
                     <!-- Opening Balance Row -->
                     <tr style="background-color: #f8fafc; font-weight: bold; border-bottom: 2px solid #cbd5e1;">
-                        <td>{date_from.strftime('%d.%m.%Y')}</td>
+                        <td class="col-date">{date_from.strftime('%d.%m.%Y')}</td>
                         <td>Davr Boshidagi Qoldiq</td>
                         <td>-</td>
                         <td class="col-num">-</td>
@@ -209,15 +210,18 @@ class VanLedgerReportWizard(models.TransientModel):
         
         # Iteratively build rows
         current_balance = opening_balance
+        import pytz
+        user_tz = pytz.timezone(self.env.user.tz or 'Asia/Tashkent')
+        
         for line in lines:
             current_balance = current_balance + line['debit'] - line['credit']
             
             # Format date with time if it's a datetime object, otherwise just date
             import datetime
             if isinstance(line['date'], datetime.datetime):
-                # Convert UTC to local if needed, or just display as is
-                # Assuming simple display for now
-                date_str = line['date'].strftime('%d.%m.%Y %H:%M')
+                # Convert UTC to local
+                local_dt = pytz.utc.localize(line['date']).astimezone(user_tz)
+                date_str = local_dt.strftime('%d.%m.%Y %H:%M')
             else:
                 date_str = line['date'].strftime('%d.%m.%Y')
                 
@@ -233,7 +237,7 @@ class VanLedgerReportWizard(models.TransientModel):
                         <td colspan="6" style="padding: 0;">
                             <details>
                                 <summary style="padding: 10px 8px;">
-                                    <div style="flex:1">{date_str}</div>
+                                    <div style="flex:1" class="col-date">{date_str}</div>
                                     <div style="flex:2">{line['ref']}</div>
                                     <div style="flex:2"><span style="background:#e0f2fe; color:#0369a1; padding:2px 8px; border-radius:12px; font-size:12px;">{line['type']}</span></div>
                                     <div style="flex:2; text-align:right" class="text-danger">{debit_str}</div>
@@ -264,7 +268,7 @@ class VanLedgerReportWizard(models.TransientModel):
                 
                 html += f"""
                     <tr class="ledger-row">
-                        <td>{date_str}</td>
+                        <td class="col-date">{date_str}</td>
                         <td>{line['ref']}</td>
                         <td>{type_badge}</td>
                         <td class="col-num text-danger">{debit_str}</td>
@@ -278,7 +282,7 @@ class VanLedgerReportWizard(models.TransientModel):
         html += f"""
                     <!-- Closing Balance Row -->
                     <tr style="background-color: #f8fafc; border-top: 2px solid #cbd5e1; font-weight: bold;">
-                        <td>{date_to.strftime('%d.%m.%Y')}</td>
+                        <td class="col-date">{date_to.strftime('%d.%m.%Y')}</td>
                         <td>Davr Oxiridagi Qoldiq</td>
                         <td>-</td>
                         <td class="col-num">-</td>
