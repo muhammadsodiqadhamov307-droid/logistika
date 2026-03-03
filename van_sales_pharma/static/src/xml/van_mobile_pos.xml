@@ -654,10 +654,9 @@
                             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
                                 <t t-foreach="filteredInventory" t-as="p" t-key="p.product_id">
                                     <div t-attf-style="background: {{ state.tripCart[p.product_id] ? '#eff6ff' : 'white' }}; border: {{ state.tripCart[p.product_id] ? '2px solid #2563eb' : '1px solid #e5e7eb' }}; border-radius: 12px; overflow: hidden; display: flex; flex-direction: column;">
-                                        <!-- Image -->
                                         <div style="height: 110px; background: #f9fafb; display: flex; align-items: center; justify-content: center; padding: 10px;">
-                                            <t t-if="p.image_1920">
-                                                <img t-att-src="'/web/image?model=van.product&amp;id=' + p.product_id + '&amp;field=image_1920'" style="max-height: 100%; max-width: 100%; object-fit: contain; border-radius: 6px;" onerror="this.src='/van_sales_pharma/static/description/icon.png';"/>
+                                            <t t-if="p.image_url">
+                                                <img t-att-src="p.image_url" style="max-height: 100%; max-width: 100%; object-fit: contain; border-radius: 6px;" onerror="this.src='/van_sales_pharma/static/description/icon.png';"/>
                                             </t>
                                             <t t-else="">
                                                 <i class="fa fa-box" style="font-size: 30px; color: #d1d5db;"></i>
@@ -670,8 +669,7 @@
                                                 <t t-esc="p.name"/>
                                             </div>
                                             <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 8px;">
-                                                <div style="font-size: 12px; font-weight: bold; color: #16a34a;"><t t-esc="p.price.toLocaleString()"/> UZS</div>
-                                                <div style="font-size: 12px; font-weight: bold; color: #6b7280;">Qoldiq: <t t-esc="p.remaining"/></div>
+                                                <div style="font-size: 13px; font-weight: bold; color: #16a34a;"><t t-esc="p.price.toLocaleString()"/> UZS</div>
                                             </div>
                                         </div>
                                         
@@ -697,12 +695,7 @@
                             </div>
                         </div>
 
-                        <div style="margin-bottom: 20px;">
-                            <label style="display: block; font-size: 14px; font-weight: bold; margin-bottom: 5px; color: #374151;">Izoh</label>
-                            <input type="text" t-model="state.tripNote" placeholder="Qo'shimcha izoh..." style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; box-sizing: border-box; outline: none;"/>
-                        </div>
-
-                        <button t-on-click="submitTrip" style="width: 100%; padding: 15px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; color: white; cursor: pointer; background-color: #2563eb; box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.5);">
+                        <button t-on-click="submitTrip" style="width: 100%; padding: 15px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; color: white; cursor: pointer; background-color: #2563eb; box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.5); margin-top: 20px;">
                             YUKLASHNI SAQLASH (<t t-esc="tripCartTotal.toLocaleString()"/> so'm)
                         </button>
                     </div>
