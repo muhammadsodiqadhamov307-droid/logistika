@@ -7,7 +7,7 @@ class VanLedgerReportWizard(models.TransientModel):
     _name = 'van.ledger.report.wizard'
     _description = 'Mijozlar Hisoboti Wizard'
 
-    partner_id = fields.Many2one('res.partner', string="Mijoz (Partner)", required=True)
+    partner_id = fields.Many2one('res.partner', string="Mijoz (Partner)", required=True, domain=[('x_is_van_customer', '=', True)])
     date_from = fields.Date(string="Sana dan", required=True, default=lambda self: fields.Date.context_today(self).replace(day=1))
     date_to = fields.Date(string="Sana gacha", required=True, default=fields.Date.context_today)
     report_html = fields.Html(string="Hisobot", sanitize=False, readonly=True)
