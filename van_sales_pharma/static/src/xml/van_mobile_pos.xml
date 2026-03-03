@@ -24,6 +24,7 @@
                 <div style="display: flex; align-items: center; gap: 10px; position:relative;">
                     <!-- 3-Dots Menu Dropdown Toggle -->
                     <button t-if="state.screen === 'clients' or state.screen === 'products'" 
+                            id="dots-button"
                             t-on-click="() => state.showActionMenu = !state.showActionMenu" 
                             style="background: none; border: none; color: white; border-radius: 5px; padding: 5px 10px; font-weight: bold; font-size: 20px;">
                         <i class="fa fa-ellipsis-v"></i>
@@ -35,6 +36,7 @@
 
                     <!-- Dropdown Menu Content -->
                     <div t-if="state.showActionMenu and (state.screen === 'clients' or state.screen === 'products')" 
+                         id="dots-menu"
                          style="position: absolute; top: 100%; right: 0; background: white; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06); padding: 5px; margin-top: 10px; min-width: 150px; z-index: 100;">
                         <button t-on-click="() => { this.openQuickAction('kirim'); state.showActionMenu = false; }" style="display: flex; align-items: center; width: 100%; text-align: left; background: none; border: none; padding: 10px; font-size: 15px; border-radius: 5px; color: #10b981; font-weight: bold; margin-bottom: 5px;">
                             <i class="fa fa-plus-circle" style="margin-right: 10px; width: 15px;"></i> Kirim

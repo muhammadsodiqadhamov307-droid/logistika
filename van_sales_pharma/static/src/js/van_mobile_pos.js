@@ -1,7 +1,7 @@
 /** @odoo-module **/
 
 import { registry } from "@web/core/registry";
-import { Component, useState, onWillStart, onWillDestroy } from "@odoo/owl";
+import { Component, useState, onWillStart, onWillDestroy, useExternalListener } from "@odoo/owl";
 import { useService } from "@web/core/utils/hooks";
 import { rpc } from "@web/core/network/rpc";
 import { session } from "@web/session";
@@ -10,6 +10,8 @@ export class VanMobilePos extends Component {
     setup() {
         this.action = useService("action");
         this.session = session;
+
+        useExternalListener(window, "click", this.onWindowClick);
 
         this.state = useState({
             screen: 'products', // clients, products, checkout, kirim
@@ -94,6 +96,19 @@ export class VanMobilePos extends Component {
                 clearInterval(this.state.pollingInterval);
             }
         });
+    }
+
+    onWindowClick(event) {
+        if (!this.state.showActionMenu) return;
+
+        const menu = document.getElementById('dots-menu');
+        const dotsButton = document.getElementById('dots-button');
+
+        if (menu && dotsButton) {
+            if (!menu.contains(event.target) && !dotsButton.contains(event.target)) {
+                this.state.showActionMenu = false;
+            }
+        }
     }
 
     async loadClients() {
