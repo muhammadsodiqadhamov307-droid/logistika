@@ -19,6 +19,13 @@ class VanLedgerReportWizard(models.TransientModel):
         date_from = self.date_from
         date_to = self.date_to
         
+        # 0. Find Nasiyas created by POS Orders (to exclude them from Nasiya sums)
+        all_pos_orders = self.env['van.pos.order'].search([
+            ('partner_id', '=', partner.id),
+            ('state', '=', 'done')
+        ])
+        excluded_nasiya_ids = all_pos_orders.mapped('nasiya_id').ids
+
         # 1. Calculate Initial Balance Setup (Before date_from)
         # 1a. Ostatka Qarzi (Opening Debts)
         ostatkas = self.env['van.ostatka.qarzi'].search([('partner_id', '=', partner.id), ('date', '<', date_from)])
@@ -34,7 +41,10 @@ class VanLedgerReportWizard(models.TransientModel):
         
         # 1c. Nasiya historically (already converted to payments if paid or outstanding). 
         # Using the same Nasiya logic as partner:
-        past_nasiyas = self.env['van.nasiya'].search([('partner_id', '=', partner.id), ('date', '<', date_from)])
+        domain_past_nasiyas = [('partner_id', '=', partner.id), ('date', '<', date_from)]
+        if excluded_nasiya_ids:
+            domain_past_nasiyas.append(('id', 'not in', excluded_nasiya_ids))
+        past_nasiyas = self.env['van.nasiya'].search(domain_past_nasiyas)
         past_nasiya_total = sum(n.amount_total for n in past_nasiyas)
         
         # 1d. Historical Payments (Credit/To'lov for Client)
@@ -70,11 +80,14 @@ class VanLedgerReportWizard(models.TransientModel):
             })
             
         # Nasiya in range (As debt/Debit)
-        range_nasiyas = self.env['van.nasiya'].search([
+        domain_range_nasiyas = [
             ('partner_id', '=', partner.id),
             ('date', '>=', date_from),
             ('date', '<=', date_to)
-        ])
+        ]
+        if excluded_nasiya_ids:
+            domain_range_nasiyas.append(('id', 'not in', excluded_nasiya_ids))
+        range_nasiyas = self.env['van.nasiya'].search(domain_range_nasiyas)
         for n in range_nasiyas:
             lines.append({
                 'date': n.date,
@@ -102,7 +115,7 @@ class VanLedgerReportWizard(models.TransientModel):
                     'subtotal': line.subtotal
                 })
             lines.append({
-                'date': pos.date.date(),
+                'date': pos.date, # keep full datetime
                 'ref': pos.name,
                 'type': 'Sotuv (POS)',
                 'debit': pos.amount_total,
@@ -130,8 +143,14 @@ class VanLedgerReportWizard(models.TransientModel):
             })
             
         # 3. Sort chronologically
-        # Ensure all dates are compared as datetime.date objects to prevent TypeError
-        lines.sort(key=lambda x: x['date'].date() if hasattr(x['date'], 'date') else x['date'])
+        # Ensure all dates are compared properly whether they are date or datetime objects
+        import datetime
+        def normalize_date(d):
+            if isinstance(d, datetime.datetime):
+                return d
+            return datetime.datetime.combine(d, datetime.time())
+            
+        lines.sort(key=lambda x: normalize_date(x['date']))
         
         # 4. Generate HTML
         html = f"""
@@ -193,7 +212,15 @@ class VanLedgerReportWizard(models.TransientModel):
         for line in lines:
             current_balance = current_balance + line['debit'] - line['credit']
             
-            date_str = line['date'].strftime('%d.%m.%Y')
+            # Format date with time if it's a datetime object, otherwise just date
+            import datetime
+            if isinstance(line['date'], datetime.datetime):
+                # Convert UTC to local if needed, or just display as is
+                # Assuming simple display for now
+                date_str = line['date'].strftime('%d.%m.%Y %H:%M')
+            else:
+                date_str = line['date'].strftime('%d.%m.%Y')
+                
             debit_str = f"{line['debit']:,.0f}" if line['debit'] else ""
             credit_str = f"{line['credit']:,.0f}" if line['credit'] else ""
             balance_str = f"{current_balance:,.0f}"
