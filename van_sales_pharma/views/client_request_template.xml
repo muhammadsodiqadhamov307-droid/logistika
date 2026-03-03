@@ -91,7 +91,7 @@
 
                             <div id="productGrid" class="grid grid-cols-2 gap-3 pb-8">
                                 <t t-foreach="products" t-as="p">
-                                    <div class="product-card bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition cursor-pointer flex flex-col" t-att-data-id="p['id']" t-att-data-name="p['name']" t-att-data-price="p['price']" t-att-data-img="p['image_url']">
+                                    <div class="product-card bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm transition flex flex-col" t-att-data-id="p['id']" t-att-data-name="p['name']" t-att-data-price="p['price']" t-att-data-img="p['image_url']" t-att-id="'card-' + str(p['id'])">
                                         <div class="h-28 bg-gray-50 flex items-center justify-center p-2 relative">
                                             <t t-if="p['image_url']">
                                                 <img t-att-src="p['image_url']" onerror="this.src='/van_sales_pharma/static/description/icon.png';" class="max-h-full max-w-full object-contain rounded-md"/>
@@ -102,7 +102,22 @@
                                         </div>
                                         <div class="p-3 flex-1 flex flex-col">
                                             <div class="font-semibold text-sm mb-1 leading-tight line-clamp-2 flex-1 product-name"><t t-esc="p['name']"/></div>
-                                            <div class="text-xs text-green-600 font-bold mt-2"><t t-esc="p['price_str']"/> UZS</div>
+                                            <div class="flex justify-between items-end mt-2">
+                                                <div class="text-xs text-green-600 font-bold"><t t-esc="p['price_str']"/> UZS</div>
+                                                <div class="text-xs font-semibold text-gray-500">Qoldiq: <t t-esc="p['qty']"/></div>
+                                            </div>
+                                        </div>
+                                        <!-- Real-time Quantity Controllers -->
+                                        <div class="p-2 border-t border-gray-100 bg-gray-50">
+                                            <div class="flex items-center justify-between border border-blue-200 rounded-lg overflow-hidden h-9 bg-white">
+                                                <button t-att-onclick="'changeQtyFromCard(\'' + str(p['id']) + '\', -1, \'' + p['name'] + '\', ' + str(p['price']) + ', \'' + p['image_url'] + '\'); event.stopPropagation();'" class="w-10 h-full flex items-center justify-center text-blue-600 font-bold bg-blue-50 hover:bg-blue-100 transition border-r border-blue-200 active:bg-blue-200">
+                                                    <i class="fa fa-minus text-xs"></i>
+                                                </button>
+                                                <div t-att-id="'qty-' + str(p['id'])" class="flex-1 text-center font-bold text-sm text-gray-800">0</div>
+                                                <button t-att-onclick="'changeQtyFromCard(\'' + str(p['id']) + '\', 1, \'' + p['name'] + '\', ' + str(p['price']) + ', \'' + p['image_url'] + '\'); event.stopPropagation();'" class="w-10 h-full flex items-center justify-center text-blue-600 font-bold bg-blue-50 hover:bg-blue-100 transition border-l border-blue-200 active:bg-blue-200">
+                                                    <i class="fa fa-plus text-xs"></i>
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
                                 </t>
@@ -177,7 +192,39 @@
                         emptyCart.style.display = totalItems === 0 ? 'block' : 'none';
                         totalItemsBadge.textContent = `${totalItems} ta turdagi mahsulot`;
                         
+                        syncCards();
                         renderCart();
+                    }
+                    
+                    function syncCards() {
+                        document.querySelectorAll('.product-card').forEach(card => {
+                            const id = card.getAttribute('data-id');
+                            const qtyEl = document.getElementById('qty-' + id);
+                            if (!qtyEl) return;
+                            
+                            const inCartQty = cart[id] ? cart[id].qty : 0;
+                            qtyEl.textContent = inCartQty;
+                            
+                            if (inCartQty > 0) {
+                                // Highlight
+                                card.classList.replace('border-gray-200', 'border-blue-500');
+                                card.classList.add('bg-blue-50');
+                                card.classList.remove('bg-white');
+                            } else {
+                                // Default
+                                card.classList.replace('border-blue-500', 'border-gray-200');
+                                card.classList.add('bg-white');
+                                card.classList.remove('bg-blue-50');
+                            }
+                        });
+                    }
+
+                    function changeQtyFromCard(id, delta, name, price, img) {
+                        if (!cart[id] && delta > 0) {
+                            addToCart(id, name, price, img);
+                        } else if (cart[id]) {
+                            changeQty(id, delta);
+                        }
                     }
                     
                     function addToCart(id, name, price, img) {
@@ -243,21 +290,6 @@
                             cartList.appendChild(doc);
                         }
                     }
-                    
-                    // Setup Product Clicks
-                    document.querySelectorAll('.product-card').forEach(card => {
-                        card.addEventListener('click', function() {
-                            const id = this.getAttribute('data-id');
-                            const name = this.getAttribute('data-name');
-                            const price = this.getAttribute('data-price');
-                            const img = this.getAttribute('data-img');
-                            addToCart(id, name, price, img);
-                            
-                            // Visual click effect
-                            this.style.transform = 'scale(0.97)';
-                            setTimeout(() => this.style.transform = 'scale(1)', 100);
-                        });
-                    });
 
                     // Search Feature
                     searchInput.addEventListener('input', function(e) {
