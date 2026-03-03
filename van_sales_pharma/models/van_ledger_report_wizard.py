@@ -177,9 +177,9 @@ class VanLedgerReportWizard(models.TransientModel):
                 </thead>
                 <tbody>
                     <!-- Opening Balance Row -->
-                    <tr style="background-color: #fffbeb; font-weight: bold;">
+                    <tr style="background-color: #f8fafc; font-weight: bold; border-bottom: 2px solid #cbd5e1;">
                         <td>{date_from.strftime('%d.%m.%Y')}</td>
-                        <td>Boshlang'ich Qoldiq (Ostatka)</td>
+                        <td>Davr Boshidagi Qoldiq</td>
                         <td>-</td>
                         <td class="col-num">-</td>
                         <td class="col-num">-</td>
@@ -245,8 +245,18 @@ class VanLedgerReportWizard(models.TransientModel):
                     </tr>
                 """
         
-        # Close table
-        html += """
+        # Final Closing Balance Row
+        final_balance_class = "text-danger" if current_balance > 0 else "text-success" if current_balance < 0 else ""
+        html += f"""
+                    <!-- Closing Balance Row -->
+                    <tr style="background-color: #f8fafc; border-top: 2px solid #cbd5e1; font-weight: bold;">
+                        <td>{date_to.strftime('%d.%m.%Y')}</td>
+                        <td>Davr Oxiridagi Qoldiq</td>
+                        <td>-</td>
+                        <td class="col-num">-</td>
+                        <td class="col-num">-</td>
+                        <td class="col-num {final_balance_class}">{current_balance:,.0f} so'm</td>
+                    </tr>
                 </tbody>
             </table>
         </div>
