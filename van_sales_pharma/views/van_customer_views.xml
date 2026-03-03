@@ -86,6 +86,22 @@
                     </group>
 
                     <notebook>
+                        <page name="ostatka_qarzi" string="Ostatka Qarzi" style="background-color: #FFFDE7; border: 1px solid #ccc; border-radius: 4px; padding: 10px;">
+                            <field name="x_van_ostatka_ids">
+                                <list editable="bottom" string="Ostatka Qarzi">
+                                    <control>
+                                        <create name="add_line_control" string="+ Qator qo'shish"/>
+                                    </control>
+                                    <field name="date"/>
+                                    <field name="note" placeholder="Masalan: 2024-yil avgust qarzidan"/>
+                                    <field name="amount" sum="Summa"/>
+                                    <field name="currency_id" column_invisible="True"/>
+                                </list>
+                            </field>
+                            <group class="oe_subtotal_footer oe_right">
+                                <field name="x_van_ostatka_total" class="oe_subtotal_footer_separator"/>
+                            </group>
+                        </page>
                         <page name="notes" string="Izohlar">
                             <field name="comment" placeholder="Qo'shimcha ma'lumot kiritish..." nolabel="1"/>
                         </page>

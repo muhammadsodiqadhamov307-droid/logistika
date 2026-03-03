@@ -15,3 +15,4 @@ from . import van_request
 from . import van_product
 from . import telegram_utils
 from . import res_config_settings
+from . import van_ostatka_qarzi

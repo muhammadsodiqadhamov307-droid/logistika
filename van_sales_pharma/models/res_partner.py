@@ -25,6 +25,17 @@ class ResPartner(models.Model):
         compute='_compute_van_nasiya_stats'
     )
     
+    x_van_ostatka_ids = fields.One2many(
+        'van.ostatka.qarzi', 'partner_id',
+        string="Mijoz Ostatka Qarzi"
+    )
+    x_van_ostatka_total = fields.Monetary(
+        string="Jami Ostatka Qarzi",
+        compute='_compute_van_nasiya_stats',
+        currency_field='currency_id',
+        help="Systemadan oldingi tarixiy qarzlar yig'indisi"
+    )
+    
     x_van_balance = fields.Monetary(
         string='Mijoz Balansi',
         compute='_compute_van_nasiya_stats',
@@ -142,10 +153,14 @@ class ResPartner(models.Model):
             total_kirim = sum(p.amount for p in payments if p.payment_type == 'in')
             total_chiqim = sum(p.amount for p in payments if p.payment_type == 'out')
             
+            # Ostatka (Opening Balance Debts)
+            total_ostatka = sum(o.amount for o in partner.x_van_ostatka_ids)
+            
             # Sof hamyon xisobi (Wallet Balance)
             # Mijoz pul to'lasa (Kirim) -> Balans ko'payadi (+)
             # Mijozga pul qaytarilsa (Chiqim) yki Nasiyaga mahsulot olsa -> Balans kamayadi (-)
-            wallet_balance = total_kirim - total_chiqim - total_nasiya
+            # Ostatka qarz (avvaldan qolgan qarz) -> Balans kamayadi (-)
+            wallet_balance = total_kirim - total_chiqim - total_nasiya - total_ostatka
             
             # Eski method: Overdue hisoblash
             overdue_amount = 0.0
@@ -160,6 +175,7 @@ class ResPartner(models.Model):
             partner.x_van_balance = wallet_balance
             partner.x_van_total_overdue = overdue_amount
             partner.x_van_nasiya_count = len([n for n in nasiyas if n.state in ['open', 'partial']])
+            partner.x_van_ostatka_total = total_ostatka
 
     def _compute_van_payment_stats(self):
         for partner in self:
