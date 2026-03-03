@@ -10,7 +10,7 @@
             <list string="Taminotchilar (Suppliers)">
                 <field name="name"/>
                 <field name="phone"/>
-                <field name="balance" fg_color="#dc2626:balance &gt; 0;#16a34a:balance &lt;= 0;" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                <field name="balance" decoration-danger="balance &gt; 0" decoration-success="balance &lt;= 0" widget="monetary" options="{'currency_field': 'currency_id'}"/>
                 <field name="currency_id" column_invisible="1"/>
             </list>
         </field>
