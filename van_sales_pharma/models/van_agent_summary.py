@@ -15,15 +15,8 @@ class VanAgentSummary(models.Model):
 
     agent_id = fields.Many2one('res.users', string='Agent', required=True, index=True)
     # Filtrlash uchun sanalar (majburiy emas)
-    date_from = fields.Date(string='Dastlabki Sana', default=fields.Date.context_today)
-    date_to = fields.Date(string='Oxirgi Sana', default=fields.Date.context_today)
-
-    @api.onchange('date_from', 'date_to')
-    def _onchange_date_filters(self):
-        """Sana o'zgarganda hisobot maydonlarini darhol yangilash uchun"""
-        self._compute_financials()
-        self._compute_chiqim_ids()
-        self._compute_kirim_ids()
+    date_from = fields.Date(string='Dastlabki Sana', default=fields.Date.context_today, store=True)
+    date_to = fields.Date(string='Oxirgi Sana', default=fields.Date.context_today, store=True)
 
     def read(self, fields_list=None, **kwargs):
         """
@@ -96,8 +89,8 @@ class VanAgentSummary(models.Model):
             rec.inventory_count = len(active_lines)
 
     # === Sotuv buyurtmalari ===
-    pos_order_count = fields.Integer(string='Sotuvlar Soni', compute='_compute_financials')
-    pos_order_ids = fields.Many2many('van.pos.order', compute='_compute_financials', string="Sotuvlar Ro'yxati")
+    pos_order_count = fields.Integer(string='Sotuvlar Soni', compute='_compute_pos_orders')
+    pos_order_ids = fields.Many2many('van.pos.order', compute='_compute_pos_orders', string="Sotuvlar Ro'yxati")
 
     # === Chiqimlar ro'yxati (computed, for tab display & deletion) ===
     chiqim_ids = fields.Many2many(
@@ -152,18 +145,10 @@ class VanAgentSummary(models.Model):
             rec.kirim_ids = kirims
 
     @api.depends('date_from', 'date_to', 'agent_id')
-    def _compute_financials(self):
+    def _compute_pos_orders(self):
         for rec in self:
-            cash = nasiya = total = chiqim = 0
-            
-            # Domain for Custom Mobile POS orders
-            order_domain = [
-                ('agent_id', '=', rec.agent_id.id),
-                ('state', '=', 'done')
-            ]
-            
+            order_domain = [('agent_id', '=', rec.agent_id.id), ('state', '=', 'done')]
             tz = pytz.timezone(self.env.user.tz or self.env.context.get('tz') or 'UTC')
-            
             if rec.date_from:
                 local_start = tz.localize(datetime.combine(rec.date_from, time.min))
                 utc_start = local_start.astimezone(pytz.UTC).replace(tzinfo=None)
@@ -174,7 +159,15 @@ class VanAgentSummary(models.Model):
                 order_domain.append(('date', '<=', utc_end))
                 
             orders = self.env['van.pos.order'].search(order_domain)
-            count = len(orders)
+            rec.pos_order_ids = orders
+            rec.pos_order_count = len(orders)
+
+    @api.depends('date_from', 'date_to', 'agent_id', 'pos_order_ids', 'pos_order_ids.amount_total', 'chiqim_ids.amount', 'kirim_ids.amount')
+    def _compute_financials(self):
+        for rec in self:
+            cash = nasiya = total = chiqim = 0
+            
+            orders = rec.pos_order_ids
             total = sum(orders.mapped('amount_total'))
             
             # --- POS Naqt Savdo (Cash Sales) ---
@@ -183,20 +176,10 @@ class VanAgentSummary(models.Model):
             cash += naqt_savdo_total
             
             # --- Integrate van.payments ---
-            payment_domain = [
-                ('agent_id', '=', rec.agent_id.id),
-            ]
-            if rec.date_from:
-                payment_domain.append(('date', '>=', utc_start))  # uses the UTC blocks computed earlier in this function
-            if rec.date_to:
-                payment_domain.append(('date', '<=', utc_end))
-
-            van_payments = self.env['van.payment'].search(payment_domain)
-            for vp in van_payments:
-                if vp.payment_type == 'in':
-                    cash += vp.amount
-                elif vp.payment_type == 'out':
-                    chiqim += vp.amount
+            for vp in rec.kirim_ids:
+                cash += vp.amount
+            for vp in rec.chiqim_ids:
+                chiqim += vp.amount
             
             # Debt is exactly Total Sales minus all Cash in hand
             nasiya = max(0, total - cash)
@@ -204,8 +187,6 @@ class VanAgentSummary(models.Model):
             rec.total_cash = cash
             rec.total_nasiya = nasiya
             rec.total_sales = total
-            rec.pos_order_count = count
-            rec.pos_order_ids = [(6, 0, orders.ids)]
             rec.total_chiqim = chiqim
             rec.total_balance = cash - chiqim
 

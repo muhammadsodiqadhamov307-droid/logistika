@@ -64,7 +64,7 @@
                         <div class="col-md-2 col-6 text-center border-end">
                             <small class="text-muted">Sotuvlar</small>
                             <h4 class="fw-bold text-primary">
-                                <field name="pos_order_count" readonly="1" force_save="1"/>
+                                <field name="pos_order_count" readonly="1"/>
                             </h4>
                         </div>
                         <div class="col-md-2 col-6 text-center border-end">
@@ -73,7 +73,7 @@
                                 <field name="total_sales"
                                        widget="monetary"
                                        options="{'currency_field': 'currency_id'}"
-                                       readonly="1" force_save="1"/>
+                                       readonly="1"/>
                             </h4>
                         </div>
                         <div class="col-md-2 col-6 text-center border-end">
@@ -82,7 +82,7 @@
                                 <field name="total_cash"
                                        widget="monetary"
                                        options="{'currency_field': 'currency_id'}"
-                                       readonly="1" force_save="1"/>
+                                       readonly="1"/>
                             </h4>
                         </div>
                         <div class="col-md-2 col-6 text-center border-end">
@@ -91,7 +91,7 @@
                                 <field name="total_nasiya"
                                        widget="monetary"
                                        options="{'currency_field': 'currency_id'}"
-                                       readonly="1" force_save="1"/>
+                                       readonly="1"/>
                             </h4>
                         </div>
                         <div class="col-md-2 col-6 text-center border-end">
@@ -100,7 +100,7 @@
                                 <field name="total_chiqim"
                                        widget="monetary"
                                        options="{'currency_field': 'currency_id'}"
-                                       readonly="1" force_save="1"/>
+                                       readonly="1"/>
                             </h4>
                         </div>
                         <div class="col-md-2 col-6 text-center border-end">
@@ -109,7 +109,7 @@
                                 <field name="total_balance"
                                        widget="monetary"
                                        options="{'currency_field': 'currency_id'}"
-                                       readonly="1" force_save="1"/>
+                                       readonly="1"/>
                             </h4>
                         </div>
                         <div class="col-md-2 col-6 text-center" style="background: rgba(139, 92, 246, 0.1); border-radius: 8px;">
