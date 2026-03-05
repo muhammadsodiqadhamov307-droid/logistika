@@ -180,15 +180,6 @@
 
                 <!-- PRODUCTS SCREEN -->
                 <t t-if="state.screen === 'products'">
-                    <!-- Oylik Balansi Info Card -->
-                    <div t-if="state.currentAgent" style="background: linear-gradient(135deg, #3b82f6, #8b5cf6); color: white; padding: 12px 15px; border-radius: 10px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
-                        <div>
-                            <div style="font-size: 13px; opacity: 0.9;">Oylik Balansi</div>
-                            <div style="font-weight: bold; font-size: 18px;"><t t-esc="(state.currentAgent.oylik_balansi || 0).toLocaleString()"/> UZS</div>
-                        </div>
-                        <i class="fa fa-wallet" style="font-size: 24px; opacity: 0.8;"></i>
-                    </div>
-
                     <div style="margin-bottom: 15px;">
                         <input type="text" placeholder="Tovarni qidirish..." t-model="state.productSearchQuery" style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #d1d5db; font-size: 16px; box-sizing: border-box;"/>
                     </div>

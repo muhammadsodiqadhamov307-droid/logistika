@@ -225,11 +225,13 @@ class VanTrip(models.Model):
         total_global_nasiya = sum(p.x_van_total_due for p in partners)
 
         # 2. POS Cash & Card (Filtered by Date or All-Time)
-        # NOTE: Sales are ALL on nasiya (credit) — cash is only from van.payment records below.
         pos_orders = self.env['van.pos.order'].search(domain_pos)
-        t_cash = 0.0  # Will be filled from van.payment only
+        t_cash = 0.0  # Will be filled from van.payment AND Naqt Savdo
         t_card = 0.0
         t_chiqim = 0.0
+        
+        # --- POS Naqt Savdo (Cash Sales) ---
+        t_cash += sum(o.amount_total for o in pos_orders.filtered(lambda x: not x.partner_id and x.state == 'done'))
 
         # 3. Add Kirim / Track Chiqim (Filtered by Date or All-Time)
         van_payments = self.env['van.payment'].search(domain_vp)

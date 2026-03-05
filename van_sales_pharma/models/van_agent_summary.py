@@ -38,6 +38,8 @@ class VanAgentSummary(models.Model):
     company_id = fields.Many2one('res.company', default=lambda self: self.env.company)
     currency_id = fields.Many2one('res.currency', related='company_id.currency_id', store=True)
 
+    oylik_balansi = fields.Monetary(related='agent_id.oylik_balansi', string='Oylik Balansi', readonly=True)
+
     # === Moliyaviy ko'rsatkichlar ===
     total_cash = fields.Monetary(string='Naqt Pul', currency_field='currency_id',
                                  compute='_compute_financials')
@@ -159,6 +161,10 @@ class VanAgentSummary(models.Model):
             count = len(orders)
             total = sum(orders.mapped('amount_total'))
             
+            # --- POS Naqt Savdo (Cash Sales) ---
+            # Sum up all orders with no partner attached, as those are cash-in-hand
+            naqt_savdo_total = sum(o.amount_total for o in orders if not o.partner_id)
+            cash += naqt_savdo_total
             
             # --- Integrate van.payments ---
             payment_domain = [
@@ -176,6 +182,7 @@ class VanAgentSummary(models.Model):
                 elif vp.payment_type == 'out':
                     chiqim += vp.amount
             
+            # Debt is exactly Total Sales minus all Cash in hand
             nasiya = max(0, total - cash)
 
             rec.total_cash = cash
