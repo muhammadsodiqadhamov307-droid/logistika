@@ -89,106 +89,76 @@ class VanAgentSummary(models.Model):
             rec.inventory_count = len(active_lines)
 
     # === Sotuv buyurtmalari ===
-    pos_order_count = fields.Integer(string='Sotuvlar Soni', compute='_compute_pos_orders')
-    pos_order_ids = fields.Many2many('van.pos.order', compute='_compute_pos_orders', string="Sotuvlar Ro'yxati")
+    pos_order_count = fields.Integer(string='Sotuvlar Soni', compute='_compute_financials')
+    pos_order_ids = fields.Many2many('van.pos.order', compute='_compute_financials', string="Sotuvlar Ro'yxati")
 
     # === Chiqimlar ro'yxati (computed, for tab display & deletion) ===
     chiqim_ids = fields.Many2many(
         'van.payment',
-        compute='_compute_chiqim_ids',
+        compute='_compute_financials',
         string='Chiqimlar',
     )
     
     # === Kirimlar ro'yxati (computed, for tab display) ===
     kirim_ids = fields.Many2many(
         'van.payment',
-        compute='_compute_kirim_ids',
+        compute='_compute_financials',
         string='Kirimlar',
     )
 
     @api.depends('date_from', 'date_to', 'agent_id')
-    def _compute_chiqim_ids(self):
-        for rec in self:
-            domain = [
-                ('agent_id', '=', rec.agent_id.id),
-                ('payment_type', '=', 'out'),
-            ]
-            tz = pytz.timezone(self.env.user.tz or self.env.context.get('tz') or 'UTC')
-            if rec.date_from:
-                local_start = tz.localize(datetime.combine(rec.date_from, time.min))
-                utc_start = local_start.astimezone(pytz.UTC).replace(tzinfo=None)
-                domain.append(('date', '>=', utc_start))
-            if rec.date_to:
-                local_end = tz.localize(datetime.combine(rec.date_to, time.max))
-                utc_end = local_end.astimezone(pytz.UTC).replace(tzinfo=None)
-                domain.append(('date', '<=', utc_end))
-            chiqims = self.env['van.payment'].search(domain)
-            rec.chiqim_ids = chiqims
-
-    @api.depends('date_from', 'date_to', 'agent_id')
-    def _compute_kirim_ids(self):
-        for rec in self:
-            domain = [
-                ('agent_id', '=', rec.agent_id.id),
-                ('payment_type', '=', 'in'),
-            ]
-            tz = pytz.timezone(self.env.user.tz or self.env.context.get('tz') or 'UTC')
-            if rec.date_from:
-                local_start = tz.localize(datetime.combine(rec.date_from, time.min))
-                utc_start = local_start.astimezone(pytz.UTC).replace(tzinfo=None)
-                domain.append(('date', '>=', utc_start))
-            if rec.date_to:
-                local_end = tz.localize(datetime.combine(rec.date_to, time.max))
-                utc_end = local_end.astimezone(pytz.UTC).replace(tzinfo=None)
-                domain.append(('date', '<=', utc_end))
-            kirims = self.env['van.payment'].search(domain)
-            rec.kirim_ids = kirims
-
-    @api.depends('date_from', 'date_to', 'agent_id')
-    def _compute_pos_orders(self):
-        for rec in self:
-            order_domain = [('agent_id', '=', rec.agent_id.id), ('state', '=', 'done')]
-            tz = pytz.timezone(self.env.user.tz or self.env.context.get('tz') or 'UTC')
-            if rec.date_from:
-                local_start = tz.localize(datetime.combine(rec.date_from, time.min))
-                utc_start = local_start.astimezone(pytz.UTC).replace(tzinfo=None)
-                order_domain.append(('date', '>=', utc_start))
-            if rec.date_to:
-                local_end = tz.localize(datetime.combine(rec.date_to, time.max))
-                utc_end = local_end.astimezone(pytz.UTC).replace(tzinfo=None)
-                order_domain.append(('date', '<=', utc_end))
-                
-            orders = self.env['van.pos.order'].search(order_domain)
-            rec.pos_order_ids = orders
-            rec.pos_order_count = len(orders)
-
-    @api.depends('date_from', 'date_to', 'agent_id')
     def _compute_financials(self):
         for rec in self:
-            cash = nasiya = total = chiqim = 0
+            tz = pytz.timezone(self.env.user.tz or self.env.context.get('tz') or 'UTC')
+            utc_start = None
+            utc_end = None
+
+            if rec.date_from:
+                local_start = tz.localize(datetime.combine(rec.date_from, time.min))
+                utc_start = local_start.astimezone(pytz.UTC).replace(tzinfo=None)
+            if rec.date_to:
+                local_end = tz.localize(datetime.combine(rec.date_to, time.max))
+                utc_end = local_end.astimezone(pytz.UTC).replace(tzinfo=None)
             
-            orders = rec.pos_order_ids
+            # --- POS Orders ---
+            order_domain = [('agent_id', '=', rec.agent_id.id), ('state', '=', 'done')]
+            if utc_start: order_domain.append(('date', '>=', utc_start))
+            if utc_end: order_domain.append(('date', '<=', utc_end))
+            orders = self.env['van.pos.order'].search(order_domain)
+            
+            # --- Payments (Kirim / Chiqim) ---
+            payment_domain = [('agent_id', '=', rec.agent_id.id)]
+            if utc_start: payment_domain.append(('date', '>=', utc_start))
+            if utc_end: payment_domain.append(('date', '<=', utc_end))
+            all_payments = self.env['van.payment'].search(payment_domain)
+            
+            kirims = all_payments.filtered(lambda p: p.payment_type == 'in')
+            chiqims = all_payments.filtered(lambda p: p.payment_type == 'out')
+            
+            # --- Calculations ---
+            rec.pos_order_ids = orders
+            rec.pos_order_count = len(orders)
+            rec.kirim_ids = kirims
+            rec.chiqim_ids = chiqims
+            
             total = sum(orders.mapped('amount_total'))
             
-            # --- POS Naqt Savdo (Cash Sales) ---
             # Sum up all orders with no partner attached, as those are cash-in-hand
             naqt_savdo_total = sum(o.amount_total for o in orders if not o.partner_id)
-            cash += naqt_savdo_total
+            kirim_total = sum(kirims.mapped('amount'))
+            chiqim_total = sum(chiqims.mapped('amount'))
             
-            # --- Integrate van.payments ---
-            for vp in rec.kirim_ids:
-                cash += vp.amount
-            for vp in rec.chiqim_ids:
-                chiqim += vp.amount
+            cash = naqt_savdo_total + kirim_total
             
-            # Debt is exactly Total Sales minus all Cash in hand
+            # Nasiya = Jami Sotuv - Naqt Sotuv. Note: Kirim doesn't reduce total_nasiya dynamically?
+            # Actually, standard Odoo or old logic was: nasiya = max(0, total - cash)
             nasiya = max(0, total - cash)
 
             rec.total_cash = cash
             rec.total_nasiya = nasiya
             rec.total_sales = total
-            rec.total_chiqim = chiqim
-            rec.total_balance = cash - chiqim
+            rec.total_chiqim = chiqim_total
+            rec.total_balance = cash - chiqim_total
 
     def action_view_pos_orders(self):
         self.ensure_one()
