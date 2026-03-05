@@ -197,15 +197,21 @@ export class VanSalesDashboard extends Component {
             return;
         }
 
-        // Cash = only actual van.payment (kirim) records
+        // Cash = Actual van.payment (kirim) AND Naqt savdo (POS sales with partner_id = False)
         if (method === 'cash') {
-            let cashDomain = [['payment_type', '=', 'in'], ['payment_method', '=', 'cash']];
+            let cashDomain = [
+                '|',
+                '&', ['transaction_type', '=', 'kirim'], ['payment_method', '=', 'cash'],
+                '&', ['transaction_type', '=', 'sale'], ['partner_id', '=', false]
+            ];
+
             if (this.state.date_from) cashDomain.push(['date', '>=', this.state.date_from + ' 00:00:00']);
             if (this.state.date_to) cashDomain.push(['date', '<=', this.state.date_to + ' 23:59:59']);
+
             this.action.doAction({
                 type: 'ir.actions.act_window',
-                name: 'Naqt Pul Kirimlar',
-                res_model: 'van.payment',
+                name: 'Naqt Pul Amaliyotlari',
+                res_model: 'van.dashboard.detail',
                 view_mode: 'list,form',
                 views: [[false, 'list'], [false, 'form']],
                 domain: cashDomain,
