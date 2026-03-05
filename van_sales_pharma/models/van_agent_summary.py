@@ -14,10 +14,16 @@ class VanAgentSummary(models.Model):
     _rec_name = 'agent_id'
 
     agent_id = fields.Many2one('res.users', string='Agent', required=True, index=True)
-    
     # Filtrlash uchun sanalar (majburiy emas)
     date_from = fields.Date(string='Dastlabki Sana', default=fields.Date.context_today)
     date_to = fields.Date(string='Oxirgi Sana', default=fields.Date.context_today)
+
+    @api.onchange('date_from', 'date_to')
+    def _onchange_date_filters(self):
+        """Sana o'zgarganda hisobot maydonlarini darhol yangilash uchun"""
+        self._compute_financials()
+        self._compute_chiqim_ids()
+        self._compute_kirim_ids()
 
     def read(self, fields_list=None, **kwargs):
         """
