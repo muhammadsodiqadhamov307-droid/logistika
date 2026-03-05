@@ -17,6 +17,13 @@ class VanPayment(models.Model):
     sale_order_id = fields.Many2one('van.sale.order', string='Sotuv', ondelete='cascade')
     nasiya_id = fields.Many2one('van.nasiya', string='Nasiya', ondelete='cascade')
     taminotchi_id = fields.Many2one('van.taminotchi', string="Taminotchi (Yetkazib beruvchi)", ondelete='cascade')
+    taminotchi_balance_dummy = fields.Monetary(
+        string="Hisobidagi Qoldiq", 
+        related='taminotchi_id.balance', 
+        currency_field='currency_id', 
+        readonly=True,
+        help="Tanlangan Taminotchiga qancha qarzimiz borligini ko'rsatadi"
+    )
 
     payment_type = fields.Selection([
         ('in', 'Kirim (+)') ,
