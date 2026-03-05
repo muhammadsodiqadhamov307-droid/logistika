@@ -437,6 +437,10 @@
                             <field name="password" password="True" required="0"/>
                             <field name="x_phone"/>
                         </group>
+                        <group string="Oylik (Komissiya)">
+                            <field name="komissiya_foizi" widget="progressbar"/>
+                            <field name="oylik_balansi" readonly="1" decoration-bf="1" decoration-info="oylik_balansi > 0" widget="monetary" options="{'currency_field': 'x_currency_id'}"/>
+                        </group>
                         <group string="Kompaniya">
                             <field name="company_id" groups="base.group_multi_company"/>
                         </group>

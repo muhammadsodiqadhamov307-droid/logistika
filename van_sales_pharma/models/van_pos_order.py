@@ -18,6 +18,8 @@ class VanPosOrder(models.Model):
     date = fields.Datetime(string='Sana', required=True, default=fields.Datetime.now)
     
     amount_total = fields.Monetary(string='Jami Summa', compute='_compute_amount_total', store=True, currency_field='currency_id')
+    commission_amount = fields.Monetary(string='Komissiya Summasi', currency_field='currency_id', readonly=True,
+                                        help="Buyurtma tasdiqlanganda agentning komissiya foizidan kelib chiqib hisoblangan Oylik ulushi.")
     
     state = fields.Selection([
         ('draft', 'Qoralama'),
@@ -88,6 +90,9 @@ class VanPosOrder(models.Model):
             }
             nasiya = self.env['van.nasiya'].create(nasiya_vals)
             order.nasiya_id = nasiya.id
+            
+            # Snap the commission amount so it doesn't fluctuate if the admin changes the agent percentage later
+            order.commission_amount = order.amount_total * (order.agent_id.komissiya_foizi / 100.0)
             
             order.state = 'done'
 

@@ -40,6 +40,7 @@ export class VanMobilePos extends Component {
             quickActionAmount: '',
             quickActionNote: '',
             quickActionPartnerId: '',
+            quickActionExpenseType: 'daily',
 
             // Action Menu (3-dots)
             showActionMenu: false,
@@ -481,6 +482,7 @@ export class VanMobilePos extends Component {
         this.state.quickActionAmount = '';
         this.state.quickActionNote = '';
         this.state.quickActionPartnerId = '';
+        this.state.quickActionExpenseType = 'daily';
         this.state.showQuickAction = true;
     }
 
@@ -501,10 +503,12 @@ export class VanMobilePos extends Component {
                 type: this.state.quickActionType,
                 amount: amount,
                 note: this.state.quickActionNote,
-                partner_id: this.state.screen === 'products' ? this.state.selectedClient.id : (this.state.quickActionPartnerId ? parseInt(this.state.quickActionPartnerId) : null)
+                partner_id: this.state.screen === 'products' ? this.state.selectedClient.id : (this.state.quickActionPartnerId ? parseInt(this.state.quickActionPartnerId) : null),
+                expense_type: this.state.quickActionExpenseType
             });
 
             if (result.success) {
+                this.loadCurrentAgent(); // Refresh agent balance if it was a salary withdrawal
                 this.closeQuickAction();
                 // Optionally show a success toast here
             } else {

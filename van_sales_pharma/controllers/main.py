@@ -78,11 +78,12 @@ class VanPosController(http.Controller):
         return {'success': True, 'payment_id': payment.id}
 
     @http.route('/van/pos/submit_quick_action', type='jsonrpc', auth='user')
-    def submit_quick_action(self, type, amount, note='', partner_id=None):
+    def submit_quick_action(self, type, amount, note='', partner_id=None, expense_type='daily'):
         try:
             payment_vals = {
                 'agent_id': request.env.uid,
                 'payment_type': 'in' if type == 'kirim' else 'out',
+                'expense_type': expense_type if type == 'chiqim' else False,
                 'amount': float(amount),
                 'payment_method': 'cash',
                 'note': note,
@@ -186,6 +187,7 @@ class VanPosController(http.Controller):
                     'summary_id': summary_id,
                     'name': user.name,
                     'phone': user.phone or '',
+                    'oylik_balansi': user.oylik_balansi,
                     'image_url': f'/web/image?model=res.users&id={user.id}&field=avatar_128'
                 }
             return None

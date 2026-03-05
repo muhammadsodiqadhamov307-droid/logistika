@@ -103,6 +103,22 @@
                         </div>
                     </t>
 
+                    <t t-if="state.quickActionType === 'chiqim'">
+                        <div style="margin-bottom: 15px;">
+                            <label style="display: block; font-size: 14px; font-weight: bold; margin-bottom: 5px; color: #374151;">Chiqim Turi</label>
+                            <div style="display: flex; flex-direction: column; gap: 8px;">
+                                <label style="display: flex; align-items: center; gap: 8px; background: #f9fafb; padding: 10px; border-radius: 6px; border: 1px solid #e5e7eb;">
+                                    <input type="radio" t-model="state.quickActionExpenseType" value="daily" style="width: 18px; height: 18px; accent-color: #ef4444;"/>
+                                    <span style="font-size: 15px; color: #374151;">🟡 Kunlik chiqim (Biznes xarajat)</span>
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 8px; background: #f5f3ff; padding: 10px; border-radius: 6px; border: 1px solid #ddd6fe;">
+                                    <input type="radio" t-model="state.quickActionExpenseType" value="salary" style="width: 18px; height: 18px; accent-color: #8b5cf6;"/>
+                                    <span style="font-size: 15px; color: #4c1d95; font-weight: bold;">🟣 Oylik chiqim (Oylikdan)</span>
+                                </label>
+                            </div>
+                        </div>
+                    </t>
+
                     <div style="margin-bottom: 15px;">
                         <label style="display: block; font-size: 14px; font-weight: bold; margin-bottom: 5px; color: #374151;">Summa (So'm)</label>
                         <input type="number" t-model="state.quickActionAmount" placeholder="0" style="width: 100%; padding: 12px; border: 2px solid #d1d5db; border-radius: 8px; font-size: 18px; box-sizing: border-box; outline: none; transition: border-color 0.2s;" t-attf-style="border-color: {{ state.quickActionType === 'kirim' ? '#10b981' : '#ef4444' }};"/>
@@ -164,6 +180,15 @@
 
                 <!-- PRODUCTS SCREEN -->
                 <t t-if="state.screen === 'products'">
+                    <!-- Oylik Balansi Info Card -->
+                    <div t-if="state.currentAgent" style="background: linear-gradient(135deg, #3b82f6, #8b5cf6); color: white; padding: 12px 15px; border-radius: 10px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
+                        <div>
+                            <div style="font-size: 13px; opacity: 0.9;">Oylik Balansi</div>
+                            <div style="font-weight: bold; font-size: 18px;"><t t-esc="(state.currentAgent.oylik_balansi || 0).toLocaleString()"/> UZS</div>
+                        </div>
+                        <i class="fa fa-wallet" style="font-size: 24px; opacity: 0.8;"></i>
+                    </div>
+
                     <div style="margin-bottom: 15px;">
                         <input type="text" placeholder="Tovarni qidirish..." t-model="state.productSearchQuery" style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #d1d5db; font-size: 16px; box-sizing: border-box;"/>
                     </div>

@@ -30,6 +30,11 @@ class VanPayment(models.Model):
         ('out', 'Chiqim (-)')
     ], string='Turi', default='in', required=True)
 
+    expense_type = fields.Selection([
+        ('daily', '🟡 Kunlik Chiqim'),
+        ('salary', '🟣 Oylik Chiqim')
+    ], string='Chiqim Turi', default='daily', help="Chiqim bo'lganda bu agentning oyligidan chegiriladimi yoki yo'q")
+
     payment_method = fields.Selection([
         ('cash', 'Naqt'),
         ('card', 'Karta / Bank')
