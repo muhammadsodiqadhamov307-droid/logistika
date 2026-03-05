@@ -18,22 +18,6 @@ class VanAgentSummary(models.Model):
     date_from = fields.Date(string='Dastlabki Sana', default=fields.Date.context_today, store=True)
     date_to = fields.Date(string='Oxirgi Sana', default=fields.Date.context_today, store=True)
 
-    def read(self, fields_list=None, **kwargs):
-        """
-        Auto-reset date_from and date_to to today whenever the agent profile
-        is opened and the stored dates are outdated (date_to < today).
-        This ensures the agent always sees today's data on load,
-        while still allowing manual date filtering.
-        """
-        today = _date.today()
-        for rec in self:
-            if rec.date_to and rec.date_to < today:
-                rec.sudo().write({
-                    'date_from': today,
-                    'date_to': today,
-                })
-        return super().read(fields_list, **kwargs)
-
     company_id = fields.Many2one('res.company', default=lambda self: self.env.company)
     currency_id = fields.Many2one('res.currency', related='company_id.currency_id', store=True)
 
