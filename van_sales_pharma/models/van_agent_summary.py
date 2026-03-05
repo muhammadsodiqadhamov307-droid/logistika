@@ -114,10 +114,15 @@ class VanAgentSummary(models.Model):
                 ('agent_id', '=', rec.agent_id.id),
                 ('payment_type', '=', 'out'),
             ]
+            tz = pytz.timezone(self.env.user.tz or self.env.context.get('tz') or 'UTC')
             if rec.date_from:
-                domain.append(('date', '>=', rec.date_from))
+                local_start = tz.localize(datetime.combine(rec.date_from, time.min))
+                utc_start = local_start.astimezone(pytz.UTC).replace(tzinfo=None)
+                domain.append(('date', '>=', utc_start))
             if rec.date_to:
-                domain.append(('date', '<=', rec.date_to))
+                local_end = tz.localize(datetime.combine(rec.date_to, time.max))
+                utc_end = local_end.astimezone(pytz.UTC).replace(tzinfo=None)
+                domain.append(('date', '<=', utc_end))
             chiqims = self.env['van.payment'].search(domain)
             rec.chiqim_ids = chiqims
 
@@ -128,10 +133,15 @@ class VanAgentSummary(models.Model):
                 ('agent_id', '=', rec.agent_id.id),
                 ('payment_type', '=', 'in'),
             ]
+            tz = pytz.timezone(self.env.user.tz or self.env.context.get('tz') or 'UTC')
             if rec.date_from:
-                domain.append(('date', '>=', rec.date_from))
+                local_start = tz.localize(datetime.combine(rec.date_from, time.min))
+                utc_start = local_start.astimezone(pytz.UTC).replace(tzinfo=None)
+                domain.append(('date', '>=', utc_start))
             if rec.date_to:
-                domain.append(('date', '<=', rec.date_to))
+                local_end = tz.localize(datetime.combine(rec.date_to, time.max))
+                utc_end = local_end.astimezone(pytz.UTC).replace(tzinfo=None)
+                domain.append(('date', '<=', utc_end))
             kirims = self.env['van.payment'].search(domain)
             rec.kirim_ids = kirims
 
@@ -171,9 +181,9 @@ class VanAgentSummary(models.Model):
                 ('agent_id', '=', rec.agent_id.id),
             ]
             if rec.date_from:
-                payment_domain.append(('date', '>=', rec.date_from))
+                payment_domain.append(('date', '>=', utc_start))  # uses the UTC blocks computed earlier in this function
             if rec.date_to:
-                payment_domain.append(('date', '<=', rec.date_to))
+                payment_domain.append(('date', '<=', utc_end))
 
             van_payments = self.env['van.payment'].search(payment_domain)
             for vp in van_payments:
@@ -196,10 +206,16 @@ class VanAgentSummary(models.Model):
     def action_view_pos_orders(self):
         self.ensure_one()
         order_domain = [('agent_id', '=', self.agent_id.id)]
+        tz = pytz.timezone(self.env.user.tz or self.env.context.get('tz') or 'UTC')
+        
         if self.date_from:
-            order_domain.append(('date', '>=', datetime.combine(self.date_from, time.min)))
+            local_start = tz.localize(datetime.combine(self.date_from, time.min))
+            utc_start = local_start.astimezone(pytz.UTC).replace(tzinfo=None)
+            order_domain.append(('date', '>=', utc_start))
         if self.date_to:
-            order_domain.append(('date', '<=', datetime.combine(self.date_to, time.max)))
+            local_end = tz.localize(datetime.combine(self.date_to, time.max))
+            utc_end = local_end.astimezone(pytz.UTC).replace(tzinfo=None)
+            order_domain.append(('date', '<=', utc_end))
 
         orders = self.env['van.pos.order'].search(order_domain)
         return {
@@ -214,10 +230,17 @@ class VanAgentSummary(models.Model):
     def action_view_chiqimlar(self):
         self.ensure_one()
         domain = [('agent_id', '=', self.agent_id.id), ('payment_type', '=', 'out')]
+        tz = pytz.timezone(self.env.user.tz or self.env.context.get('tz') or 'UTC')
+        
         if self.date_from:
-            domain.append(('date', '>=', str(self.date_from)))
+            local_start = tz.localize(datetime.combine(self.date_from, time.min))
+            utc_start = local_start.astimezone(pytz.UTC).replace(tzinfo=None)
+            domain.append(('date', '>=', utc_start))
         if self.date_to:
-            domain.append(('date', '<=', str(self.date_to)))
+            local_end = tz.localize(datetime.combine(self.date_to, time.max))
+            utc_end = local_end.astimezone(pytz.UTC).replace(tzinfo=None)
+            domain.append(('date', '<=', utc_end))
+            
         return {
             'type': 'ir.actions.act_window',
             'name': f'{self.agent_id.name} - Chiqimlar',
@@ -230,10 +253,17 @@ class VanAgentSummary(models.Model):
     def action_view_kirimlar(self):
         self.ensure_one()
         domain = [('agent_id', '=', self.agent_id.id), ('payment_type', '=', 'in')]
+        tz = pytz.timezone(self.env.user.tz or self.env.context.get('tz') or 'UTC')
+        
         if self.date_from:
-            domain.append(('date', '>=', str(self.date_from)))
+            local_start = tz.localize(datetime.combine(self.date_from, time.min))
+            utc_start = local_start.astimezone(pytz.UTC).replace(tzinfo=None)
+            domain.append(('date', '>=', utc_start))
         if self.date_to:
-            domain.append(('date', '<=', str(self.date_to)))
+            local_end = tz.localize(datetime.combine(self.date_to, time.max))
+            utc_end = local_end.astimezone(pytz.UTC).replace(tzinfo=None)
+            domain.append(('date', '<=', utc_end))
+            
         return {
             'type': 'ir.actions.act_window',
             'name': f'{self.agent_id.name} - Kirimlar',
