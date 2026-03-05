@@ -240,6 +240,7 @@ class VanTrip(models.Model):
                     t_cash += vp.amount
             elif vp.payment_type == 'out':
                 t_chiqim += vp.amount
+                t_cash -= vp.amount  # Subtract chiqim so Naqt Pul equals agent's current balance
 
         # 4. Calculate Margin (Foyda) for Filtered sales
         # Margin = Total Price - standard_price * quantity
