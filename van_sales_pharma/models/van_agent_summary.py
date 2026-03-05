@@ -162,7 +162,7 @@ class VanAgentSummary(models.Model):
             rec.pos_order_ids = orders
             rec.pos_order_count = len(orders)
 
-    @api.depends('date_from', 'date_to', 'agent_id', 'pos_order_ids', 'pos_order_ids.amount_total', 'chiqim_ids.amount', 'kirim_ids.amount')
+    @api.depends('date_from', 'date_to', 'agent_id')
     def _compute_financials(self):
         for rec in self:
             cash = nasiya = total = chiqim = 0
