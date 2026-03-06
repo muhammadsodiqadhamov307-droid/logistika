@@ -10,6 +10,7 @@
             <list string="Taminotchilar (Suppliers)">
                 <field name="name"/>
                 <field name="phone"/>
+                <field name="ostatka_qarzi" optional="show" widget="monetary" options="{'currency_field': 'currency_id'}"/>
                 <field name="balance" decoration-danger="balance &gt; 0" decoration-success="balance &lt;= 0" widget="monetary" options="{'currency_field': 'currency_id'}"/>
                 <field name="currency_id" column_invisible="1"/>
             </list>
@@ -43,6 +44,7 @@
                         <group>
                             <field name="phone" widget="phone"/>
                             <field name="address"/>
+                            <field name="ostatka_qarzi" widget="monetary" options="{'currency_field': 'currency_id'}"/>
                             <field name="currency_id" invisible="1"/>
                         </group>
                     </group>

@@ -8,6 +8,7 @@ class VanTaminotchi(models.Model):
     name = fields.Char(string='Taminotchi Ismi/Kompaniyasi', required=True)
     phone = fields.Char(string='Telefon Raqami')
     address = fields.Text(string='Manzili')
+    ostatka_qarzi = fields.Monetary(string="Ostatka Qarzi", currency_field='currency_id', help="Tizim o'rnatilishidan oldingi qarz miqdori")
     
     # Financial fields
     balance = fields.Monetary(string="Joriy Balans", compute="_compute_balance", currency_field='currency_id')
@@ -17,7 +18,7 @@ class VanTaminotchi(models.Model):
     trip_ids = fields.One2many('van.trip', 'taminotchi_id', string="Mahsulot Yuklashlar")
     payment_ids = fields.One2many('van.payment', 'taminotchi_id', string="To'lovlar (Chiqim)")
 
-    @api.depends('trip_ids.amount_cost_total', 'payment_ids.amount', 'payment_ids.state')
+    @api.depends('trip_ids.amount_cost_total', 'payment_ids.amount', 'payment_ids.state', 'ostatka_qarzi')
     def _compute_balance(self):
         for rec in self:
             # Total owed is the sum of loaded goods at their cost price
@@ -26,8 +27,8 @@ class VanTaminotchi(models.Model):
             # Total paid is the sum of Chiqim payments related to this Taminotchi
             total_paid = sum(pay.amount for pay in rec.payment_ids if pay.state == 'received' and pay.payment_type == 'out')
             
-            # Balance represents how much we still owe them
-            rec.balance = total_debt - total_paid
+            # Balance represents how much we still owe them (including opening debt)
+            rec.balance = rec.ostatka_qarzi + total_debt - total_paid
 
     def action_view_ledger(self):
         self.ensure_one()

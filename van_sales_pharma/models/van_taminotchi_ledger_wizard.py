@@ -38,8 +38,8 @@ class VanTaminotchiLedgerWizard(models.TransientModel):
         ])
         past_paid = sum(p.amount for p in past_payments)
         
-        # Initial Balance (Positive means we owe them)
-        opening_balance = past_debt - past_paid
+        # Initial Balance (Positive means we owe them, including opening debt)
+        opening_balance = taminotchi.ostatka_qarzi + past_debt - past_paid
 
         # 2. Fetch Records within Range
         lines = []
