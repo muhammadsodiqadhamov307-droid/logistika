@@ -458,14 +458,7 @@
                             <field name="company_id" groups="base.group_multi_company"/>
                         </group>
                     </group>
-                    <notebook>
-                        <page string="Kompansatsiyalar">
-                            <group>
-                                <field name="x_commission_balance" readonly="1"/>
-                                <field name="x_currency_id" invisible="1"/>
-                            </group>
-                        </page>
-                    </notebook>
+
                 </sheet>
             </form>
         </field>
