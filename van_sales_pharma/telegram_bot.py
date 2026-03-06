@@ -26,9 +26,10 @@ from telegram.ext import (
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Basic Odoo Connection Setup 
-# In a real environment, read these from environment variables or a config file
-ODOO_URL = "https://logistics1234.duckdns.org"
+# We use localhost here just to connect to the local database via XML-RPC.
+# The actual public URL that gets sent to Telegram (for Web Apps) is pulled dynamically
+# from Odoo's System Settings (web.base.url or van_telegram_odoo_url) in get_web_app_button.
+ODOO_URL = "http://localhost:8069"
 ODOO_DB = "default"
 ODOO_USER = "admin"  # Hardcoded per instructions for local script
 ODOO_PASSWORD = "admin" # Adjust if your local db admin password is different
