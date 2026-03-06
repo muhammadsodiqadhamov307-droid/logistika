@@ -289,7 +289,14 @@ class VanAgentInventoryLine(models.Model):
                 period_lines = self.env['van.pos.order.line'].search(period_domain)
                 period_sold = sum(period_lines.mapped('qty'))
 
+            # 3. Ostatka qty
+            ostatka_records = self.env['van.agent.ostatka'].search([
+                ('agent_id', '=', agent_id),
+                ('product_id', '=', product_id)
+            ])
+            ostatka_qty = sum(ostatka_records.mapped('qty'))
+
             line.sold_qty = period_sold
             line.returned_qty = 0.0
-            line.remaining_qty = max(0.0, line.loaded_qty - all_time_sold)
+            line.remaining_qty = max(0.0, (line.loaded_qty + ostatka_qty) - all_time_sold)
             line.subtotal_sold = period_sold * line.price_unit

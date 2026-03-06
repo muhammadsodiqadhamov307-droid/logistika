@@ -457,7 +457,19 @@
                             <field name="company_id" groups="base.group_multi_company"/>
                         </group>
                     </group>
-
+                    <notebook>
+                        <page string="Ostatka Inventar">
+                            <field name="ostatka_ids">
+                                <list string="Ostatka Inventar" editable="bottom">
+                                    <field name="product_id"/>
+                                    <field name="qty" sum="Jami mahsulotlar soni"/>
+                                    <field name="kelish_narxi"/>
+                                    <field name="sotish_narxi"/>
+                                    <field name="jami" sum="Jami kelish narxida" readonly="1" force_save="1"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
                 </sheet>
             </form>
         </field>

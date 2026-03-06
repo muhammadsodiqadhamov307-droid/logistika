@@ -13,6 +13,9 @@ class ResUsers(models.Model):
                                     currency_field='x_currency_id',
                                     help="Agentning joriy oylik komissiyalari yig'indisi minus Oylik Chiqimlar")
 
+    ostatka_ids = fields.One2many('van.agent.ostatka', 'agent_id', string='Boshlang\'ich qoldiq (Ostatka)')
+
+
     def _compute_oylik_balansi(self):
         for user in self:
             # 1. Total Commission Earned (sales with state='done')

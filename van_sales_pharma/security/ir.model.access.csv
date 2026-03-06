@@ -34,3 +34,5 @@ access_van_ostatka_agent,van.ostatka.qarzi agent,model_van_ostatka_qarzi,van_sal
 access_van_ledger_report_wizard,van.ledger.report.wizard admin,model_van_ledger_report_wizard,van_sales_pharma.group_van_admin,1,1,1,1
 access_van_taminotchi_admin,van.taminotchi admin,model_van_taminotchi,van_sales_pharma.group_van_admin,1,1,1,1
 access_van_taminotchi_ledger_wizard,van.taminotchi.ledger.wizard admin,model_van_taminotchi_ledger_wizard,van_sales_pharma.group_van_admin,1,1,1,1
+access_van_agent_ostatka_admin,van.agent.ostatka admin,model_van_agent_ostatka,van_sales_pharma.group_van_admin,1,1,1,1
+access_van_agent_ostatka_agent,van.agent.ostatka agent,model_van_agent_ostatka,van_sales_pharma.group_van_agent,1,0,0,0
