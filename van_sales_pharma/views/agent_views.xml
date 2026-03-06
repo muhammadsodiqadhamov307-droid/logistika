@@ -404,8 +404,7 @@
         <field name="state">code</field>
         <field name="code">
 # Sayohat boshlanishida barcha agentlarning hisobot sanasini bugungi kunga qaytarish
-from datetime import date
-today = date.today()
+today = datetime.date.today()
 env['van.agent.summary'].search([]).write({
     'date_from': today,
     'date_to': today
