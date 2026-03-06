@@ -12,6 +12,16 @@ class VanSalaryPayout(models.Model):
     notes = fields.Text(string='Izoh')
     admin_id = fields.Many2one('res.users', string='Kim tomonidan', default=lambda self: self.env.user, readonly=True)
     currency_id = fields.Many2one('res.currency', string='Valyuta', default=lambda self: self.env.company.currency_id)
+    linked_payment_id = fields.Many2one('van.payment', string='Bog\'langan To\'lov', ondelete='cascade')
+
+    def action_delete_payout(self):
+        self.ensure_one()
+        # Deleting the payout will automatically delete the linked payment due to ondelete='cascade'
+        # if we delete the payout record from the list. 
+        # But we want to be explicit and allow calling this from a button.
+        if self.linked_payment_id:
+            self.linked_payment_id.unlink()
+        return self.unlink()
 
 class VanSalaryPayoutWizard(models.TransientModel):
     _name = 'van.salary.payout.wizard'
@@ -46,6 +56,9 @@ class VanSalaryPayoutWizard(models.TransientModel):
             'date': fields.Datetime.now(),
             'note': f"Oylik To'lovi (Yopish): {self.notes or ''}"
         }
-        self.env['van.payment'].create(payment_vals)
+        payment = self.env['van.payment'].create(payment_vals)
+        
+        # 3. Link Payment to Payout
+        payout.write({'linked_payment_id': payment.id})
         
         return {'type': 'ir.actions.act_window_close'}

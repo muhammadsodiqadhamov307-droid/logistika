@@ -69,6 +69,8 @@
                                     <field name="amount" string="Summa" sum="Jami To'langan" widget="monetary"/>
                                     <field name="notes" string="Izoh"/>
                                     <field name="admin_id" string="Kim tomonidan"/>
+                                    <button name="action_delete_payout" type="object" icon="fa-trash-o" class="text-danger" 
+                                            confirm="Bu oylik to'lovni o'chirishni tasdiqlaysizmi? Balans qayta tiklanadi."/>
                                     <field name="currency_id" column_invisible="True"/>
                                 </list>
                             </field>
