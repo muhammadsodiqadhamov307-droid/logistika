@@ -428,8 +428,7 @@
                 <field name="name"/>
                 <field name="login"/>
                 <field name="x_phone"/>
-                <field name="x_commission_balance" widget="monetary" options="{'currency_field': 'x_currency_id'}"/>
-                <field name="x_currency_id" column_invisible="True"/>
+
             </list>
         </field>
     </record>
