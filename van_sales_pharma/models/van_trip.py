@@ -175,8 +175,12 @@ class VanTrip(models.Model):
         if not location:
             raise UserError(_("Hech qanday ichki ombor topilmadi. Iltimos omborni sozlang."))
             
+        if not agent.default_taminotchi_id:
+            raise UserError(_("Sizga taminotchi biriktirilmagan. Iltimos, administratorga murojaat qiling."))
+            
         trip_vals = {
             'agent_id': agent.id,
+            'taminotchi_id': agent.default_taminotchi_id.id,
             'location_id': location.id,
             'state': 'draft',
             'trip_line_ids': [(0, 0, {

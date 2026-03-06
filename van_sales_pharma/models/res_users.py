@@ -14,6 +14,7 @@ class ResUsers(models.Model):
                                     help="Agentning joriy oylik komissiyalari yig'indisi minus Oylik Chiqimlar")
 
     ostatka_ids = fields.One2many('van.agent.ostatka', 'agent_id', string='Boshlang\'ich qoldiq (Ostatka)')
+    default_taminotchi_id = fields.Many2one('van.taminotchi', string="Asosiy Taminotchi", help="Yangi Yuklash qilishda avtomatik tanlanuvchi Taminotchi")
 
 
     def _compute_oylik_balansi(self):

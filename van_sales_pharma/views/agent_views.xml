@@ -192,15 +192,7 @@
             <form string="Agent Inventari" create="0" edit="0">
                 <sheet>
                     <div class="row mb-4">
-                        <div class="col-12 col-md-3">
-                            <div class="card text-center text-bg-primary shadow-sm" style="border: none; border-radius: 8px;">
-                                <div class="card-body">
-                                    <h6 class="card-title text-uppercase text-white-50 mb-1" style="font-size: 0.85rem; font-weight: 600;">Jami Mahsulotlar Soni</h6>
-                                    <h2 class="mb-0 text-white" style="font-weight: 700;"><field name="total_inventory_qty"/></h2>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-12 col-md-3">
+                        <div class="col-12 col-md-4">
                             <div class="card text-center text-bg-success shadow-sm" style="border: none; border-radius: 8px;">
                                 <div class="card-body">
                                     <h6 class="card-title text-uppercase text-white-50 mb-1" style="font-size: 0.85rem; font-weight: 600;">Jami Summa (Sotuv Narxida)</h6>
@@ -208,7 +200,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="col-12 col-md-3">
+                        <div class="col-12 col-md-4">
                             <div class="card text-center text-bg-warning shadow-sm" style="border: none; border-radius: 8px;">
                                 <div class="card-body">
                                     <h6 class="card-title text-uppercase text-dark-50 mb-1" style="font-size: 0.85rem; font-weight: 600;">Kutilayotgan Foyda</h6>
@@ -216,7 +208,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="col-12 col-md-3">
+                        <div class="col-12 col-md-4">
                             <div class="card text-center text-bg-danger shadow-sm" style="border: none; border-radius: 8px;">
                                 <div class="card-body">
                                     <h6 class="card-title text-uppercase text-white-50 mb-1" style="font-size: 0.85rem; font-weight: 600;">Jami Summa (Olish Narxida)</h6>
@@ -404,17 +396,33 @@
     </record>
 
     <!-- ============================================================
-         ACTION
+         ACTION (SERVER)
     ============================================================ -->
-    <record id="action_van_agent_summary" model="ir.actions.act_window">
+    <record id="action_van_agent_summary" model="ir.actions.server">
         <field name="name">Agentlar Hisoboti</field>
-        <field name="res_model">van.agent.summary</field>
-        <field name="view_mode">kanban,list,form</field>
-        <field name="view_ids" eval="[(5, 0, 0),
-            (0, 0, {'view_mode': 'kanban', 'view_id': ref('view_van_agent_summary_kanban')}),
-            (0, 0, {'view_mode': 'list', 'view_id': ref('view_van_agent_summary_list')}),
-            (0, 0, {'view_mode': 'form', 'view_id': ref('view_van_agent_summary_form')})]"/>
-        <field name="context">{}</field>
+        <field name="model_id" ref="model_van_agent_summary"/>
+        <field name="state">code</field>
+        <field name="code">
+# Sayohat boshlanishida barcha agentlarning hisobot sanasini bugungi kunga qaytarish
+from datetime import date
+today = date.today()
+env['van.agent.summary'].search([]).write({
+    'date_from': today,
+    'date_to': today
+})
+
+action = {
+    'name': 'Agentlar Hisoboti',
+    'type': 'ir.actions.act_window',
+    'res_model': 'van.agent.summary',
+    'view_mode': 'kanban,list,form',
+    'view_ids': [(5, 0, 0),
+        (0, 0, {'view_mode': 'kanban', 'view_id': env.ref('van_sales_pharma.view_van_agent_summary_kanban').id}),
+        (0, 0, {'view_mode': 'list', 'view_id': env.ref('van_sales_pharma.view_van_agent_summary_list').id}),
+        (0, 0, {'view_mode': 'form', 'view_id': env.ref('van_sales_pharma.view_van_agent_summary_form').id})],
+    'context': {}
+}
+        </field>
     </record>
 
     <!-- ============================================================
@@ -448,6 +456,7 @@
                             <field name="login"/>
                             <field name="password" password="True" required="0"/>
                             <field name="x_phone"/>
+                            <field name="default_taminotchi_id"/>
                         </group>
                         <group string="Oylik (Komissiya)">
                             <field name="komissiya_foizi"/>
