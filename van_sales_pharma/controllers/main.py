@@ -188,6 +188,8 @@ class VanPosController(http.Controller):
                     'name': user.name,
                     'phone': user.phone or '',
                     'oylik_balansi': user.oylik_balansi,
+                    'default_taminotchi_id': user.default_taminotchi_id.id,
+                    'default_taminotchi_name': user.default_taminotchi_id.name or '',
                     'image_url': f'/web/image?model=res.users&id={user.id}&field=avatar_128'
                 }
             return None
@@ -211,10 +213,11 @@ class VanPosController(http.Controller):
             if not location:
                 return {'success': False, 'error': "Ombor topilmadi!"}
 
-            # Fetch a default Taminotchi
-            taminotchi = request.env['van.taminotchi'].sudo().search([], limit=1)
+            # Fetch the agent's default Taminotchi
+            agent = request.env['res.users'].sudo().browse(int(agent_id))
+            taminotchi = agent.default_taminotchi_id
             if not taminotchi:
-                return {'success': False, 'error': "Taminotchi (Yetkazib beruvchi) topilmadi! Iltimos bazaga Taminotchi qo'shing."}
+                return {'success': False, 'error': "Sizga taminotchi biriktirilmagan. Iltimos, administratorga murojaat qiling."}
 
             trip_vals = {
                 'taminotchi_id': taminotchi.id,
