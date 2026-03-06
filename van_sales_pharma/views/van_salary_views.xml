@@ -16,13 +16,77 @@
         </field>
     </record>
 
+    <!-- OYLIK YOPISH WIZARD VIEW -->
+    <record id="view_van_salary_payout_wizard_form" model="ir.ui.view">
+        <field name="name">van.salary.payout.wizard.form</field>
+        <field name="model">van.salary.payout.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Oylik Yopish">
+                <group>
+                    <field name="agent_id" invisible="1"/>
+                    <field name="amount" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                    <field name="notes" placeholder="Izoh yozing..."/>
+                    <field name="currency_id" invisible="1"/>
+                </group>
+                <footer>
+                    <button string="Tasdiqlash" name="action_confirm_payout" type="object" class="btn-primary" data-hotkey="q"/>
+                    <button string="Bekor qilish" class="btn-secondary" special="cancel" data-hotkey="x"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- OYLANIKLAR (SALARY) FORM VIEW -->
+    <record id="view_van_agent_salary_form" model="ir.ui.view">
+        <field name="name">res.users.salary.form</field>
+        <field name="model">res.users</field>
+        <field name="arch" type="xml">
+            <form string="Agent Oylik Tafsilotlari" create="0" edit="0">
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="name"/></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <label for="oylik_balansi" string="Joriy Oylik Balansi"/>
+                            <div class="o_row">
+                                <field name="oylik_balansi" widget="monetary" options="{'currency_field': 'x_currency_id'}" style="font-size: 20px; font-weight: bold; color: #1e3a8a;"/>
+                                <field name="x_currency_id" invisible="1"/>
+                            </div>
+                        </group>
+                        <group>
+                            <button name="action_close_salary" type="object" string="Oylik Yopish (To'lash)" 
+                                    class="btn-success btn-lg" icon="fa-money"
+                                    invisible="oylik_balansi &lt;= 0"/>
+                        </group>
+                    </group>
+                    
+                    <notebook>
+                        <page string="Oylik To'lovlar Tarixi" name="payouts">
+                            <field name="salary_payout_ids" readonly="1">
+                                <list string="To'lovlar Tarixi">
+                                    <field name="date" string="Sana"/>
+                                    <field name="amount" string="Summa" sum="Jami To'langan" widget="monetary"/>
+                                    <field name="notes" string="Izoh"/>
+                                    <field name="admin_id" string="Kim tomonidan"/>
+                                    <field name="currency_id" column_invisible="True"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
     <!-- OYLANIKLAR (SALARY) ACTION -->
     <record id="action_van_salary_list" model="ir.actions.act_window">
         <field name="name">Oyliklar</field>
         <field name="res_model">res.users</field>
         <field name="view_mode">list,form</field>
         <field name="view_ids" eval="[(5, 0, 0),
-            (0, 0, {'view_mode': 'list', 'view_id': ref('view_van_agent_salary_tree')})]"/>
+            (0, 0, {'view_mode': 'list', 'view_id': ref('view_van_agent_salary_tree')}),
+            (0, 0, {'view_mode': 'form', 'view_id': ref('view_van_agent_salary_form')})]"/>
         <field name="domain">[('share', '=', False), ('komissiya_foizi', '>', 0)]</field>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">

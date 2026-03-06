@@ -14,6 +14,7 @@ class ResUsers(models.Model):
                                     help="Agentning joriy oylik komissiyalari yig'indisi minus Oylik Chiqimlar")
 
     ostatka_ids = fields.One2many('van.agent.ostatka', 'agent_id', string='Boshlang\'ich qoldiq (Ostatka)')
+    salary_payout_ids = fields.One2many('van.salary.payout', 'agent_id', string='Oylik To\'lovlar Tarixi')
     default_taminotchi_id = fields.Many2one('van.taminotchi', string="Asosiy Taminotchi", help="Yangi Yuklash qilishda avtomatik tanlanuvchi Taminotchi")
 
 
@@ -36,24 +37,28 @@ class ResUsers(models.Model):
             ])
             total_paid = sum(salary_payments.mapped('amount'))
 
-            user.oylik_balansi = total_earned - total_paid
+            # 3. Total Salary Payouts (van.salary.payout)
+            total_payouts = sum(user.salary_payout_ids.mapped('amount'))
+
+            user.oylik_balansi = total_earned - total_paid - total_payouts
 
     def action_close_salary(self):
         """
-        Pays out the entire remaining oylik_balansi to the agent.
-        Creates a 'salary' expense payment.
+        Opens a wizard to pay out the entire remaining oylik_balansi to the agent.
         """
-        for user in self:
-            if user.oylik_balansi > 0.0:
-                payment_vals = {
-                    'agent_id': user.id,
-                    'payment_type': 'out',
-                    'expense_type': 'salary',
-                    'amount': user.oylik_balansi,
-                    'payment_method': 'cash',
-                    'note': f"Oylik qoldig'ini yopish. Komissiya foizi: {user.komissiya_foizi}%"
-                }
-                self.env['van.payment'].create(payment_vals)
+        self.ensure_one()
+        return {
+            'name': 'Oylik Yopish (To\'lov)',
+            'type': 'ir.actions.act_window',
+            'res_model': 'van.salary.payout.wizard',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {
+                'default_agent_id': self.id,
+                'default_amount': self.oylik_balansi,
+                'default_notes': f"Oylik qoldig'ini yopish. Komissiya foizi: {self.komissiya_foizi}%"
+            }
+        }
 
     @api.model
     def _get_login_action(self, *args, **kwargs):
