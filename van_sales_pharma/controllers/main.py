@@ -196,8 +196,16 @@ class VanPosController(http.Controller):
         except Exception as e:
             return None
 
+    @http.route('/van/pos/get_taminotchis', type='jsonrpc', auth='user')
+    def get_taminotchis(self):
+        taminotchis = request.env['van.taminotchi'].sudo().search([])
+        return [{
+            'id': t.id,
+            'name': t.name,
+        } for t in taminotchis]
+
     @http.route('/van/pos/submit_trip', type='jsonrpc', auth='user')
-    def submit_trip(self, agent_id, date, note, lines):
+    def submit_trip(self, agent_id, date, note, lines, taminotchi_id=None):
         try:
             if not agent_id:
                 return {'success': False, 'error': "Agentni tanlash majburiy!"}
@@ -213,11 +221,15 @@ class VanPosController(http.Controller):
             if not location:
                 return {'success': False, 'error': "Ombor topilmadi!"}
 
-            # Fetch the agent's default Taminotchi
-            agent = request.env['res.users'].sudo().browse(int(agent_id))
-            taminotchi = agent.default_taminotchi_id
-            if not taminotchi:
-                return {'success': False, 'error': "Sizga taminotchi biriktirilmagan. Iltimos, administratorga murojaat qiling."}
+            # Fetch Taminotchi
+            if taminotchi_id:
+                taminotchi = request.env['van.taminotchi'].sudo().browse(int(taminotchi_id))
+            else:
+                agent = request.env['res.users'].sudo().browse(int(agent_id))
+                taminotchi = agent.default_taminotchi_id
+            
+            if not taminotchi or not taminotchi.exists():
+                return {'success': False, 'error': "Sizga taminotchi biriktirilmagan. Iltimos, taminotchini tanlang yoki administratorga murojaat qiling."}
 
             trip_vals = {
                 'taminotchi_id': taminotchi.id,

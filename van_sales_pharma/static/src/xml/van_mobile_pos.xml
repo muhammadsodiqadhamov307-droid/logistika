@@ -650,25 +650,25 @@
 
                         <div style="margin-bottom: 15px;">
                             <label style="display: block; font-size: 14px; font-weight: bold; margin-bottom: 5px; color: #374151;">Taminotchi (Kimdan)</label>
-                            <t t-if="state.currentAgent and state.currentAgent.default_taminotchi_name">
-                                <div style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; background-color: #f3f4f6; color: #374151; display: flex; align-items: center; justify-content: space-between; cursor: not-allowed; text-align: left;">
-                                    <div style="display: flex; align-items: center; gap: 10px;">
-                                        <div style="width: 30px; height: 30px; background-color: #fce7f3; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #db2777;">
-                                            <i class="fa fa-truck"></i>
-                                        </div>
-                                        <div style="display: flex; flex-direction: column;">
-                                            <span style="font-weight: bold; line-height: 1.2;"><t t-esc="state.currentAgent.default_taminotchi_name"/></span>
-                                            <span style="font-size: 11px; color: #6b7280;">Barcha qarzlar ushbu taminotchiga yoziladi</span>
-                                        </div>
-                                    </div>
-                                    <i class="fa fa-lock" style="color: #9ca3af;"></i>
+                            <div style="position: relative; width: 100%;">
+                                <select t-model="state.selectedTaminotchiId" style="width: 100%; padding: 12px 40px 12px 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; background-color: #ffffff; color: #374151; appearance: none; -webkit-appearance: none; outline: none; cursor: pointer; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+                                    <option value="">-- Taminotchini tanlang --</option>
+                                    <t t-foreach="state.taminotchis" t-as="t" t-key="t.id">
+                                        <option t-att-value="t.id" t-att-selected="t.id == state.selectedTaminotchiId">
+                                            <t t-esc="t.name"/>
+                                        </option>
+                                    </t>
+                                </select>
+                                <div style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); pointer-events: none; color: #6b7280;">
+                                    <i class="fa fa-chevron-down"></i>
                                 </div>
-                            </t>
-                            <t t-else="">
-                                <div style="background-color: #fee2e2; color: #b91c1c; padding: 12px; border-radius: 8px; font-size: 14px; text-align: center; border: 1px solid #fca5a5;">
-                                    <i class="fa fa-exclamation-triangle" style="margin-right: 5px;"></i> Sizga taminotchi biriktirilmagan. Iltimos, administratorga murojaat qiling.
-                                </div>
-                            </t>
+                            </div>
+                            <div t-if="!state.selectedTaminotchiId" style="margin-top: 5px; color: #b91c1c; font-size: 12px; display: flex; align-items: center; gap: 5px;">
+                                <i class="fa fa-exclamation-circle"></i> Taminotchi tanlanmagan. Iltimos, tanlang.
+                            </div>
+                            <div t-else="" style="margin-top: 5px; color: #6b7280; font-size: 12px;">
+                                Barcha qarzlar ushbu taminotchiga yoziladi.
+                            </div>
                         </div>
 
                         <!-- Replaced by integrated grid below -->

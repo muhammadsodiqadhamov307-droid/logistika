@@ -62,6 +62,8 @@ export class VanMobilePos extends Component {
 
             // Mahsulot Yuklash (Trip Load) features
             currentAgent: null,
+            taminotchis: [],
+            selectedTaminotchiId: null,
             tripsList: [],
             activeTrip: null,
             tripDate: new Date().toISOString().split('T')[0], // Defaults to today
@@ -83,7 +85,8 @@ export class VanMobilePos extends Component {
             await Promise.all([
                 this.loadClients(),
                 this.loadInventory(),
-                this.loadCurrentAgent()
+                this.loadCurrentAgent(),
+                this.loadTaminotchis()
             ]);
 
             this.state.pollingInterval = setInterval(() => {
@@ -135,6 +138,17 @@ export class VanMobilePos extends Component {
     async loadCurrentAgent() {
         try {
             this.state.currentAgent = await rpc("/van/pos/get_current_agent", {});
+            if (this.state.currentAgent && this.state.currentAgent.default_taminotchi_id) {
+                this.state.selectedTaminotchiId = this.state.currentAgent.default_taminotchi_id;
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    async loadTaminotchis() {
+        try {
+            this.state.taminotchis = await rpc("/van/pos/get_taminotchis", {});
         } catch (e) {
             console.error(e);
         }
@@ -642,6 +656,7 @@ export class VanMobilePos extends Component {
         try {
             const result = await rpc("/van/pos/submit_trip", {
                 agent_id: parseInt(this.state.currentAgent.id),
+                taminotchi_id: this.state.selectedTaminotchiId,
                 date: this.state.tripDate,
                 note: this.state.tripNote,
                 lines: validLines
