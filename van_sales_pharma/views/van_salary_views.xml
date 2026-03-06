@@ -66,7 +66,7 @@
                             <field name="salary_payout_ids" readonly="1">
                                 <list string="To'lovlar Tarixi">
                                     <field name="date" string="Sana"/>
-                                    <field name="amount" string="Summa" sum="Jami To'langan" widget="monetary"/>
+                                    <field name="summa" string="Summa" sum="Jami To'langan" widget="monetary"/>
                                     <field name="notes" string="Izoh"/>
                                     <field name="admin_id" string="Kim tomonidan"/>
                                     <button name="action_delete_payout" type="object" icon="fa-trash-o" class="text-danger" 

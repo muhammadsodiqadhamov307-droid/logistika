@@ -8,19 +8,22 @@ class VanSalaryPayout(models.Model):
 
     agent_id = fields.Many2one('res.users', string='Agent', required=True, ondelete='cascade')
     date = fields.Date(string='Sana', default=fields.Date.context_today, required=True)
-    amount = fields.Monetary(string='Summa', required=True, currency_field='currency_id')
+    summa = fields.Monetary(string='Summa', required=True, currency_field='currency_id')
     notes = fields.Text(string='Izoh')
     admin_id = fields.Many2one('res.users', string='Kim tomonidan', default=lambda self: self.env.user, readonly=True)
     currency_id = fields.Many2one('res.currency', string='Valyuta', default=lambda self: self.env.company.currency_id)
-    linked_payment_id = fields.Many2one('van.payment', string='Bog\'langan To\'lov', ondelete='cascade')
+    chiqim_id = fields.Many2one('van.payment', string='Bog\'langan To\'lov', ondelete='cascade')
+
+    def unlink(self):
+        for record in self:
+            # 1. Delete the linked Chiqimlar record
+            # Deleting the payment will automatically trigger the compute field update for oylik_balansi
+            if record.chiqim_id:
+                record.chiqim_id.unlink()
+        return super(VanSalaryPayout, self).unlink()
 
     def action_delete_payout(self):
         self.ensure_one()
-        # Deleting the payout will automatically delete the linked payment due to ondelete='cascade'
-        # if we delete the payout record from the list. 
-        # But we want to be explicit and allow calling this from a button.
-        if self.linked_payment_id:
-            self.linked_payment_id.unlink()
         return self.unlink()
 
 class VanSalaryPayoutWizard(models.TransientModel):
@@ -40,7 +43,7 @@ class VanSalaryPayoutWizard(models.TransientModel):
         # 1. Create Payout Record (for history table in Oyliklar menu)
         payout = self.env['van.salary.payout'].create({
             'agent_id': self.agent_id.id,
-            'amount': self.amount,
+            'summa': self.amount,
             'notes': self.notes,
             'date': fields.Date.context_today(self),
             'admin_id': self.env.user.id,
@@ -59,6 +62,6 @@ class VanSalaryPayoutWizard(models.TransientModel):
         payment = self.env['van.payment'].create(payment_vals)
         
         # 3. Link Payment to Payout
-        payout.write({'linked_payment_id': payment.id})
+        payout.write({'chiqim_id': payment.id})
         
         return {'type': 'ir.actions.act_window_close'}
