@@ -28,7 +28,7 @@
     <!-- Agentlar -->
     <menuitem id="menu_van_agents_root" name="Agentlar" parent="menu_van_sales_root" sequence="50"/>
     <menuitem id="menu_van_agents_list" name="Agentlar Ro'yxati" parent="menu_van_agents_root" action="action_van_agents_list" sequence="10"/>
-    <menuitem id="menu_van_agent_summary" name="Agentlar Hisoboti" parent="menu_van_agents_root" action="action_van_agent_summary" sequence="20"/>
+    <menuitem id="menu_van_agent_summary" name="Agentlar Hisoboti" parent="menu_van_agents_root" action="action_van_agent_summary_server" sequence="20"/>
 
     <!-- Oyliklar (Salary / Commission) -->
     <menuitem id="menu_van_salary_main" name="Oyliklar" parent="menu_van_sales_root" action="action_van_salary_list" sequence="55" groups="base.group_system,base.group_erp_manager,point_of_sale.group_pos_manager"/>

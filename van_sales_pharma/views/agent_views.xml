@@ -398,7 +398,7 @@
     <!-- ============================================================
          ACTION (SERVER)
     ============================================================ -->
-    <record id="action_van_agent_summary" model="ir.actions.server">
+    <record id="action_van_agent_summary_server" model="ir.actions.server">
         <field name="name">Agentlar Hisoboti</field>
         <field name="model_id" ref="model_van_agent_summary"/>
         <field name="state">code</field>
