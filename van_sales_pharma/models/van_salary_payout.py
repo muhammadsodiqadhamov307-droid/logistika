@@ -27,8 +27,8 @@ class VanSalaryPayoutWizard(models.TransientModel):
         if self.amount <= 0:
             return
 
-        # 1. Create Payout Record
-        self.env['van.salary.payout'].create({
+        # 1. Create Payout Record (for history table in Oyliklar menu)
+        payout = self.env['van.salary.payout'].create({
             'agent_id': self.agent_id.id,
             'amount': self.amount,
             'notes': self.notes,
@@ -36,7 +36,16 @@ class VanSalaryPayoutWizard(models.TransientModel):
             'admin_id': self.env.user.id,
         })
 
-        # 2. Reseting balance is handled by the compute field in res.users
-        # as it will now subtract these payout records.
+        # 2. Create Payment Record (to decrease 'Naqt pul' and show in Chiqimlar)
+        payment_vals = {
+            'agent_id': self.agent_id.id,
+            'payment_type': 'out',
+            'expense_type': 'payout',
+            'amount': self.amount,
+            'payment_method': 'cash',
+            'date': fields.Datetime.now(),
+            'note': f"Oylik To'lovi (Yopish): {self.notes or ''}"
+        }
+        self.env['van.payment'].create(payment_vals)
         
         return {'type': 'ir.actions.act_window_close'}

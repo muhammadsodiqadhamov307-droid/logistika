@@ -29,18 +29,17 @@ class ResUsers(models.Model):
             ])
             total_earned = sum(pos_orders.mapped('commission_amount'))
 
-            # 2. Total Salary Paid Out (van.payment where expense_type='salary')
+            # 2. Total Salary Paid Out (van.payment where expense_type in ('salary', 'payout'))
+            # 'salary' is for intermediate advance payments (Chiqim)
+            # 'payout' is for final salary close (Oylik Yopish)
             salary_payments = self.env['van.payment'].search([
                 ('agent_id', '=', user.id),
                 ('payment_type', '=', 'out'),
-                ('expense_type', '=', 'salary')
+                ('expense_type', 'in', ('salary', 'payout'))
             ])
             total_paid = sum(salary_payments.mapped('amount'))
 
-            # 3. Total Salary Payouts (van.salary.payout)
-            total_payouts = sum(user.salary_payout_ids.mapped('amount'))
-
-            user.oylik_balansi = total_earned - total_paid - total_payouts
+            user.oylik_balansi = total_earned - total_paid
 
     def action_close_salary(self):
         """
