@@ -33,6 +33,16 @@ class VanPosController(http.Controller):
             })
         return items
 
+    @http.route('/van/pos/get_all_products', type='jsonrpc', auth='user')
+    def get_all_products(self):
+        products = request.env['van.product'].sudo().search([('active', '=', True)])
+        return [{
+            'product_id': p.id,
+            'name': p.display_name,
+            'price': p.list_price,
+            'image_url': f'/web/image?model=van.product&id={p.id}&field=image_1920',
+        } for p in products]
+
     @http.route('/van/pos/submit_order', type='jsonrpc', auth='user')
     def submit_order(self, partner_id, lines):
         """

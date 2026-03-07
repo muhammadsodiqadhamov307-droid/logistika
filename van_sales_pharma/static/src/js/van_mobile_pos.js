@@ -20,6 +20,7 @@ export class VanMobilePos extends Component {
             // Data
             clients: [],
             inventory: [],
+            allProducts: [],
 
             // Active selection
             selectedClient: { id: false, name: 'Naqt savdo', total_due: 0 },
@@ -85,6 +86,7 @@ export class VanMobilePos extends Component {
             await Promise.all([
                 this.loadClients(),
                 this.loadInventory(),
+                this.loadAllProducts(),
                 this.loadCurrentAgent(),
                 this.loadTaminotchis()
             ]);
@@ -151,6 +153,14 @@ export class VanMobilePos extends Component {
             this.state.taminotchis = await rpc("/van/pos/get_taminotchis", {});
         } catch (e) {
             console.error(e);
+        }
+    }
+
+    async loadAllProducts() {
+        try {
+            this.state.allProducts = await rpc("/van/pos/get_all_products", {});
+        } catch (e) {
+            console.error("Xatolik: Barcha mahsulotlarni yuklash imkonsiz.", e);
         }
     }
 
@@ -236,7 +246,7 @@ export class VanMobilePos extends Component {
     }
 
     get filteredModalProducts() {
-        let base = this.state.inventory.filter(p => p.remaining > 0);
+        let base = this.state.allProducts;
         if (!this.state.productSearchModal) {
             return base;
         }
@@ -298,7 +308,7 @@ export class VanMobilePos extends Component {
         // Rebuild lines
         const newLines = [];
         for (const product_id of this.state.tempSelectedProducts) {
-            const product = this.state.inventory.find(p => p.product_id === product_id);
+            const product = this.state.allProducts.find(p => p.product_id === product_id);
             if (!product) continue;
 
             if (currentLinesMap.has(product_id)) {
