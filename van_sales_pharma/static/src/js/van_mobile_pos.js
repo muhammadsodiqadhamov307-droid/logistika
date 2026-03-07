@@ -96,11 +96,12 @@ export class VanMobilePos extends Component {
             };
             window.addEventListener('popstate', this.popStateHandler);
 
+            await this.loadCurrentAgent();
+
             await Promise.all([
                 this.loadClients(),
                 this.loadInventory(),
                 this.loadAllProducts(),
-                this.loadCurrentAgent(),
                 this.loadTaminotchis()
             ]);
 
@@ -348,16 +349,10 @@ export class VanMobilePos extends Component {
 
     async loadAllProducts() {
         try {
-            if (this.state.isOnline) {
-                const result = await rpc("/van/pos/get_all_products", {});
-                this.state.allProducts = result;
-                await this.saveToIDB('allProducts', result);
-            } else {
-                this.state.allProducts = await this.getFromIDB('allProducts');
-            }
+            const result = await rpc("/van/pos/get_all_products", {});
+            this.state.allProducts = result;
         } catch (e) {
-            console.error(e);
-            this.state.allProducts = await this.getFromIDB('allProducts');
+            console.error("Xatolik: Barcha mahsulotlarni yuklash imkonsiz.", e);
         }
     }
 
