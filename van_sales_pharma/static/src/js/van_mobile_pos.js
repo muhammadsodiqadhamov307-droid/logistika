@@ -327,7 +327,7 @@ export class VanMobilePos extends Component {
     async loadTaminotchis() {
         try {
             if (this.state.isOnline) {
-                const result = await rpc("/van/pos/get_taminotchilar", {});
+                const result = await rpc("/van/pos/get_taminotchis", {});
                 this.state.taminotchis = result;
                 await this.saveToIDB('taminotchis', result);
             } else {
@@ -342,8 +342,15 @@ export class VanMobilePos extends Component {
                 }
             }
         } catch (e) {
-            console.error(e);
+            console.error("Taminotchi rpc error:", e);
             this.state.taminotchis = await this.getFromIDB('taminotchis');
+            if (this.state.taminotchis && this.state.taminotchis.length > 0) {
+                if (this.state.currentAgent && this.state.currentAgent.default_taminotchi_id) {
+                    this.state.selectedTaminotchiId = this.state.currentAgent.default_taminotchi_id;
+                } else {
+                    this.state.selectedTaminotchiId = this.state.taminotchis[0].id;
+                }
+            }
         }
     }
 

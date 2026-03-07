@@ -711,7 +711,9 @@
                         <div style="margin-bottom: 15px;">
                             <label style="display: block; font-size: 14px; font-weight: bold; margin-bottom: 5px; color: #374151;">Taminotchi (Kimdan)</label>
                             <div style="position: relative; width: 100%;">
-                                <select t-model="state.selectedTaminotchiId" style="width: 100%; padding: 12px 40px 12px 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; background-color: #ffffff; color: #374151; appearance: none; -webkit-appearance: none; outline: none; cursor: pointer; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+                                <select t-model="state.selectedTaminotchiId" 
+                                        t-att-disabled="state.currentAgent and state.currentAgent.default_taminotchi_id ? 'disabled' : undefined"
+                                        t-attf-style="width: 100%; padding: 12px 40px 12px 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; {{ state.currentAgent and state.currentAgent.default_taminotchi_id ? 'background-color: #f3f4f6; cursor: not-allowed; opacity: 0.8;' : 'background-color: #ffffff; cursor: pointer;' }} color: #374151; appearance: none; -webkit-appearance: none; outline: none; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
                                     <option value="">-- Taminotchini tanlang --</option>
                                     <t t-foreach="state.taminotchis" t-as="t" t-key="t.id">
                                         <option t-att-value="t.id" t-att-selected="t.id == state.selectedTaminotchiId">
@@ -719,8 +721,13 @@
                                         </option>
                                     </t>
                                 </select>
-                                <div style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); pointer-events: none; color: #6b7280;">
-                                    <i class="fa fa-chevron-down"></i>
+                                <div style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); pointer-events: none; color: #9ca3af;">
+                                    <t t-if="state.currentAgent and state.currentAgent.default_taminotchi_id">
+                                        <i class="fa fa-lock"></i>
+                                    </t>
+                                    <t t-else="">
+                                        <i class="fa fa-chevron-down"></i>
+                                    </t>
                                 </div>
                             </div>
                             <div t-if="!state.selectedTaminotchiId" style="margin-top: 5px; color: #b91c1c; font-size: 12px; display: flex; align-items: center; gap: 5px;">
