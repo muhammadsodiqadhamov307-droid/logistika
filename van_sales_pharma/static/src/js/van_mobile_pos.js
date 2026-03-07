@@ -120,12 +120,21 @@ export class VanMobilePos extends Component {
 
     onOnline() {
         this.state.isOnline = true;
+        document.body.style.overscrollBehavior = 'auto';
         this.showToast("Internet tiklandi. Ma'lumotlar sinxronlanmoqda...", "success");
+        // Refresh data from server now that we're back online
+        Promise.all([
+            this.loadClients(),
+            this.loadInventory(),
+            this.loadCurrentAgent(),
+            this.loadTaminotchis(),
+        ]);
         this.syncOfflineTransactions();
     }
 
     onOffline() {
         this.state.isOnline = false;
+        document.body.style.overscrollBehavior = 'none';
         this.showToast("Internetdan uzildi. Offline rejimda ishlayapsiz.", "warning");
     }
 
@@ -273,68 +282,82 @@ export class VanMobilePos extends Component {
     async loadClients() {
         this.state.loading = true;
         try {
+            // Always load from IDB cache first so offline reloads work immediately
+            const cached = await this.getFromIDB('clients');
+            if (cached && cached.length > 0) {
+                this.state.clients = cached;
+            }
+            // Then refresh from server if online
             if (this.state.isOnline) {
                 const result = await rpc("/van/pos/get_clients", {});
                 this.state.clients = result;
                 await this.saveToIDB('clients', result);
-            } else {
-                this.state.clients = await this.getFromIDB('clients');
-                if (!this.state.clients.length) this.showToast("Offline rejimda mijozlar topilmadi.", "warning");
+            } else if (!this.state.clients.length) {
+                // Only warn if cache was also empty
+                this.showToast("Offline rejimda mijozlar keshi bo'sh. Avval onlayn ulanib cache qiling.", "warning");
             }
         } catch (e) {
             console.error(e);
-            this.state.clients = await this.getFromIDB('clients');
-            if (this.state.isOnline) this.showToast("Mijozlarni yuklashda xatolik. Offline bazadan foydalanilmoqda.", "error");
+            const cached = await this.getFromIDB('clients');
+            if (cached && cached.length > 0) this.state.clients = cached;
         }
         this.state.loading = false;
     }
 
     async loadInventory() {
         try {
+            // Always load from IDB cache first so offline reloads work immediately
+            const cached = await this.getFromIDB('inventory');
+            if (cached && cached.length > 0) {
+                this.state.inventory = cached;
+            }
+            // Then refresh from server if online
             if (this.state.isOnline) {
                 const result = await rpc("/van/pos/get_inventory", {});
                 this.state.inventory = result;
                 await this.saveToIDB('inventory', result);
-            } else {
-                this.state.inventory = await this.getFromIDB('inventory');
             }
         } catch (e) {
             console.error(e);
-            this.state.inventory = await this.getFromIDB('inventory');
-            if (this.state.error) this.state.error = "Ombor yuklashda muammo, offline ma'lumot qullanilmoqda";
+            const cached = await this.getFromIDB('inventory');
+            if (cached && cached.length > 0) this.state.inventory = cached;
         }
     }
 
     async loadCurrentAgent() {
         try {
+            // Always load from IDB cache first
+            const cached = await this.getFromIDB('agent');
+            if (cached && cached.length > 0) {
+                this.state.currentAgent = cached[0];
+            }
+            // Then refresh from server if online
             if (this.state.isOnline) {
                 const result = await rpc("/van/pos/get_current_agent", {});
                 this.state.currentAgent = result;
-                await this.saveToIDB('agent', [result], false); // Save as array of 1, isArray=false
-            } else {
-                const agents = await this.getFromIDB('agent');
-                if (agents && agents.length > 0) {
-                    this.state.currentAgent = agents[0];
-                }
+                await this.saveToIDB('agent', [result], false);
             }
         } catch (e) {
             console.error(e);
-            const agents = await this.getFromIDB('agent');
-            if (agents && agents.length > 0) this.state.currentAgent = agents[0];
+            const cached = await this.getFromIDB('agent');
+            if (cached && cached.length > 0) this.state.currentAgent = cached[0];
         }
     }
 
     async loadTaminotchis() {
         try {
+            // Always load from IDB cache first
+            const cached = await this.getFromIDB('taminotchis');
+            if (cached && cached.length > 0) {
+                this.state.taminotchis = cached;
+            }
+            // Then refresh from server if online
             if (this.state.isOnline) {
                 const result = await rpc("/van/pos/get_taminotchis", {});
                 this.state.taminotchis = result;
                 await this.saveToIDB('taminotchis', result);
-            } else {
-                this.state.taminotchis = await this.getFromIDB('taminotchis');
             }
             if (this.state.taminotchis && this.state.taminotchis.length > 0) {
-                // If currentAgent has a default_taminotchi_id, use it, otherwise default to the first one
                 if (this.state.currentAgent && this.state.currentAgent.default_taminotchi_id) {
                     this.state.selectedTaminotchiId = this.state.currentAgent.default_taminotchi_id;
                 } else {
@@ -343,12 +366,13 @@ export class VanMobilePos extends Component {
             }
         } catch (e) {
             console.error("Taminotchi rpc error:", e);
-            this.state.taminotchis = await this.getFromIDB('taminotchis');
-            if (this.state.taminotchis && this.state.taminotchis.length > 0) {
+            const cached = await this.getFromIDB('taminotchis');
+            if (cached && cached.length > 0) {
+                this.state.taminotchis = cached;
                 if (this.state.currentAgent && this.state.currentAgent.default_taminotchi_id) {
                     this.state.selectedTaminotchiId = this.state.currentAgent.default_taminotchi_id;
                 } else {
-                    this.state.selectedTaminotchiId = this.state.taminotchis[0].id;
+                    this.state.selectedTaminotchiId = cached[0].id;
                 }
             }
         }
