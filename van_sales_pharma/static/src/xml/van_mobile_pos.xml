@@ -36,7 +36,6 @@
                         </t>
                     </div>
                     
-                    <div class="user-info" style="display: flex; align-items: center; gap: 10px; position: relative;">
                     <!-- 3-Dots Menu Dropdown Toggle -->
                     <button t-if="state.screen === 'clients' or state.screen === 'products'" 
                             id="dots-button"
