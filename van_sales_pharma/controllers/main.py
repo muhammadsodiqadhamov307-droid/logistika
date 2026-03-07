@@ -1,5 +1,9 @@
 from odoo import http
 from odoo.http import request
+from odoo.exceptions import UserError
+import logging
+
+_logger = logging.getLogger(__name__)
 
 class VanPosController(http.Controller):
 
@@ -97,6 +101,9 @@ class VanPosController(http.Controller):
                     # Apply historical date if provided
                     tx_date = tx.get('timestamp')
                     if tx_date:
+                        # Convert ISO String '2026-03-07T12:51:35.386Z' to '%Y-%m-%d %H:%M:%S'
+                        if 'T' in tx_date:
+                            tx_date = tx_date.split('.')[0].replace('T', ' ')
                         order_vals['date'] = tx_date
                         
                     order = env['van.pos.order'].sudo().create(order_vals)
@@ -126,7 +133,10 @@ class VanPosController(http.Controller):
                         vals['expense_type'] = data.get('expense_type', 'daily')
                         
                     if tx.get('timestamp'):
-                        vals['date'] = tx.get('timestamp')
+                        tx_date = tx.get('timestamp')
+                        if 'T' in tx_date:
+                            tx_date = tx_date.split('.')[0].replace('T', ' ')
+                        vals['date'] = tx_date
                         
                     env['van.payment'].sudo().create(vals)
                     synced_ids.append(offline_id)
