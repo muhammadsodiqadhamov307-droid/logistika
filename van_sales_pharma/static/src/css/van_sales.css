@@ -1,13 +1,10 @@
-/* Prevent pull-to-refresh in mobile POS to avoid losing cached offline data */
-html, body {
-    overscroll-behavior: none !important;
-    overscroll-behavior-y: none !important;
+/* Prevent pull-to-refresh without affecting normal scrolling */
+html {
+    overscroll-behavior-y: none;
 }
 
-.o_action_manager, .o_view_controller, .o_form_view {
-    overscroll-behavior: none !important;
-    overscroll-behavior-y: none !important;
-    touch-action: pan-x pan-y;
+body {
+    overscroll-behavior-y: none;
 }
 
 .van-dashboard-wrapper {

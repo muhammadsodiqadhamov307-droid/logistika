@@ -97,12 +97,23 @@ export class VanMobilePos extends Component {
             // Without this, this.db is null and all IDB reads return empty
             await this.initIDB();
 
-            // Disable pull-to-refresh via touchmove when offline
+            // Smart pull-to-refresh block:
+            // Only prevent the overscroll gesture (pulling down from top of page),
+            // NOT regular up/down scrolling through the product list.
+            this._ptr_startY = 0;
+            this.touchStartHandler = (e) => {
+                this._ptr_startY = e.touches[0].clientY;
+            };
             this.touchMoveHandler = (e) => {
-                if (!this.state.isOnline) {
+                const scrollTop = document.documentElement.scrollTop || document.body.scrollTop;
+                const currentY = e.touches[0].clientY;
+                const isPullingDown = currentY > this._ptr_startY;
+                // Only block if at absolute top AND pulling down (pull-to-refresh gesture)
+                if (scrollTop === 0 && isPullingDown) {
                     e.preventDefault();
                 }
             };
+            document.addEventListener('touchstart', this.touchStartHandler, { passive: true });
             document.addEventListener('touchmove', this.touchMoveHandler, { passive: false });
 
             await this.loadCurrentAgent();
@@ -121,6 +132,9 @@ export class VanMobilePos extends Component {
 
         onWillDestroy(() => {
             window.removeEventListener('popstate', this.popStateHandler);
+            if (this.touchStartHandler) {
+                document.removeEventListener('touchstart', this.touchStartHandler);
+            }
             if (this.touchMoveHandler) {
                 document.removeEventListener('touchmove', this.touchMoveHandler);
             }
