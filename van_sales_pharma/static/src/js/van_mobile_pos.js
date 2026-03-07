@@ -84,9 +84,6 @@ export class VanMobilePos extends Component {
         useExternalListener(window, "online", this.onOnline.bind(this));
         useExternalListener(window, "offline", this.onOffline.bind(this));
 
-        // Initialize IDB
-        this.initIDB();
-
         onWillStart(async () => {
             // Setup history trap for hardware back buttons
             window.history.pushState(null, null, window.location.href);
@@ -95,6 +92,18 @@ export class VanMobilePos extends Component {
                 this.goBack();
             };
             window.addEventListener('popstate', this.popStateHandler);
+
+            // CRITICAL: wait for IDB to be ready BEFORE loading data
+            // Without this, this.db is null and all IDB reads return empty
+            await this.initIDB();
+
+            // Disable pull-to-refresh via touchmove when offline
+            this.touchMoveHandler = (e) => {
+                if (!this.state.isOnline) {
+                    e.preventDefault();
+                }
+            };
+            document.addEventListener('touchmove', this.touchMoveHandler, { passive: false });
 
             await this.loadCurrentAgent();
 
@@ -106,12 +115,15 @@ export class VanMobilePos extends Component {
             ]);
 
             this.state.pollingInterval = setInterval(() => {
-                this.loadInventorySilent();
+                if (this.state.isOnline) this.loadInventorySilent();
             }, 15000);
         });
 
         onWillDestroy(() => {
             window.removeEventListener('popstate', this.popStateHandler);
+            if (this.touchMoveHandler) {
+                document.removeEventListener('touchmove', this.touchMoveHandler);
+            }
             if (this.state.pollingInterval) {
                 clearInterval(this.state.pollingInterval);
             }
