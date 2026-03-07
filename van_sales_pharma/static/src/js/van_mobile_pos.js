@@ -186,10 +186,13 @@ export class VanMobilePos extends Component {
             // Clear existing data before bulk save
             store.clear();
 
+            // Deep clone to remove Owl Proxies to prevent DataCloneError
+            const cleanData = JSON.parse(JSON.stringify(data));
+
             if (isArray) {
-                data.forEach(item => store.put(item));
+                cleanData.forEach(item => store.put(item));
             } else {
-                store.put(item);
+                store.put(cleanData);
             }
 
             transaction.oncomplete = () => resolve();
@@ -215,7 +218,9 @@ export class VanMobilePos extends Component {
         return new Promise((resolve, reject) => {
             const transaction = this.db.transaction(['syncQueue'], 'readwrite');
             const store = transaction.objectStore('syncQueue');
-            store.put(item);
+            // Remove Proxy
+            const cleanItem = JSON.parse(JSON.stringify(item));
+            store.put(cleanItem);
             transaction.oncomplete = () => resolve();
             transaction.onerror = (e) => reject(e.target.error);
         });
