@@ -685,7 +685,7 @@
                             </div>
 
                             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-                                <t t-foreach="filteredInventory" t-as="p" t-key="p.product_id">
+                                <t t-foreach="filteredAllProducts" t-as="p" t-key="p.product_id">
                                     <div t-attf-style="background: {{ state.tripCart[p.product_id] ? '#eff6ff' : 'white' }}; border: {{ state.tripCart[p.product_id] ? '2px solid #2563eb' : '1px solid #e5e7eb' }}; border-radius: 12px; overflow: hidden; display: flex; flex-direction: column;">
                                         <div style="height: 110px; background: #f9fafb; display: flex; align-items: center; justify-content: center; padding: 10px;">
                                             <t t-if="p.image_url">

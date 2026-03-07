@@ -228,6 +228,12 @@ export class VanMobilePos extends Component {
         return base.filter(p => p.name.toLowerCase().includes(this.state.productSearchQuery.toLowerCase()));
     }
 
+    get filteredAllProducts() {
+        let base = this.state.allProducts;
+        if (!this.state.productSearchQuery) return base;
+        return base.filter(p => p.name.toLowerCase().includes(this.state.productSearchQuery.toLowerCase()));
+    }
+
     get filteredRequests() {
         if (this.state.requestFilter === 'all') {
             return this.state.requestsList;
