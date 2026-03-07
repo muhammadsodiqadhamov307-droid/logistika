@@ -10,6 +10,7 @@ export class VanMobilePos extends Component {
     setup() {
         this.action = useService("action");
         this.session = session;
+        this.notification = useService("notification");
 
         useExternalListener(window, "click", this.onWindowClick);
 
@@ -125,6 +126,15 @@ export class VanMobilePos extends Component {
     onOffline() {
         this.state.isOnline = false;
         this.showToast("Internetdan uzildi. Offline rejimda ishlayapsiz.", "warning");
+    }
+
+    // --- Toast Notification ---
+    showToast(message, type = "info") {
+        if (this.notification) {
+            this.notification.add(message, { type: type });
+        } else {
+            console.log(`[Toast ${type}]: ${message}`);
+        }
     }
 
     // --- IndexedDB Wrapper ---
