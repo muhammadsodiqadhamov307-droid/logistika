@@ -60,6 +60,14 @@ class VanNasiya(models.Model):
             else:
                 record.state = 'open'
 
+    def unlink(self):
+        for record in self:
+            # Delete any pos orders that are related to this nasiya (to prevent orphan records)
+            pos_orders = self.env['van.pos.order'].search([('nasiya_id', '=', record.id)])
+            if pos_orders:
+                pos_orders.unlink()
+        return super().unlink()
+
     def action_register_payment(self, amount=None, payment_method=None):
         """ Used primarily by RPC from OWL or generic XML views """
         self.ensure_one()

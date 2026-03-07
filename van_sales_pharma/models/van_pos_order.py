@@ -135,6 +135,32 @@ class VanPosOrder(models.Model):
 
         return True
 
+    def unlink(self):
+        for order in self:
+            if order.state == 'done':
+                # Reverse agent inventory deduction if any
+                summary = self.env['van.agent.summary'].search([('agent_id', '=', order.agent_id.id)], limit=1)
+                if summary:
+                    for line in order.line_ids:
+                        inv_line = self.env['van.agent.inventory.line'].search([
+                            ('summary_id', '=', summary.id),
+                            ('product_id', '=', line.product_id.id)
+                        ], limit=1)
+                        if inv_line:
+                            # Note: van.agent.summary _compute_remaining explicitly calculates sold_qty from POS lines.
+                            # So actually just deleting the POS line will automatically "refund" the inventory 
+                            # upon next recalculation. But if any hard fields exist, we'd adjust here.
+                            pass
+
+            # Cascade delete to Nasiya
+            nasiya = order.nasiya_id
+            if nasiya:
+                # Disconnect first to avoid infinite loop if nasiya also tries to delete pos_order
+                order.nasiya_id = False
+                nasiya.unlink()
+
+        return super().unlink()
+
 class VanPosOrderLine(models.Model):
     _name = 'van.pos.order.line'
     _description = 'Van Sales Mobile POS Order Line'
