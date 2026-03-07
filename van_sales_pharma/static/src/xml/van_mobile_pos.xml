@@ -795,7 +795,13 @@
                             </div>
                         </div>
 
-                        <button t-on-click="submitTrip" style="width: 100%; padding: 15px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; color: white; cursor: pointer; background-color: #2563eb; box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.5); margin-top: 20px;">
+                        <!-- Spacer so the last item isn't hidden by the bottom bar -->
+                        <div style="height: 100px;"></div>
+                    </div>
+
+                    <!-- Fixed Submit Button -->
+                    <div style="position: fixed; bottom: 0; left: 0; right: 0; background: white; padding: 15px 20px; box-shadow: 0 -4px 10px rgba(0,0,0,0.1); z-index: 1020; border-top: 1px solid #e5e7eb;">
+                        <button t-on-click="submitTrip" style="width: 100%; padding: 15px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; color: white; cursor: pointer; background-color: #2563eb; box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.5);">
                             YUKLASHNI SAQLASH (<t t-esc="tripCartTotal.toLocaleString()"/> so'm)
                         </button>
                     </div>
