@@ -31,6 +31,8 @@ class VanPosOrder(models.Model):
     
     nasiya_id = fields.Many2one('van.nasiya', string='Yaratilgan Nasiya', readonly=True, ondelete='set null')
     
+    offline_id = fields.Char(string='Offline ID (App)', help="Mobil ilova yaratgan noyob ID (takroriylikni oldini olish uchun)")
+    
     note = fields.Text(string='Eslatmalar')
 
     @api.model_create_multi

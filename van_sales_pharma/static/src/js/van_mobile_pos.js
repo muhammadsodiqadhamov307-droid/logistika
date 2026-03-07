@@ -72,7 +72,19 @@ export class VanMobilePos extends Component {
             tripCart: {},
 
             pollingInterval: null,
+
+            // Offline Support
+            isOnline: navigator.onLine,
+            syncQueue: [],
+            isSyncing: false,
         });
+
+        // Initialize connection listeners
+        useExternalListener(window, "online", this.onOnline.bind(this));
+        useExternalListener(window, "offline", this.onOffline.bind(this));
+
+        // Initialize IDB
+        this.initIDB();
 
         onWillStart(async () => {
             // Setup history trap for hardware back buttons
@@ -104,7 +116,132 @@ export class VanMobilePos extends Component {
         });
     }
 
-    onWindowClick(event) {
+    onOnline() {
+        this.state.isOnline = true;
+        this.showToast("Internet tiklandi. Ma'lumotlar sinxronlanmoqda...", "success");
+        this.syncOfflineTransactions();
+    }
+
+    onOffline() {
+        this.state.isOnline = false;
+        this.showToast("Internetdan uzildi. Offline rejimda ishlayapsiz.", "warning");
+    }
+
+    // --- IndexedDB Wrapper ---
+    async initIDB() {
+        return new Promise((resolve, reject) => {
+            const request = indexedDB.open('VanSalesAppDB', 1);
+
+            request.onupgradeneeded = (event) => {
+                const db = event.target.result;
+                if (!db.objectStoreNames.contains('clients')) {
+                    db.createObjectStore('clients', { keyPath: 'id' });
+                }
+                if (!db.objectStoreNames.contains('inventory')) {
+                    db.createObjectStore('inventory', { keyPath: 'product_id' });
+                }
+                if (!db.objectStoreNames.contains('allProducts')) {
+                    db.createObjectStore('allProducts', { keyPath: 'id' });
+                }
+                if (!db.objectStoreNames.contains('agent')) {
+                    db.createObjectStore('agent', { keyPath: 'id' }); // Dummy id 1
+                }
+                if (!db.objectStoreNames.contains('taminotchis')) {
+                    db.createObjectStore('taminotchis', { keyPath: 'id' });
+                }
+                if (!db.objectStoreNames.contains('syncQueue')) {
+                    db.createObjectStore('syncQueue', { keyPath: 'offline_id' });
+                }
+            };
+
+            request.onsuccess = (event) => {
+                this.db = event.target.result;
+                this.loadQueueFromIDB();
+                resolve();
+            };
+
+            request.onerror = (event) => {
+                console.error("IndexedDB error:", event.target.error);
+                reject(event.target.error);
+            };
+        });
+    }
+
+    async saveToIDB(storeName, data, isArray = true) {
+        if (!this.db) return;
+        return new Promise((resolve, reject) => {
+            const transaction = this.db.transaction([storeName], 'readwrite');
+            const store = transaction.objectStore(storeName);
+
+            // Clear existing data before bulk save
+            store.clear();
+
+            if (isArray) {
+                data.forEach(item => store.put(item));
+            } else {
+                store.put(item);
+            }
+
+            transaction.oncomplete = () => resolve();
+            transaction.onerror = (e) => reject(e.target.error);
+        });
+    }
+
+    async getFromIDB(storeName) {
+        if (!this.db) return [];
+        return new Promise((resolve, reject) => {
+            const transaction = this.db.transaction([storeName], 'readonly');
+            const store = transaction.objectStore(storeName);
+            const request = store.getAll();
+
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = (e) => reject(e.target.error);
+        });
+    }
+
+    // Single item IDB ops for Queue
+    async saveQueueItem(item) {
+        if (!this.db) return;
+        return new Promise((resolve, reject) => {
+            const transaction = this.db.transaction(['syncQueue'], 'readwrite');
+            const store = transaction.objectStore('syncQueue');
+            store.put(item);
+            transaction.oncomplete = () => resolve();
+            transaction.onerror = (e) => reject(e.target.error);
+        });
+    }
+
+    async deleteQueueItem(offlineId) {
+        if (!this.db) return;
+        return new Promise((resolve, reject) => {
+            const transaction = this.db.transaction(['syncQueue'], 'readwrite');
+            const store = transaction.objectStore('syncQueue');
+            store.delete(offlineId);
+            transaction.oncomplete = () => resolve();
+            transaction.onerror = (e) => reject(e.target.error);
+        });
+    }
+
+    async loadQueueFromIDB() {
+        try {
+            const queue = await this.getFromIDB('syncQueue');
+            this.state.syncQueue = queue || [];
+        } catch (e) {
+            console.error("Failed loading queue from IDB", e);
+        }
+    }
+
+    // Add unique UUID generator
+    generateUUID() {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+            const r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+        });
+    }
+
+    // --- End Offline Wrappers ---
+
+    onWindowClick = (ev) => {
         if (!this.state.showActionMenu) return;
 
         const menu = document.getElementById('dots-menu');
@@ -120,47 +257,92 @@ export class VanMobilePos extends Component {
     async loadClients() {
         this.state.loading = true;
         try {
-            this.state.clients = await rpc("/van/pos/get_clients", {});
+            if (this.state.isOnline) {
+                const result = await rpc("/van/pos/get_clients", {});
+                this.state.clients = result;
+                await this.saveToIDB('clients', result);
+            } else {
+                this.state.clients = await this.getFromIDB('clients');
+                if (!this.state.clients.length) this.showToast("Offline rejimda mijozlar topilmadi.", "warning");
+            }
         } catch (e) {
-            this.state.error = "Xatolik: Mijozlarni yuklash imkonsiz.";
+            console.error(e);
+            this.state.clients = await this.getFromIDB('clients');
+            if (this.state.isOnline) this.showToast("Mijozlarni yuklashda xatolik. Offline bazadan foydalanilmoqda.", "error");
         }
         this.state.loading = false;
     }
 
     async loadInventory() {
-        this.state.loading = true;
         try {
-            this.state.inventory = await rpc("/van/pos/get_inventory", {});
+            if (this.state.isOnline) {
+                const result = await rpc("/van/pos/get_inventory", {});
+                this.state.inventory = result;
+                await this.saveToIDB('inventory', result);
+            } else {
+                this.state.inventory = await this.getFromIDB('inventory');
+            }
         } catch (e) {
-            this.state.error = "Xatolik: Omborni yuklash imkonsiz.";
+            console.error(e);
+            this.state.inventory = await this.getFromIDB('inventory');
+            if (this.state.error) this.state.error = "Ombor yuklashda muammo, offline ma'lumot qullanilmoqda";
         }
-        this.state.loading = false;
     }
 
     async loadCurrentAgent() {
         try {
-            this.state.currentAgent = await rpc("/van/pos/get_current_agent", {});
-            if (this.state.currentAgent && this.state.currentAgent.default_taminotchi_id) {
-                this.state.selectedTaminotchiId = this.state.currentAgent.default_taminotchi_id;
+            if (this.state.isOnline) {
+                const result = await rpc("/van/pos/get_current_agent", {});
+                this.state.currentAgent = result;
+                await this.saveToIDB('agent', [result], false); // Save as array of 1, isArray=false
+            } else {
+                const agents = await this.getFromIDB('agent');
+                if (agents && agents.length > 0) {
+                    this.state.currentAgent = agents[0];
+                }
             }
         } catch (e) {
             console.error(e);
+            const agents = await this.getFromIDB('agent');
+            if (agents && agents.length > 0) this.state.currentAgent = agents[0];
         }
     }
 
     async loadTaminotchis() {
         try {
-            this.state.taminotchis = await rpc("/van/pos/get_taminotchis", {});
+            if (this.state.isOnline) {
+                const result = await rpc("/van/pos/get_taminotchilar", {});
+                this.state.taminotchis = result;
+                await this.saveToIDB('taminotchis', result);
+            } else {
+                this.state.taminotchis = await this.getFromIDB('taminotchis');
+            }
+            if (this.state.taminotchis && this.state.taminotchis.length > 0) {
+                // If currentAgent has a default_taminotchi_id, use it, otherwise default to the first one
+                if (this.state.currentAgent && this.state.currentAgent.default_taminotchi_id) {
+                    this.state.selectedTaminotchiId = this.state.currentAgent.default_taminotchi_id;
+                } else {
+                    this.state.selectedTaminotchiId = this.state.taminotchis[0].id;
+                }
+            }
         } catch (e) {
             console.error(e);
+            this.state.taminotchis = await this.getFromIDB('taminotchis');
         }
     }
 
     async loadAllProducts() {
         try {
-            this.state.allProducts = await rpc("/van/pos/get_all_products", {});
+            if (this.state.isOnline) {
+                const result = await rpc("/van/pos/get_all_products", {});
+                this.state.allProducts = result;
+                await this.saveToIDB('allProducts', result);
+            } else {
+                this.state.allProducts = await this.getFromIDB('allProducts');
+            }
         } catch (e) {
-            console.error("Xatolik: Barcha mahsulotlarni yuklash imkonsiz.", e);
+            console.error(e);
+            this.state.allProducts = await this.getFromIDB('allProducts');
         }
     }
 
@@ -445,30 +627,68 @@ export class VanMobilePos extends Component {
             price: item.custom_price
         }));
 
-        try {
-            const result = await rpc("/van/pos/submit_order", {
-                partner_id: this.state.selectedClient.id,
-                lines: lines
-            });
+        const isNasiya = (this.state.selectedClient.id !== false);
+        const data = {
+            partner_id: this.state.selectedClient.id,
+            lines: lines,
+            isNasiya: isNasiya
+        };
 
-            if (result.success) {
-                this.loadInventorySilent(); // Trigger immediate stock update
+        if (this.state.isOnline) {
+            try {
+                const result = await rpc("/van/pos/submit_order", data);
 
-                if (this.state.selectedClient.id === false) {
-                    // Naqt savdo: money is already received, skip payment screen.
-                    this.resetToStart();
+                if (result.success) {
+                    this.loadInventorySilent(); // Trigger immediate stock update
+
+                    if (!isNasiya) {
+                        // Naqt savdo: money is already received, skip payment screen.
+                        this.resetToStart();
+                        this.showToast("Savdo muvaffaqiyatli saqlandi!", "success");
+                    } else {
+                        // Nasiya: prompt for partial/full payment.
+                        this.state.newNasiyaId = result.nasiya_id;
+                        this.state.nasiyaAmount = result.nasiya_amount;
+                        this.state.kirimAmount = result.nasiya_amount;
+                        this.state.screen = 'kirim';
+                        this.showToast("Nasiya saqlandi. To'lovni kiriting.", "success");
+                    }
                 } else {
-                    // Nasiya: prompt for partial/full payment.
-                    this.state.newNasiyaId = result.nasiya_id;
-                    this.state.nasiyaAmount = result.nasiya_amount;
-                    this.state.kirimAmount = result.nasiya_amount;
-                    this.state.screen = 'kirim';
+                    this.state.error = result.error || "Savdo amalga oshmadi.";
                 }
-            } else {
-                this.state.error = result.error || "Savdo amalga oshmadi.";
+            } catch (e) {
+                this.state.error = "Tarmoqda xatolik: Savdo amalga oshmadi.";
             }
-        } catch (e) {
-            this.state.error = "Tarmoqda xatolik: Savdo amalga oshmadi.";
+        } else {
+            // OFFLINE SAVE
+            const offline_id = this.generateUUID();
+            const tx = {
+                offline_id: offline_id,
+                type: 'sale',
+                timestamp: new Date().toISOString(),
+                data: data
+            };
+            await this.saveQueueItem(tx);
+            this.state.syncQueue.push(tx);
+
+            // Local deduct logic (UX)
+            for (let item of this.cartItems) {
+                let invLine = this.state.inventory.find(i => i.product_id === item.product.product_id);
+                if (invLine) invLine.remaining -= item.qty;
+            }
+            await this.saveToIDB('inventory', this.state.inventory);
+
+            if (!isNasiya) {
+                this.resetToStart();
+                this.showToast("Offline saqlandi. Internet bo'lganda sinxronlanadi.", "warning");
+            } else {
+                // For Nasiya, offline we can't get a real nasiya_id. 
+                // We'll just ask for kirim using the offline_id as reference or skip to products.
+                // UX decision: skip directly to home and show warning, kirim can be done separately if they want,
+                // or we can allow a partial kirim linked to this offline_id. Easiest: return to start for offline.
+                this.resetToStart();
+                this.showToast("Offline Nasiya saqlandi (Kirim uchun alohida amaliyot ishlating).", "warning");
+            }
         }
         this.state.loading = false;
     }
@@ -480,14 +700,19 @@ export class VanMobilePos extends Component {
     async submitKirim(paymentMethod = 'cash') {
         if (this.state.kirimAmount > 0) {
             this.state.loading = true;
-            try {
-                await rpc("/van/pos/submit_kirim", {
-                    nasiya_id: this.state.newNasiyaId,
-                    amount: this.state.kirimAmount,
-                    payment_method: paymentMethod
-                });
-            } catch (e) {
-                console.error("Kirim failed", e);
+            if (this.state.isOnline && this.state.newNasiyaId) {
+                try {
+                    await rpc("/van/pos/submit_kirim", {
+                        nasiya_id: this.state.newNasiyaId,
+                        amount: this.state.kirimAmount,
+                        payment_method: paymentMethod
+                    });
+                    this.showToast("To'lov saqlandi", "success");
+                } catch (e) {
+                    console.error("Kirim failed", e);
+                }
+            } else if (!this.state.isOnline) {
+                this.showToast("Nasiyaga offline qisman to'lov hozircha amalga oshirib bo'lmaydi. Uni mijoz oynasidan Kirim qiling", "error");
             }
         }
         this.resetToStart();
@@ -527,27 +752,96 @@ export class VanMobilePos extends Component {
             return;
         }
 
+        const data = {
+            type: this.state.quickActionType,
+            amount: amount,
+            note: this.state.quickActionNote,
+            partner_id: this.state.screen === 'products' ? this.state.selectedClient.id : (this.state.quickActionPartnerId ? parseInt(this.state.quickActionPartnerId) : null),
+            expense_type: this.state.quickActionExpenseType
+        };
+
         this.state.loading = true;
+
+        if (this.state.isOnline) {
+            try {
+                const result = await rpc("/van/pos/submit_quick_action", data);
+
+                if (result.success) {
+                    this.loadCurrentAgent(); // Refresh agent balance if it was a salary withdrawal
+                    this.closeQuickAction();
+                    this.showToast("Amaliyot saqlandi!", "success");
+                } else {
+                    this.state.error = result.error || "Amaliyot saqlanmadi.";
+                }
+            } catch (e) {
+                this.state.error = "Tarmoqda xatolik: Amaliyot saqlanmadi.";
+            }
+        } else {
+            // OFFLINE SAVE
+            const offline_id = this.generateUUID();
+            const tx = {
+                offline_id: offline_id,
+                type: 'chiqim', // Assuming quickAction is generally Chiqim unless type is 'kirim' handled above
+                timestamp: new Date().toISOString(),
+                data: data
+            };
+            if (this.state.quickActionType === 'kirim') tx.type = 'kirim';
+
+            await this.saveQueueItem(tx);
+            this.state.syncQueue.push(tx);
+
+            this.closeQuickAction();
+            this.showToast("Offline saqlandi. Internet bo'lganda sinxronlanadi.", "warning");
+        }
+
+        this.state.loading = false;
+    }
+
+    // --- OFFLINE SYNC LOGIC ---
+    async syncOfflineTransactions() {
+        if (!this.state.isOnline || this.state.syncQueue.length === 0 || this.state.isSyncing) return;
+
+        this.state.isSyncing = true;
+        this.showToast(`Sinxronlanmoqda... (${this.state.syncQueue.length} ta amaliyot)`, "info");
+
         try {
-            const result = await rpc("/van/pos/submit_quick_action", {
-                type: this.state.quickActionType,
-                amount: amount,
-                note: this.state.quickActionNote,
-                partner_id: this.state.screen === 'products' ? this.state.selectedClient.id : (this.state.quickActionPartnerId ? parseInt(this.state.quickActionPartnerId) : null),
-                expense_type: this.state.quickActionExpenseType
+            // Only send the ones currently in queue
+            const transactionsToSend = [...this.state.syncQueue];
+
+            const result = await rpc("/van/pos/sync_offline", {
+                transactions: transactionsToSend
             });
 
-            if (result.success) {
-                this.loadCurrentAgent(); // Refresh agent balance if it was a salary withdrawal
-                this.closeQuickAction();
-                // Optionally show a success toast here
-            } else {
-                this.state.error = result.error || "Amaliyot saqlanmadi.";
+            if (result.status === 'success' || result.status === 'partial_success') {
+                // Remove synced items
+                for (let syncedId of result.synced) {
+                    await this.deleteQueueItem(syncedId);
+                    this.state.syncQueue = this.state.syncQueue.filter(t => t.offline_id !== syncedId);
+                }
+
+                if (result.errors && result.errors.length > 0) {
+                    this.showToast("Ba'zi amaliyotlar sinxronlanmadi. Buxgalteriyaga murojaat qiling.", "error");
+                    console.error("Sync Errors:", result.errors);
+                } else {
+                    this.showToast("Barcha ma'lumotlar sinxronlandi ✅", "success");
+                }
+
+                // Refresh data if possible
+                this.loadInventorySilent();
+                this.loadClients();
+                this.loadCurrentAgent();
             }
         } catch (e) {
-            this.state.error = "Tarmoqda xatolik: Amaliyot saqlanmadi.";
+            console.error("Sinxronlashda xato:", e);
+            this.showToast("Sinxronlashda tarmoq xatosi.", "error");
         }
-        this.state.loading = false;
+
+        this.state.isSyncing = false;
+    }
+
+    goToOfflineQueue() {
+        this.state.screen = 'offline_queue';
+        this.state.showActionMenu = false;
     }
 
     // --- REQUESTS (SO'ROVLAR) ---

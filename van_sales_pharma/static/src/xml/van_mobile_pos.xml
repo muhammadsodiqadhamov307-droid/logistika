@@ -22,6 +22,21 @@
                         <t t-if="state.screen === 'new_request_form'">Yangi So'rov</t>
                     </span>
                 <div style="display: flex; align-items: center; gap: 10px; position:relative;">
+                    <!-- Network Status Indicator -->
+                    <div style="font-size: 10px; margin-right: 15px; display: flex; align-items: center; gap: 5px;">
+                        <div t-attf-style="width: 10px; height: 10px; border-radius: 50%; background-color: {{ state.isOnline ? '#22c55e' : '#ef4444' }};"></div>
+                        <span t-attf-style="color: {{ state.isOnline ? '#22c55e' : '#ef4444' }};">
+                            <t t-if="state.isOnline">Online</t>
+                            <t t-else="">Offline</t>
+                        </span>
+                        <t t-if="state.syncQueue.length > 0">
+                            <span style="margin-left: 5px; background: #eab308; color: white; padding: 2px 6px; border-radius: 10px; font-weight: bold;">
+                                <i class="fa fa-refresh"></i> <t t-esc="state.syncQueue.length"/>
+                            </span>
+                        </t>
+                    </div>
+                    
+                    <div class="user-info" style="display: flex; align-items: center; gap: 10px; position: relative;">
                     <!-- 3-Dots Menu Dropdown Toggle -->
                     <button t-if="state.screen === 'clients' or state.screen === 'products'" 
                             id="dots-button"
@@ -383,7 +398,53 @@
                     </t>
                 </t>
 
-                <!-- REQUEST DETAILS SCREEN (NEW) -->
+                <!-- Offline Queue Screen -->
+                <t t-if="state.screen === 'offline_queue'">
+                    <div style="padding: 15px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                            <h2 style="margin: 0; font-size: 20px; font-weight: bold;">Kutilayotgan Amaliyotlar</h2>
+                            <button t-if="state.isOnline and state.syncQueue.length > 0" t-on-click="syncOfflineTransactions" t-att-disabled="state.isSyncing" style="padding: 8px 15px; background: #22c55e; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">
+                                <i t-attf-class="{{ state.isSyncing ? 'fa fa-spinner fa-spin mr-2' : 'fa fa-refresh mr-2' }}"></i> Hozir sinxronlash
+                            </button>
+                        </div>
+
+                        <t t-if="state.syncQueue.length === 0">
+                            <div style="text-align: center; padding: 40px; color: #6b7280; background: white; border-radius: 12px; border: 1px solid #e5e7eb;">
+                                <i class="fa fa-check-circle" style="font-size: 40px; color: #10b981; margin-bottom: 10px;"></i>
+                                <p style="margin: 0; font-size: 16px;">Barcha ma'lumotlar sinxronlandi.</p>
+                            </div>
+                        </t>
+                        <t t-else="">
+                            <div style="display: flex; flex-direction: column; gap: 10px;">
+                                <t t-foreach="state.syncQueue" t-as="tx" t-key="tx.offline_id">
+                                    <div style="background: white; border-radius: 12px; padding: 15px; border: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center;">
+                                        <div>
+                                            <div style="font-weight: bold; font-size: 15px; color: #1f2937;">
+                                                <t t-if="tx.type === 'sale'">📦 Savdo</t>
+                                                <t t-elif="tx.type === 'kirim'">💵 Kirim</t>
+                                                <t t-elif="tx.type === 'chiqim'">📤 Chiqim</t>
+                                            </div>
+                                            <div style="font-size: 12px; color: #6b7280; margin-top: 4px;">
+                                                <t t-esc="new Date(tx.timestamp).toLocaleString()"/>
+                                            </div>
+                                        </div>
+                                        <div style="text-align: right;">
+                                            <div t-if="tx.data.amount" style="font-weight: bold; font-size: 16px;">
+                                                <t t-esc="tx.data.amount.toLocaleString()"/> UZS
+                                            </div>
+                                            <div t-if="tx.type === 'sale'" style="font-weight: bold; font-size: 16px;">
+                                                <t t-esc="(tx.data.lines.reduce((acc, l) => acc + (l.qty * l.price), 0)).toLocaleString()"/> UZS
+                                            </div>
+                                            <span class="badge badge-warning" style="margin-top: 5px;">Sinxronlanmoqda...</span>
+                                        </div>
+                                    </div>
+                                </t>
+                            </div>
+                        </t>
+                    </div>
+                </t>
+                
+                <!-- Toast Notification -->
                 <t t-if="state.screen === 'request_details'">
                     <!-- Header Actions -->
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">

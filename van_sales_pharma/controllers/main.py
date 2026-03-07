@@ -43,6 +43,107 @@ class VanPosController(http.Controller):
             'image_url': f'/web/image?model=van.product&id={p.id}&field=image_1920',
         } for p in products]
 
+    @http.route('/van/pos/sync_offline', type='json', auth='user')
+    def sync_offline(self, transactions=None):
+        """
+        Batches offline transactions (sales, kirim, chiqim).
+        Ensures idempotency using 'offline_id'.
+        Input format: [{'type': 'sale', 'offline_id': 'abc...', 'data': {...}}, ...]
+        """
+        if not transactions:
+            return {'status': 'success', 'synced': [], 'errors': []}
+            
+        synced_ids = []
+        errors = []
+        
+        env = request.env
+        
+        for idx, tx in enumerate(transactions):
+            tx_type = tx.get('type')
+            offline_id = tx.get('offline_id')
+            data = tx.get('data', {})
+            
+            if not offline_id:
+                errors.append({'index': idx, 'error': 'Missing offline_id'})
+                continue
+                
+            try:
+                if tx_type == 'sale':
+                    # Check Idempotency
+                    existing = env['van.pos.order'].sudo().search([('offline_id', '=', offline_id)], limit=1)
+                    if existing:
+                        synced_ids.append(offline_id)
+                        continue
+                        
+                    partner_id = data.get('partner_id')
+                    agent_id = env.user.id
+                    lines = data.get('lines', [])
+                    
+                    if not lines:
+                        raise ValueError("No products in sale")
+                        
+                    # Create Order
+                    order_vals = {
+                        'partner_id': partner_id,
+                        'agent_id': agent_id,
+                        'offline_id': offline_id,
+                        'line_ids': [(0, 0, {
+                            'product_id': l['product_id'],
+                            'qty': l['qty'],
+                            'price_unit': l['price'],
+                        }) for l in lines]
+                    }
+                    
+                    # Apply historical date if provided
+                    tx_date = tx.get('timestamp')
+                    if tx_date:
+                        order_vals['date'] = tx_date
+                        
+                    order = env['van.pos.order'].sudo().create(order_vals)
+                    order.action_confirm_order()
+                    synced_ids.append(offline_id)
+                    
+                elif tx_type in ['kirim', 'chiqim']:
+                    # Check Idempotency
+                    existing = env['van.payment'].sudo().search([('offline_id', '=', offline_id)], limit=1)
+                    if existing:
+                        synced_ids.append(offline_id)
+                        continue
+                        
+                    payment_type = 'in' if tx_type == 'kirim' else 'out'
+                    vals = {
+                        'payment_type': payment_type,
+                        'agent_id': env.user.id,
+                        'offline_id': offline_id,
+                        'amount': float(data.get('amount', 0)),
+                        'note': data.get('note', ''),
+                        'payment_method': data.get('payment_method', 'cash')
+                    }
+                    
+                    if payment_type == 'in':
+                        vals['partner_id'] = data.get('partner_id')
+                    else:
+                        vals['expense_type'] = data.get('expense_type', 'daily')
+                        
+                    if tx.get('timestamp'):
+                        vals['date'] = tx.get('timestamp')
+                        
+                    env['van.payment'].sudo().create(vals)
+                    synced_ids.append(offline_id)
+                    
+                else:
+                    errors.append({'offline_id': offline_id, 'error': f"Unknown type {tx_type}"})
+                    
+            except Exception as e:
+                _logger.error(f"Error syncing offline transaction {offline_id}: {str(e)}")
+                errors.append({'offline_id': offline_id, 'error': str(e)})
+                
+        return {
+            'status': 'success' if len(errors) == 0 else 'partial_success',
+            'synced': synced_ids,
+            'errors': errors
+        }
+
     @http.route('/van/pos/submit_order', type='jsonrpc', auth='user')
     def submit_order(self, partner_id, lines):
         """

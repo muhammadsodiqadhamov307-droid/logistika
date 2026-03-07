@@ -35,6 +35,8 @@ class VanPayment(models.Model):
         ('salary', '🟣 Oylik Chiqim'),
         ('payout', '🟢 Oylik To\'lovi (Yopish)')
     ], string='Chiqim Turi', default='daily', help="Chiqim bo'lganda bu agentning oyligidan chegiriladimi yoki yo'q")
+    
+    offline_id = fields.Char(string='Offline ID', help="Takroriylikni oldini olish uchun Mobil Ilova tomondan yuborilgan ID")
 
     payment_method = fields.Selection([
         ('cash', 'Naqt'),
