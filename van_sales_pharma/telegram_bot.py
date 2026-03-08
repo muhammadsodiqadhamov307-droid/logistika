@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 ODOO_URL = "http://localhost:8069"
 ODOO_DB = "default"
 ODOO_USER = "admin"  # Hardcoded per instructions for local script
-ODOO_PASSWORD = "admin" # Adjust if your local db admin password is different
+ODOO_PASSWORD = os.environ.get('ODOO_PASSWORD', 'admin') # Read from env, fallback to admin
 
 # State definitions for Registration Conversation
 ASK_NAME, ASK_PHONE = range(2)
