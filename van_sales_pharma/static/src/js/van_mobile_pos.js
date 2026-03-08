@@ -618,6 +618,17 @@ export class VanMobilePos extends Component {
         }
     }
 
+    // --- LOCAL CACHE UPDATERS ---
+    updateLocalClientBalance(partnerId, deltaAmount) {
+        if (!partnerId || deltaAmount === 0) return;
+        const client = this.state.clients.find(c => c.id === partnerId);
+        if (client) {
+            client.total_due = (client.total_due || 0) + deltaAmount;
+            // Background save to cache so it reflects immediately
+            this.saveToIDB('clients', this.state.clients);
+        }
+    }
+
     removeFromCart(productId) {
         if (this.state.cart[productId]) {
             this.state.cart[productId].qty--;
@@ -692,6 +703,7 @@ export class VanMobilePos extends Component {
                         this.state.newNasiyaId = result.nasiya_id;
                         this.state.nasiyaAmount = result.nasiya_amount;
                         this.state.kirimAmount = result.nasiya_amount;
+                        // DO NOT update balance locally yet, submitKirim will handle it.
                         this.state.screen = 'kirim';
                         this.showToast("Nasiya saqlandi. To'lovni kiriting.", "success");
                     }
@@ -725,9 +737,10 @@ export class VanMobilePos extends Component {
                 this.showToast("Offline saqlandi. Internet bo'lganda sinxronlanadi.", "warning");
             } else {
                 // For Nasiya, offline we can't get a real nasiya_id. 
-                // We'll just ask for kirim using the offline_id as reference or skip to products.
-                // UX decision: skip directly to home and show warning, kirim can be done separately if they want,
-                // or we can allow a partial kirim linked to this offline_id. Easiest: return to start for offline.
+                // Add the whole cart amount to local client balance
+                const orderAmount = this.cartItems.reduce((acc, item) => acc + (item.qty * item.custom_price), 0);
+                this.updateLocalClientBalance(this.state.selectedClient.id, orderAmount);
+
                 this.resetToStart();
                 this.showToast("Offline Nasiya saqlandi (Kirim uchun alohida amaliyot ishlating).", "warning");
             }
@@ -740,15 +753,21 @@ export class VanMobilePos extends Component {
     }
 
     async submitKirim(paymentMethod = 'cash') {
-        if (this.state.kirimAmount > 0) {
+        const amount = this.state.kirimAmount;
+        if (amount >= 0) {
             this.state.loading = true;
             if (this.state.isOnline && this.state.newNasiyaId) {
                 try {
                     await rpc("/van/pos/submit_kirim", {
                         nasiya_id: this.state.newNasiyaId,
-                        amount: this.state.kirimAmount,
+                        amount: amount,
                         payment_method: paymentMethod
                     });
+
+                    // Locally update balance: (Total Nasiya - Paid Kirim)
+                    const delta = this.state.nasiyaAmount - amount;
+                    this.updateLocalClientBalance(this.state.selectedClient.id, delta);
+
                     this.showToast("To'lov saqlandi", "success");
                 } catch (e) {
                     console.error("Kirim failed", e);
@@ -809,6 +828,11 @@ export class VanMobilePos extends Component {
                 const result = await rpc("/van/pos/submit_quick_action", data);
 
                 if (result.success) {
+                    // Locally update balance if this was a kirim from a client
+                    if (this.state.quickActionType === 'kirim' && data.partner_id) {
+                        this.updateLocalClientBalance(data.partner_id, -amount);
+                    }
+
                     this.loadCurrentAgent(); // Refresh agent balance if it was a salary withdrawal
                     this.closeQuickAction();
                     this.showToast("Amaliyot saqlandi!", "success");
@@ -827,7 +851,13 @@ export class VanMobilePos extends Component {
                 timestamp: new Date().toISOString(),
                 data: data
             };
-            if (this.state.quickActionType === 'kirim') tx.type = 'kirim';
+
+            if (this.state.quickActionType === 'kirim') {
+                tx.type = 'kirim';
+                if (data.partner_id) {
+                    this.updateLocalClientBalance(data.partner_id, -amount);
+                }
+            }
 
             await this.saveQueueItem(tx);
             this.state.syncQueue.push(tx);
