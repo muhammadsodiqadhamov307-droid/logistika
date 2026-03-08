@@ -1,4 +1,4 @@
-const CACHE_NAME = 'van-sales-v1';
+const CACHE_NAME = 'van-sales-v2';
 const ASSETS_TO_CACHE = [
     '/van_sales_pharma/static/img/icon-192.png',
     '/van_sales_pharma/static/img/icon-512.png',
@@ -26,6 +26,25 @@ self.addEventListener('activate', event => {
 });
 
 self.addEventListener('fetch', event => {
+    const url = new URL(event.request.url);
+
+    // Dynamic routes and API calls (e.g. /van/client, /van/pos) -> Network First
+    if (url.pathname.startsWith('/van/')) {
+        event.respondWith(
+            fetch(event.request).then(networkResponse => {
+                // If we get a valid response, optionally we could cache it, but for these we want fresh
+                return networkResponse;
+            }).catch(() => {
+                // Fallback to cache if offline
+                return caches.match(event.request).then(cachedResponse => {
+                    return cachedResponse || new Response('Offline', { status: 503 });
+                });
+            })
+        );
+        return;
+    }
+
+    // Static assets (images, etc) -> Cache First
     if (event.request.destination === 'image') {
         event.respondWith(
             caches.match(event.request).then(cachedResponse => {
@@ -50,6 +69,7 @@ self.addEventListener('fetch', event => {
             })
         );
     } else {
+        // Default generic route handling
         event.respondWith(
             fetch(event.request)
                 .catch(() => caches.match(event.request))

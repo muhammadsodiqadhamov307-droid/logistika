@@ -478,7 +478,12 @@ class VanPosController(http.Controller):
             'odoo_url': base_url
         }
         
-        return request.render('van_sales_pharma.client_request_template', values)
+        headers = [
+            ('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0'),
+            ('Pragma', 'no-cache'),
+            ('Expires', '0')
+        ]
+        return request.render('van_sales_pharma.client_request_template', values, headers=headers)
 
     @http.route('/van/client/submit_request', type='jsonrpc', auth='public', csrf=False, cors='*')
     def client_submit_request(self, partner_id, lines, notes=''):
