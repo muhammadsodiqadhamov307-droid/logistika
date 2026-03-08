@@ -521,7 +521,8 @@ class VanPosController(http.Controller):
                 base_url = base_url.replace('http://', 'https://')
             base_url = base_url.rstrip('/')
             
-            web_app_url = f"{base_url}/van/client/request?chat_id={partner.telegram_chat_id}"
+            import time
+            web_app_url = f"{base_url}/van/client/request?chat_id={partner.telegram_chat_id}&v={int(time.time())}"
             button = {"text": "🛒 Zakaz berish", "web_app": {"url": web_app_url}}
             reply_markup = {"inline_keyboard": [[button]]}
 
