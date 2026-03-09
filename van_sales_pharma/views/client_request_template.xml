@@ -31,7 +31,7 @@
             </head>
             
             <body class="antialiased">
-                <div id="app" class="max-w-md mx-auto relative min-h-screen flex flex-col" t-att-data-partner-id="partner_id" t-att-data-odoo-url="odoo_url">
+                <div id="app" class="max-w-md mx-auto relative min-h-screen flex flex-col" t-att-data-partner-id="partner_id" t-att-data-odoo-url="odoo_url" t-att-data-products="products_json">
                     
                     <!-- Header -->
                     <div class="px-5 pt-6 pb-4 flex items-center justify-between sticky top-0 z-10 shadow-md" style="background-color: #1e293b; color: #ffffff;">
@@ -131,12 +131,11 @@
                     if (odooUrl.startsWith('http://') && !odooUrl.includes('localhost') && !odooUrl.includes('127.0.0.1')) {
                         odooUrl = odooUrl.replace("http://", "https://");
                     }
-                    ]]>
                     
-                    const PRODUCTS = <t t-out="products_json"/>;
+                    const productsStr = appDiv.getAttribute('data-products');
+                    const PRODUCTS = productsStr ? JSON.parse(productsStr) : {};
                     let cart = {}; // { productId: { name, price, qty, img } }
                     
-                    <![CDATA[
                     // MainButton setup
                     tg.MainButton.text = "SO'ROVNI YUBORISH (0 so'm)";
                     tg.MainButton.color = tg.themeParams.button_color || "#10b981"; // Emerald green
