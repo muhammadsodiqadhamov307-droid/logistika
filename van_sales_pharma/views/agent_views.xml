@@ -113,10 +113,21 @@
                             </h4>
                         </div>
                         <!-- Foyda (Admin only) -->
-                        <div class="col-md-3 col-6 text-center border-end" groups="van_sales_pharma.group_van_admin">
+                        <div class="col-md-3 col-6 text-center border-end mb-3" groups="van_sales_pharma.group_van_admin">
                             <small class="text-muted" style="color: #0d9488 !important;">💹 Foyda</small>
                             <h4 class="fw-bold" style="color: #0f766e;">
                                 <field name="total_foyda"
+                                       widget="monetary"
+                                       options="{'currency_field': 'currency_id'}"
+                                       readonly="1"/>
+                            </h4>
+                        </div>
+                        <!-- Qoladigan Pul (Admin only) -->
+                        <div class="col-md-3 col-6 text-center border-end mb-3" groups="van_sales_pharma.group_van_admin">
+                            <small class="text-muted" style="color: #4338ca !important;">💰 Agentdan qoladigan</small>
+                            <h4 class="fw-bold" style="color: #3730a3;"
+                                decoration-danger="qoladigan_pul &lt; 0">
+                                <field name="qoladigan_pul"
                                        widget="monetary"
                                        options="{'currency_field': 'currency_id'}"
                                        readonly="1"/>

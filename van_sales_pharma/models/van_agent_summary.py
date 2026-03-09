@@ -23,6 +23,7 @@ class VanAgentSummary(models.Model):
 
     oylik_balansi = fields.Monetary(related='agent_id.oylik_balansi', string='Oylik Balansi', readonly=True)
     total_foyda = fields.Monetary(string='Foyda', compute='_compute_financials', currency_field='currency_id')
+    qoladigan_pul = fields.Monetary(string='Agentdan Qoladigan', compute='_compute_financials', currency_field='currency_id')
 
     # === Moliyaviy ko'rsatkichlar ===
     total_cash = fields.Monetary(string='Naqt Pul', currency_field='currency_id',
@@ -154,6 +155,11 @@ class VanAgentSummary(models.Model):
                     cost_unit = line.product_id.cost_price or 0.0
                     margin_period += (line.price_unit - cost_unit) * line.qty
             rec.total_foyda = margin_period
+            
+            # Agentdan qoladigan pul = Foyda (period) - Commission (period)
+            komissiya_percent = rec.agent_id.komissiya_foizi / 100.0 if rec.agent_id.komissiya_foizi else 0.0
+            period_commission = total * komissiya_percent
+            rec.qoladigan_pul = margin_period - period_commission
 
     def action_view_pos_orders(self):
         self.ensure_one()
