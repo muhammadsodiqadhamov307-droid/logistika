@@ -136,9 +136,13 @@ class VanAgentSummary(models.Model):
             
             cash = naqt_savdo_total + kirim_total
             
-            # Nasiya = (Total Sales within date) - (Naqt Savdo within date) + Nasiyalar received
-            # According to User rules: Nasiya in period = credit sales made within selected dates only
-            nasiya = sum(o.amount_total for o in orders if o.partner_id)
+            # Nasiya: User explicitly requested this must be an ALL-TIME metric (ignores date_from/date_to).
+            all_time_nasiya_orders = self.env['van.pos.order'].search([
+                ('agent_id', '=', rec.agent_id.id),
+                ('partner_id', '!=', False),
+                ('state', '=', 'done')
+            ])
+            nasiya = sum(all_time_nasiya_orders.mapped('amount_total'))
 
             rec.total_cash = cash
             rec.total_nasiya = nasiya
@@ -156,9 +160,9 @@ class VanAgentSummary(models.Model):
                     margin_period += (line.price_unit - cost_unit) * line.qty
             rec.total_foyda = margin_period
             
-            # Agentdan qoladigan pul = Foyda (period) - Oylik Balansi (accumulated)
-            # The user explicitly mandated this math match the on-screen numbers exactly
-            rec.qoladigan_pul = margin_period - rec.oylik_balansi
+            # Agentdan qoladigan pul = Foyda (on-screen) - Oylik Balansi (on-screen)
+            # User explicitly demanded this absolute raw math, even if Foyda is period and Oylik Balansi is all-time.
+            rec.qoladigan_pul = rec.total_foyda - rec.oylik_balansi
 
     def action_view_pos_orders(self):
         self.ensure_one()
