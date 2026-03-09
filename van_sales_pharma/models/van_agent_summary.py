@@ -188,6 +188,29 @@ class VanAgentSummary(models.Model):
             'target': 'current',
         }
 
+    # === Dastlabki/Oxirgi Sana Dashboard Button Actions ===
+    def action_apply_filter(self):
+        """
+        Standard NO-OP. Odoo implicitly saves the form data (dates) before triggering this method, 
+        so the @api.depends compute block automatically re-runs.
+        """
+        return True
+        
+    def action_clear_filter(self):
+        """
+        Wipes the custom dates to force them back to today's date.
+        """
+        for rec in self:
+            rec.date_from = fields.Date.context_today(self)
+            rec.date_to = fields.Date.context_today(self)
+        return True
+        
+    def action_refresh_data(self):
+        """
+        Acts exactly like a hard page reload for the compute fields.
+        """
+        return True
+
     def action_view_chiqimlar(self):
         self.ensure_one()
         domain = [('agent_id', '=', self.agent_id.id), ('payment_type', '=', 'out')]
