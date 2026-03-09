@@ -150,9 +150,17 @@ class VanAgentSummary(models.Model):
                 
             g2_orders = self.env['van.pos.order'].search(g2_order_domain)
             
-            # Nasiya = all credit sales mapped in this domain
-            nasiya = sum(o.amount_total for o in g2_orders if o.partner_id)
-            rec.total_nasiya = nasiya
+            # Nasiya = all credit sales mapped in this domain - all incoming payments (kirims)
+            g2_payment_domain = [('agent_id', '=', rec.agent_id.id), ('payment_type', '=', 'in')]
+            if has_filter:
+                g2_payment_domain.extend([('date', '>=', g1_utc_start), ('date', '<=', g1_utc_end)])
+                
+            g2_kirims = self.env['van.payment'].search(g2_payment_domain)
+            
+            nasiya_sales = sum(o.amount_total for o in g2_orders if o.partner_id)
+            total_kirim_g2 = sum(g2_kirims.mapped('amount'))
+            
+            rec.total_nasiya = nasiya_sales - total_kirim_g2
             
             # Foyda (period or all-time depending on has_filter)
             margin = 0.0
