@@ -96,73 +96,82 @@ class VanAgentSummary(models.Model):
     def _compute_financials(self):
         for rec in self:
             tz = pytz.timezone(self.env.user.tz or self.env.context.get('tz') or 'UTC')
-            utc_start = None
-            utc_end = None
-
-            if rec.date_from:
-                local_start = tz.localize(datetime.combine(rec.date_from, time.min))
-                utc_start = local_start.astimezone(pytz.UTC).replace(tzinfo=None)
-            if rec.date_to:
-                local_end = tz.localize(datetime.combine(rec.date_to, time.max))
-                utc_end = local_end.astimezone(pytz.UTC).replace(tzinfo=None)
             
-            # --- POS Orders ---
-            order_domain = [('agent_id', '=', rec.agent_id.id), ('state', '=', 'done')]
-            if utc_start: order_domain.append(('date', '>=', utc_start))
-            if utc_end: order_domain.append(('date', '<=', utc_end))
-            orders = self.env['van.pos.order'].search(order_domain)
+            has_filter = bool(rec.date_from and rec.date_to)
+            today = fields.Date.context_today(self)
             
-            # --- Payments (Kirim / Chiqim) ---
-            payment_domain = [('agent_id', '=', rec.agent_id.id)]
-            if utc_start: payment_domain.append(('date', '>=', utc_start))
-            if utc_end: payment_domain.append(('date', '<=', utc_end))
-            all_payments = self.env['van.payment'].search(payment_domain)
+            # --- Group 1: Default Today, Obeys Filter ---
+            # Used for: Sotuvlar, Jami Sotuv, Naqt, Chiqim, Balans
+            g1_date_from = rec.date_from if has_filter else today
+            g1_date_to = rec.date_to if has_filter else today
             
-            kirims = all_payments.filtered(lambda p: p.payment_type == 'in')
-            chiqims = all_payments.filtered(lambda p: p.payment_type == 'out')
+            g1_utc_start = tz.localize(datetime.combine(g1_date_from, time.min)).astimezone(pytz.UTC).replace(tzinfo=None)
+            g1_utc_end = tz.localize(datetime.combine(g1_date_to, time.max)).astimezone(pytz.UTC).replace(tzinfo=None)
             
-            # --- Calculations ---
-            rec.pos_order_ids = orders
-            rec.pos_order_count = len(orders)
-            rec.kirim_ids = kirims
-            rec.chiqim_ids = chiqims
+            g1_order_domain = [
+                ('agent_id', '=', rec.agent_id.id), 
+                ('state', '=', 'done'),
+                ('date', '>=', g1_utc_start),
+                ('date', '<=', g1_utc_end)
+            ]
+            g1_orders = self.env['van.pos.order'].search(g1_order_domain)
             
-            total = sum(orders.mapped('amount_total'))
+            g1_payment_domain = [
+                ('agent_id', '=', rec.agent_id.id),
+                ('date', '>=', g1_utc_start),
+                ('date', '<=', g1_utc_end)
+            ]
+            g1_all_payments = self.env['van.payment'].search(g1_payment_domain)
+            g1_kirims = g1_all_payments.filtered(lambda p: p.payment_type == 'in')
+            g1_chiqims = g1_all_payments.filtered(lambda p: p.payment_type == 'out')
             
-            # Sum up all orders with no partner attached, as those are cash-in-hand
-            naqt_savdo_total = sum(o.amount_total for o in orders if not o.partner_id)
-            kirim_total = sum(kirims.mapped('amount'))
-            chiqim_total = sum(chiqims.mapped('amount'))
+            # Group 1 Calcs
+            rec.pos_order_ids = g1_orders
+            rec.pos_order_count = len(g1_orders)
+            rec.kirim_ids = g1_kirims
+            rec.chiqim_ids = g1_chiqims
             
+            total_sales = sum(g1_orders.mapped('amount_total'))
+            naqt_savdo_total = sum(o.amount_total for o in g1_orders if not o.partner_id)
+            kirim_total = sum(g1_kirims.mapped('amount'))
+            chiqim_total = sum(g1_chiqims.mapped('amount'))
             cash = naqt_savdo_total + kirim_total
             
-            # Nasiya: User explicitly requested this must be an ALL-TIME metric (ignores date_from/date_to).
-            all_time_nasiya_orders = self.env['van.pos.order'].search([
-                ('agent_id', '=', rec.agent_id.id),
-                ('partner_id', '!=', False),
-                ('state', '=', 'done')
-            ])
-            nasiya = sum(all_time_nasiya_orders.mapped('amount_total'))
-
+            rec.total_sales = total_sales
             rec.total_cash = cash
-            rec.total_nasiya = nasiya
-            rec.total_sales = total
             rec.total_chiqim = chiqim_total
-            
-            # Balans in period = (Naqt + Nasiya received) - Chiqim for selected dates only
             rec.total_balance = cash - chiqim_total
             
-            # Foyda calculation exactly: logic margin = (actual price - original cost_price) * qty 
-            margin_period = 0.0
-            for order in orders:
+            # --- Group 2: Default All-Time, Obeys Filter ---
+            # Used for: Nasiya, Foyda, Agentdan qoladigan
+            g2_order_domain = [('agent_id', '=', rec.agent_id.id), ('state', '=', 'done')]
+            if has_filter:
+                g2_order_domain.extend([('date', '>=', g1_utc_start), ('date', '<=', g1_utc_end)])
+                
+            g2_orders = self.env['van.pos.order'].search(g2_order_domain)
+            
+            # Nasiya = all credit sales mapped in this domain
+            nasiya = sum(o.amount_total for o in g2_orders if o.partner_id)
+            rec.total_nasiya = nasiya
+            
+            # Foyda (period or all-time depending on has_filter)
+            margin = 0.0
+            for order in g2_orders:
                 for line in order.line_ids:
                     cost_unit = line.product_id.cost_price or 0.0
-                    margin_period += (line.price_unit - cost_unit) * line.qty
-            rec.total_foyda = margin_period
+                    margin += (line.price_unit - cost_unit) * line.qty
+            rec.total_foyda = margin
             
-            # Agentdan qoladigan pul = Foyda (on-screen) - Oylik Balansi (on-screen)
-            # User explicitly demanded this absolute raw math, even if Foyda is period and Oylik Balansi is all-time.
-            rec.qoladigan_pul = rec.total_foyda - rec.oylik_balansi
+            # Agentdan qoladigan:
+            komissiya_percent = rec.agent_id.komissiya_foizi / 100.0 if rec.agent_id.komissiya_foizi else 0.0
+            if has_filter:
+                # Agentdan qoladigan = Foyda in period - Oylik in period
+                g2_total_sales = sum(g2_orders.mapped('amount_total'))
+                period_commission = g2_total_sales * komissiya_percent
+                rec.qoladigan_pul = margin - period_commission
+            else:
+                # Agentdan qoladigan = Foyda all-time - Oylik all-time
+                rec.qoladigan_pul = margin - rec.oylik_balansi
 
     def action_view_pos_orders(self):
         self.ensure_one()
@@ -198,11 +207,11 @@ class VanAgentSummary(models.Model):
         
     def action_clear_filter(self):
         """
-        Wipes the custom dates to force them back to today's date.
+        Wipes the custom dates to force them back to empty, triggering default filter logic.
         """
         for rec in self:
-            rec.date_from = fields.Date.context_today(self)
-            rec.date_to = fields.Date.context_today(self)
+            rec.date_from = False
+            rec.date_to = False
         return True
         
     def action_refresh_data(self):
