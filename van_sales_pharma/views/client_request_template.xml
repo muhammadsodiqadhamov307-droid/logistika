@@ -79,7 +79,7 @@
 
                             <div id="productGrid" class="grid grid-cols-2 gap-3 pb-8">
                                 <t t-foreach="products" t-as="p">
-                                    <div class="product-card bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm transition flex flex-col" t-att-data-id="p['id']" t-att-data-name="p['name']" t-att-data-price="p['price']" t-att-data-img="p['image_url']" t-att-id="'card-' + str(p['id'])">
+                                    <div class="product-card bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm transition flex flex-col" t-att-id="'card-' + str(p['id'])">
                                         <div class="h-28 bg-gray-50 flex items-center justify-center p-2 relative">
                                             <t t-if="p['image_url']">
                                                 <img t-att-src="p['image_url']" onerror="this.src='/van_sales_pharma/static/description/icon.png';" class="max-h-full max-w-full object-contain rounded-md"/>
@@ -95,11 +95,11 @@
                                         <!-- Real-time Quantity Controllers -->
                                         <div class="p-2 border-t border-gray-100 bg-gray-50">
                                             <div class="flex items-center justify-between border border-gray-300 rounded-lg overflow-hidden h-10 bg-white">
-                                                <button t-att-onclick="'changeQtyFromCard(\'' + str(p['id']) + '\', -1); event.stopPropagation();'" class="w-12 h-full flex items-center justify-center text-red-600 font-bold bg-gray-100 hover:bg-gray-200 transition border-r border-gray-300 active:bg-gray-300">
+                                                <button t-att-onclick="'changeQtyFromCard(' + str(p['id']) + ', -1); event.stopPropagation();'" class="w-12 h-full flex items-center justify-center text-red-600 font-bold bg-gray-100 hover:bg-gray-200 transition border-r border-gray-300 active:bg-gray-300">
                                                     <i t-att-id="'minus-icon-' + str(p['id'])" class="fa fa-minus text-sm font-black"></i>
                                                 </button>
-                                                <input type="number" t-att-id="'qty-' + str(p['id'])" t-att-onchange="'setQtyFromCard(\'' + str(p['id']) + '\', this.value);'" t-att-onclick="'event.stopPropagation();'" class="flex-1 text-center font-bold text-base text-black bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 w-full h-full m-0 p-0" value="0" />
-                                                <button t-att-onclick="'changeQtyFromCard(\'' + str(p['id']) + '\', 1); event.stopPropagation();'" class="w-12 h-full flex items-center justify-center text-white font-bold bg-blue-600 hover:bg-blue-700 transition border-l border-blue-700 active:bg-blue-800">
+                                                <input type="number" t-att-id="'qty-' + str(p['id'])" t-att-onchange="'setQtyFromCard(' + str(p['id']) + ', this.value);'" t-att-onclick="'event.stopPropagation();'" class="flex-1 text-center font-bold text-base text-black bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 w-full h-full m-0 p-0" value="0" />
+                                                <button t-att-onclick="'changeQtyFromCard(' + str(p['id']) + ', 1); event.stopPropagation();'" class="w-12 h-full flex items-center justify-center text-white font-bold bg-blue-600 hover:bg-blue-700 transition border-l border-blue-700 active:bg-blue-800">
                                                     <i class="fa fa-plus text-sm font-black"></i>
                                                 </button>
                                             </div>
@@ -131,9 +131,12 @@
                     if (odooUrl.startsWith('http://') && !odooUrl.includes('localhost') && !odooUrl.includes('127.0.0.1')) {
                         odooUrl = odooUrl.replace("http://", "https://");
                     }
+                    ]]>
                     
+                    const PRODUCTS = <t t-out="products_json"/>;
                     let cart = {}; // { productId: { name, price, qty, img } }
                     
+                    <![CDATA[
                     // MainButton setup
                     tg.MainButton.text = "SO'ROVNI YUBORISH (0 so'm)";
                     tg.MainButton.color = tg.themeParams.button_color || "#10b981"; // Emerald green
@@ -176,7 +179,7 @@
                     
                     function syncCards() {
                         document.querySelectorAll('.product-card').forEach(card => {
-                            const id = card.getAttribute('data-id');
+                            const id = card.id.replace('card-', '');
                             const qtyEl = document.getElementById('qty-' + id);
                             if (!qtyEl) return;
                             
@@ -209,10 +212,12 @@
                     }
 
                     function setQtyFromCard(id, newValue) {
-                        const card = document.getElementById('card-' + id);
-                        const name = card.dataset.name;
-                        const price = card.dataset.price;
-                        const img = card.dataset.img;
+                        const product = PRODUCTS[id];
+                        if (!product) return;
+                        
+                        const name = product.name;
+                        const price = product.price;
+                        const img = product.image_url;
                         
                         let parsed = parseInt(newValue);
                         let qtyEl = document.getElementById('qty-' + id);
@@ -233,10 +238,12 @@
                     }
 
                     function changeQtyFromCard(id, delta) {
-                        const card = document.getElementById('card-' + id);
-                        const name = card.dataset.name;
-                        const price = card.dataset.price;
-                        const img = card.dataset.img;
+                        const product = PRODUCTS[id];
+                        if (!product) return;
+                        
+                        const name = product.name;
+                        const price = product.price;
+                        const img = product.image_url;
                         
                         if (!cart[id] && delta > 0) {
                             addToCart(id, name, price, img);

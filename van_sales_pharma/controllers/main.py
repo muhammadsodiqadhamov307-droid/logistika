@@ -471,10 +471,13 @@ class VanPosController(http.Controller):
                 'image_url': f"{base_url}/van/public/image/{p.id}" if p.image_1920 else ""
             })
             
+        import json
+        products_dict = {p['id']: p for p in product_data}
         values = {
             'partner_id': partner.id,
             'partner_name': partner.name,
             'products': product_data,
+            'products_json': json.dumps(products_dict),
             'odoo_url': base_url
         }
         
