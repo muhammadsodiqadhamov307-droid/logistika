@@ -94,7 +94,9 @@ class VanPosOrder(models.Model):
             order.nasiya_id = nasiya.id
             
             # Snap the commission amount so it doesn't fluctuate if the admin changes the agent percentage later
-            order.commission_amount = order.amount_total * (order.agent_id.komissiya_foizi / 100.0)
+            # Calculate commission based on original 'sotish narxi' (list_price) regardless of discounted actual price
+            original_price_total = sum(line.product_id.list_price * line.qty for line in order.line_ids)
+            order.commission_amount = original_price_total * (order.agent_id.komissiya_foizi / 100.0)
             
             order.state = 'done'
 
