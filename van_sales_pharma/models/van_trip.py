@@ -210,18 +210,24 @@ class VanTrip(models.Model):
         # Date Logic
         domain_pos = []
         domain_vp = []
+        domain_foyda = [('state', '=', 'done')]
         
         if date_from:
             dt_from = datetime.strptime(date_from, "%Y-%m-%d")
             s_date = tz.localize(datetime.combine(dt_from, time.min)).astimezone(pytz.UTC).replace(tzinfo=None)
             domain_pos.append(('date', '>=', s_date))
             domain_vp.append(('date', '>=', s_date))
+            domain_foyda.append(('date', '>=', s_date))
             
         if date_to:
             dt_to = datetime.strptime(date_to, "%Y-%m-%d")
             e_date = tz.localize(datetime.combine(dt_to, time.max)).astimezone(pytz.UTC).replace(tzinfo=None)
             domain_pos.append(('date', '<=', e_date))
             domain_vp.append(('date', '<=', e_date))
+            domain_foyda.append(('date', '<=', e_date))
+            
+        if not date_from and not date_to:
+            domain_foyda.append(('date', '>=', today_start))
         
         # 1. Total Global Nasiya
         # We find all partners and sum up x_van_total_due (which represents their actual debt)
@@ -249,14 +255,13 @@ class VanTrip(models.Model):
                 t_cash -= vp.amount  # Subtract chiqim so Naqt Pul equals agent's current balance
 
         # 4. Calculate Margin (Foyda) for Filtered sales
-        # Margin = Total Price - standard_price * quantity
         margin_today = 0.0
         
-        for order in pos_orders.filtered(lambda o: o.state == 'done'):
+        foyda_orders = self.env['van.pos.order'].search(domain_foyda)
+        for order in foyda_orders:
             for line in order.line_ids:
                 cost_unit = line.product_id.cost_price or 0.0
-                cost = cost_unit * line.qty
-                margin_today += (line.subtotal - cost)
+                margin_today += (line.price_unit - cost_unit) * line.qty
 
         # 5. Top Mijozlar va Agentlar (Filtered by Date, or All-Time if no date)
         # Using the same pos_orders variable as it's already filtered properly based on date_from/date_to

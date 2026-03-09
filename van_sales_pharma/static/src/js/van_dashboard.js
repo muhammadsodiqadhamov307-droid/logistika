@@ -151,6 +151,10 @@ export class VanSalesDashboard extends Component {
         if (this.state.date_to) {
             domain.push(['order_id.date', '<=', this.state.date_to + ' 23:59:59']);
         }
+        if (!this.state.date_from && !this.state.date_to) {
+            const today = new Date().toISOString().slice(0, 10);
+            domain.push(['order_id.date', '>=', today + ' 00:00:00']);
+        }
         this.action.doAction({
             type: 'ir.actions.act_window',
             name: `Foyda Detallari`,
