@@ -156,10 +156,9 @@ class VanAgentSummary(models.Model):
                     margin_period += (line.price_unit - cost_unit) * line.qty
             rec.total_foyda = margin_period
             
-            # Agentdan qoladigan pul = Foyda (period) - Commission (period)
-            komissiya_percent = rec.agent_id.komissiya_foizi / 100.0 if rec.agent_id.komissiya_foizi else 0.0
-            period_commission = total * komissiya_percent
-            rec.qoladigan_pul = margin_period - period_commission
+            # Agentdan qoladigan pul = Foyda (period) - Oylik Balansi (accumulated)
+            # The user explicitly mandated this math match the on-screen numbers exactly
+            rec.qoladigan_pul = margin_period - rec.oylik_balansi
 
     def action_view_pos_orders(self):
         self.ensure_one()
