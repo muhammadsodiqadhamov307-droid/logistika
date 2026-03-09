@@ -21,7 +21,8 @@ class VanAgentSummary(models.Model):
     company_id = fields.Many2one('res.company', default=lambda self: self.env.company)
     currency_id = fields.Many2one('res.currency', related='company_id.currency_id', store=True)
 
-    oylik_balansi = fields.Monetary(related='agent_id.oylik_balansi', string='Oylik Balansi', readonly=True)
+    oylik_balansi = fields.Monetary(string='Oylik Balansi', compute='_compute_financials', currency_field='currency_id')
+    total_foyda = fields.Monetary(string='Foyda', compute='_compute_financials', currency_field='currency_id')
 
     # === Moliyaviy ko'rsatkichlar ===
     total_cash = fields.Monetary(string='Naqt Pul', currency_field='currency_id',
@@ -134,15 +135,29 @@ class VanAgentSummary(models.Model):
             
             cash = naqt_savdo_total + kirim_total
             
-            # Nasiya = Jami Sotuv - Naqt Sotuv. Note: Kirim doesn't reduce total_nasiya dynamically?
-            # Actually, standard Odoo or old logic was: nasiya = max(0, total - cash)
-            nasiya = max(0, total - cash)
+            # Nasiya = (Total Sales within date) - (Naqt Savdo within date) + Nasiyalar received
+            # According to User rules: Nasiya in period = credit sales made within selected dates only
+            nasiya = sum(o.amount_total for o in orders if o.partner_id)
 
             rec.total_cash = cash
             rec.total_nasiya = nasiya
             rec.total_sales = total
             rec.total_chiqim = chiqim_total
+            
+            # Balans in period = (Naqt + Nasiya received) - Chiqim for selected dates only
             rec.total_balance = cash - chiqim_total
+            
+            # Foyda calculation exactly: logic margin = (actual price - original cost_price) * qty 
+            margin_period = 0.0
+            for order in orders:
+                for line in order.line_ids:
+                    cost_unit = line.product_id.cost_price or 0.0
+                    margin_period += (line.price_unit - cost_unit) * line.qty
+            rec.total_foyda = margin_period
+            
+            # Oylik Balansi (commission in period)
+            komissiya_percent = rec.agent_id.komissiya_foizi / 100.0 if rec.agent_id.komissiya_foizi else 0.0
+            rec.oylik_balansi = total * komissiya_percent
 
     def action_view_pos_orders(self):
         self.ensure_one()
