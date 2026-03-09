@@ -460,13 +460,12 @@ class VanPosController(http.Controller):
         base_url = base_url.rstrip('/')
         
         # Get active products in the client's language to prevent translation mismatches
-        products = request.env['van.product'].sudo().with_context(lang=partner.lang or 'uz_UZ').search([])
+        products = request.env['van.product'].sudo().with_context(lang='uz_UZ').search([])
         product_data = []
         for p in products:
             product_data.append({
                 'id': p.id,
                 'name': p.name,
-                'name_escaped': p.name.replace("'", "\\'").replace('"', '&quot;'),
                 'price': p.list_price,
                 'price_str': f"{p.list_price:,.0f}",
                 'image_url': f"{base_url}/van/public/image/{p.id}" if p.image_1920 else ""
