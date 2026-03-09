@@ -95,12 +95,12 @@
                                         <!-- Real-time Quantity Controllers -->
                                         <div class="p-2 border-t border-gray-100 bg-gray-50">
                                             <div class="flex items-center justify-between border border-gray-300 rounded-lg overflow-hidden h-10 bg-white">
-                                                <button t-att-onclick="'changeQtyFromCard(' + str(p['id']) + ', -1); event.stopPropagation();'" class="w-12 h-full flex items-center justify-center text-red-600 font-bold bg-gray-100 hover:bg-gray-200 transition border-r border-gray-300 active:bg-gray-300">
-                                                    <i t-att-id="'minus-icon-' + str(p['id'])" class="fa fa-minus text-sm font-black"></i>
+                                                <button t-att-data-id="p['id']" class="btn-decrease w-12 h-full flex items-center justify-center text-red-600 font-bold bg-gray-100 hover:bg-gray-200 transition border-r border-gray-300 active:bg-gray-300">
+                                                    <i t-att-id="'minus-icon-' + str(p['id'])" class="fa fa-minus text-sm font-black pointer-events-none"></i>
                                                 </button>
-                                                <input type="number" t-att-id="'qty-' + str(p['id'])" t-att-onchange="'setQtyFromCard(' + str(p['id']) + ', this.value);'" t-att-onclick="'event.stopPropagation();'" class="flex-1 text-center font-bold text-base text-black bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 w-full h-full m-0 p-0" value="0" />
-                                                <button t-att-onclick="'changeQtyFromCard(' + str(p['id']) + ', 1); event.stopPropagation();'" class="w-12 h-full flex items-center justify-center text-white font-bold bg-blue-600 hover:bg-blue-700 transition border-l border-blue-700 active:bg-blue-800">
-                                                    <i class="fa fa-plus text-sm font-black"></i>
+                                                <input type="number" t-att-id="'qty-' + str(p['id'])" t-att-data-id="p['id']" class="qty-input flex-1 text-center font-bold text-base text-black bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 w-full h-full m-0 p-0" value="0" />
+                                                <button t-att-data-id="p['id']" class="btn-increase w-12 h-full flex items-center justify-center text-white font-bold bg-blue-600 hover:bg-blue-700 transition border-l border-blue-700 active:bg-blue-800">
+                                                    <i class="fa fa-plus text-sm font-black pointer-events-none"></i>
                                                 </button>
                                             </div>
                                         </div>
@@ -209,6 +209,26 @@
                             }
                         });
                     }
+
+                    // Event Delegation for Buttons
+                    document.addEventListener('click', function(e) {
+                        // Handle increase/decrease buttons
+                        const btn = e.target.closest('button');
+                        if (btn && (btn.classList.contains('btn-increase') || btn.classList.contains('btn-decrease'))) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            const id = btn.getAttribute('data-id');
+                            const delta = btn.classList.contains('btn-increase') ? 1 : -1;
+                            changeQtyFromCard(id, delta);
+                        }
+                    });
+                    
+                    document.addEventListener('input', function(e) {
+                        if (e.target.classList.contains('qty-input')) {
+                            const id = e.target.getAttribute('data-id');
+                            setQtyFromCard(id, e.target.value);
+                        }
+                    });
 
                     function setQtyFromCard(id, newValue) {
                         const product = PRODUCTS[id];
