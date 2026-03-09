@@ -22,7 +22,7 @@ class VanPosController(http.Controller):
 
     @http.route('/van/pos/get_inventory', type='jsonrpc', auth='user')
     def get_inventory(self):
-        summary = request.env['van.agent.summary'].search([('agent_id', '=', request.env.uid)], limit=1)
+        summary = request.env['van.agent.summary'].with_context(lang='uz_UZ').search([('agent_id', '=', request.env.uid)], limit=1)
         if not summary:
             return []
             
@@ -39,7 +39,7 @@ class VanPosController(http.Controller):
 
     @http.route('/van/pos/get_all_products', type='jsonrpc', auth='user')
     def get_all_products(self):
-        products = request.env['van.product'].sudo().search([('active', '=', True)])
+        products = request.env['van.product'].with_context(lang='uz_UZ').sudo().search([('active', '=', True)])
         return [{
             'product_id': p.id,
             'name': p.display_name,

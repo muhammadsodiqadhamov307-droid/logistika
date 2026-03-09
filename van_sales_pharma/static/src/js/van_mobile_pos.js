@@ -314,7 +314,7 @@ export class VanMobilePos extends Component {
             }
             // Then refresh from server if online
             if (this.state.isOnline) {
-                const result = await rpc("/van/pos/get_inventory", {});
+                const result = await rpc("/van/pos/get_inventory?t=" + Date.now(), {});
                 this.state.inventory = result;
                 await this.saveToIDB('inventory', result);
             }
@@ -381,7 +381,7 @@ export class VanMobilePos extends Component {
 
     async loadAllProducts() {
         try {
-            const result = await rpc("/van/pos/get_all_products", {});
+            const result = await rpc("/van/pos/get_all_products?t=" + Date.now(), {});
             this.state.allProducts = result;
         } catch (e) {
             console.error("Xatolik: Barcha mahsulotlarni yuklash imkonsiz.", e);
@@ -412,7 +412,7 @@ export class VanMobilePos extends Component {
 
     async loadInventorySilent() {
         try {
-            const freshInventory = await rpc("/van/pos/get_inventory", {});
+            const freshInventory = await rpc("/van/pos/get_inventory?t=" + Date.now(), {});
             this.state.inventory = freshInventory;
 
             // Reconcile and clean up cart if stock dropped unexpectedly
