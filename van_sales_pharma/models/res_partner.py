@@ -77,6 +77,7 @@ class ResPartner(models.Model):
     x_van_hisob_kitob_html = fields.Html(
         string="Hisob-kitob (Ledger)",
         compute='_compute_van_hisob_kitob_html',
+        sanitize=False,
         help="Mijozning qarz va to'lovlar xronologiyasi"
     )
 
@@ -185,7 +186,7 @@ class ResPartner(models.Model):
                     # Sotuv row (foldable)
                     html += f"""
                     <tbody>
-                        <tr class="sotuv-row" data-order-id="{rx['order_id']}" style="cursor: pointer;">
+                        <tr class="sotuv-row" onclick="var d = document.getElementById('detail-{rx['order_id']}'); if(d) {{ var isHidden = (d.style.display === 'none' || d.style.display === ''); d.style.display = isHidden ? 'table-row-group' : 'none'; var a = this.querySelector('.fold-arrow'); if(a) a.textContent = isHidden ? '▼' : '▶'; }}" style="cursor: pointer;">
                             <td><span class="fold-arrow text-primary me-2" style="display:inline-block; width:15px; text-align:center;">▶</span> {d_str}</td>
                             <td class="fw-bold">{rx['hujjat']}</td>
                             <td>{turi_badge}</td>
@@ -226,18 +227,6 @@ class ResPartner(models.Model):
             html += """
                 </table>
             </div>
-            <script>
-                document.addEventListener('click', function(e) {
-                    const row = e.target.closest('.sotuv-row');
-                    if (!row) return;
-                    const orderId = row.getAttribute('data-order-id');
-                    const detail = document.getElementById('detail-' + orderId);
-                    if (detail) {
-                        detail.style.display = detail.style.display === 'none' ? 'table-row-group' : 'none';
-                        row.querySelector('.fold-arrow').textContent = detail.style.display === 'none' ? '▶' : '▼';
-                    }
-                });
-            </script>
             """
             
             partner.x_van_hisob_kitob_html = html
