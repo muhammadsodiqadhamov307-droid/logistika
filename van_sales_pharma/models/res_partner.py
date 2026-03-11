@@ -108,6 +108,8 @@ class ResPartner(models.Model):
                         'turi': "🛒 Sotuv",
                         'summa': order.amount_total,
                         'is_debt': True,
+                        'order_id': order.id,
+                        'lines': order.line_ids,
                     })
                     
             # 3. Kirimlar (Payments)
@@ -157,14 +159,15 @@ class ResPartner(models.Model):
                             <th class="text-end">Balans</th>
                         </tr>
                     </thead>
-                    <tbody>
             """
             
             if not transactions:
                 html += """
-                    <tr>
-                        <td colspan="5" class="text-center text-muted py-3">Ma'lumot topilmadi</td>
-                    </tr>
+                    <tbody>
+                        <tr>
+                            <td colspan="5" class="text-center text-muted py-3">Ma'lumot topilmadi</td>
+                        </tr>
+                    </tbody>
                 """
             
             for rx in transactions:
@@ -178,17 +181,64 @@ class ResPartner(models.Model):
                     
                 bal_color = 'text-danger fw-bold' if rx['computed_balance'] > 0 else 'text-success fw-bold'
                 
-                html += f"""
-                    <tr>
-                        <td>{d_str}</td>
-                        <td class="fw-bold">{rx['hujjat']}</td>
-                        <td>{turi_badge}</td>
-                        <td class="text-end">{sum_html}</td>
-                        <td class="text-end {bal_color}">{rx['computed_balance']:,.0f}</td>
-                    </tr>
-                """
+                if rx.get('order_id'):
+                    # Sotuv row (foldable)
+                    html += f"""
+                    <tbody>
+                        <tr class="sotuv-row" data-order-id="{rx['order_id']}" style="cursor: pointer;">
+                            <td><span class="fold-arrow text-primary me-2" style="display:inline-block; width:15px; text-align:center;">▶</span> {d_str}</td>
+                            <td class="fw-bold">{rx['hujjat']}</td>
+                            <td>{turi_badge}</td>
+                            <td class="text-end">{sum_html}</td>
+                            <td class="text-end {bal_color}">{rx['computed_balance']:,.0f}</td>
+                        </tr>
+                    </tbody>
+                    <tbody id="detail-{rx['order_id']}" style="display: none; background-color: #f8f9fa;">
+                    """
+                    for line in rx['lines']:
+                        prod_name = line.product_id.name or 'Unknown'
+                        qty = line.qty
+                        price = line.price_unit
+                        subtotal = qty * price
+                        html += f"""
+                        <tr>
+                            <td colspan="2" class="ps-4 text-muted border-0"><small>└─ {prod_name}</small></td>
+                            <td class="text-muted border-0"><small>× {qty:g}</small></td>
+                            <td class="text-end text-muted border-0"><small>{price:,.0f} so'm</small></td>
+                            <td class="text-end text-muted border-0"><small>{subtotal:,.0f} so'm</small></td>
+                        </tr>
+                        """
+                    html += '</tbody>'
+                else:
+                    # Normal row
+                    html += f"""
+                    <tbody>
+                        <tr>
+                            <td class="ps-4">{d_str}</td>
+                            <td class="fw-bold">{rx['hujjat']}</td>
+                            <td>{turi_badge}</td>
+                            <td class="text-end">{sum_html}</td>
+                            <td class="text-end {bal_color}">{rx['computed_balance']:,.0f}</td>
+                        </tr>
+                    </tbody>
+                    """
                 
-            html += "</tbody></table></div>"
+            html += """
+                </table>
+            </div>
+            <script>
+                document.addEventListener('click', function(e) {
+                    const row = e.target.closest('.sotuv-row');
+                    if (!row) return;
+                    const orderId = row.getAttribute('data-order-id');
+                    const detail = document.getElementById('detail-' + orderId);
+                    if (detail) {
+                        detail.style.display = detail.style.display === 'none' ? 'table-row-group' : 'none';
+                        row.querySelector('.fold-arrow').textContent = detail.style.display === 'none' ? '▶' : '▼';
+                    }
+                });
+            </script>
+            """
             
             partner.x_van_hisob_kitob_html = html
 
