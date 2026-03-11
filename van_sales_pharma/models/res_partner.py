@@ -125,11 +125,27 @@ class ResPartner(models.Model):
                         'is_debt': False,
                     })
                     
-            # Sort all transactions chronologically by date
+            # Sort all transactions chronologically by date ascending to calculate running balance
             transactions.sort(key=lambda x: x['date'])
             
-            # Build HTML table
-            html = """
+            # Pre-calculate chronological running balance exactly
+            running_balance = 0.0
+            for rx in transactions:
+                if rx['is_debt']:
+                    running_balance += rx['summa']
+                else:
+                    running_balance -= rx['summa']
+                rx['computed_balance'] = running_balance
+                
+            # Now explicitly reverse the array so newest transactions print at the top
+            transactions.reverse()
+            
+            # Build HTML table, putting Jami Qarz at the very top securely
+            final_color = 'text-danger' if running_balance > 0 else 'text-success'
+            html = f"""
+            <div class="mb-3 d-flex justify-content-between align-items-center">
+                <h4 class="{final_color} fw-bold m-0">Jami Qarz: {running_balance:,.0f} so'm</h4>
+            </div>
             <div class="table-responsive">
                 <table class="table table-sm table-hover table-striped mb-0" style="border: 1px solid #dee2e6;">
                     <thead class="table-light">
@@ -151,19 +167,16 @@ class ResPartner(models.Model):
                     </tr>
                 """
             
-            running_balance = 0.0
             for rx in transactions:
                 d_str = rx['date'].strftime('%d.%m.%Y')
                 turi_badge = f'<span class="badge rounded-pill bg-success">{rx["turi"]}</span>' if rx['turi'] == "🛒 Sotuv" else (f'<span class="badge rounded-pill bg-info text-dark">{rx["turi"]}</span>' if rx['turi'] == "💵 Kirim" else f'<span class="badge rounded-pill bg-warning text-dark">{rx["turi"]}</span>')
                 
                 if rx['is_debt']:
-                    running_balance += rx['summa']
                     sum_html = f'<span class="text-danger fw-bold">+{rx["summa"]:,.0f}</span>'
                 else:
-                    running_balance -= rx['summa']
                     sum_html = f'<span class="text-success fw-bold">-{rx["summa"]:,.0f}</span>'
                     
-                bal_color = 'text-danger fw-bold' if running_balance > 0 else 'text-success fw-bold'
+                bal_color = 'text-danger fw-bold' if rx['computed_balance'] > 0 else 'text-success fw-bold'
                 
                 html += f"""
                     <tr>
@@ -171,19 +184,11 @@ class ResPartner(models.Model):
                         <td class="fw-bold">{rx['hujjat']}</td>
                         <td>{turi_badge}</td>
                         <td class="text-end">{sum_html}</td>
-                        <td class="text-end {bal_color}">{running_balance:,.0f}</td>
+                        <td class="text-end {bal_color}">{rx['computed_balance']:,.0f}</td>
                     </tr>
                 """
                 
             html += "</tbody></table></div>"
-            
-            # Render the Grand Total at the bottom
-            final_color = 'text-danger' if running_balance > 0 else 'text-success'
-            html += f"""
-            <div class="mt-3 text-end">
-                <h4 class="{final_color} fw-bold">Jami Qarz: {running_balance:,.0f} so'm</h4>
-            </div>
-            """
             
             partner.x_van_hisob_kitob_html = html
 
