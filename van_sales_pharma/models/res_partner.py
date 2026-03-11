@@ -73,6 +73,119 @@ class ResPartner(models.Model):
         currency_field='currency_id',
         help="Mijozning barcha xaridlari (POS) umumiy summasi."
     )
+    
+    x_van_hisob_kitob_html = fields.Html(
+        string="Hisob-kitob (Ledger)",
+        compute='_compute_van_hisob_kitob_html',
+        help="Mijozning qarz va to'lovlar xronologiyasi"
+    )
+
+    def _compute_van_hisob_kitob_html(self):
+        for partner in self:
+            transactions = []
+            
+            # 1. Boshlang'ich qarz (Ostatka)
+            for ostatka in partner.x_van_ostatka_ids:
+                if ostatka.amount > 0:
+                    transactions.append({
+                        'date': ostatka.date or fields.Date.today(),
+                        'hujjat': 'Ostatka Qarzi',
+                        'turi': "🟠 Boshlang'ich qarz",
+                        'summa': ostatka.amount,
+                        'is_debt': True,
+                    })
+                    
+            # 2. Sotuvlar (POS Orders)
+            pos_orders = self.env['van.pos.order'].search([
+                ('partner_id', '=', partner.id),
+                ('state', '=', 'done')
+            ])
+            for order in pos_orders:
+                if order.amount_total > 0:
+                    transactions.append({
+                        'date': order.date.date() if order.date else fields.Date.today(),
+                        'hujjat': order.name,
+                        'turi': "🛒 Sotuv",
+                        'summa': order.amount_total,
+                        'is_debt': True,
+                    })
+                    
+            # 3. Kirimlar (Payments)
+            payments = self.env['van.payment'].search([
+                ('partner_id', '=', partner.id),
+                ('payment_type', '=', 'in')
+            ])
+            for payment in payments:
+                if payment.amount > 0:
+                    transactions.append({
+                        'date': payment.date.date() if payment.date else fields.Date.today(),
+                        'hujjat': payment.name,
+                        'turi': "💵 Kirim",
+                        'summa': payment.amount,
+                        'is_debt': False,
+                    })
+                    
+            # Sort all transactions chronologically by date
+            transactions.sort(key=lambda x: x['date'])
+            
+            # Build HTML table
+            html = """
+            <div class="table-responsive">
+                <table class="table table-sm table-hover table-striped mb-0" style="border: 1px solid #dee2e6;">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Sana</th>
+                            <th>Hujjat</th>
+                            <th>Turi</th>
+                            <th class="text-end">Summa</th>
+                            <th class="text-end">Balans</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            """
+            
+            if not transactions:
+                html += """
+                    <tr>
+                        <td colspan="5" class="text-center text-muted py-3">Ma'lumot topilmadi</td>
+                    </tr>
+                """
+            
+            running_balance = 0.0
+            for rx in transactions:
+                d_str = rx['date'].strftime('%d.%m.%Y')
+                turi_badge = f'<span class="badge rounded-pill bg-success">{rx["turi"]}</span>' if rx['turi'] == "🛒 Sotuv" else (f'<span class="badge rounded-pill bg-info text-dark">{rx["turi"]}</span>' if rx['turi'] == "💵 Kirim" else f'<span class="badge rounded-pill bg-warning text-dark">{rx["turi"]}</span>')
+                
+                if rx['is_debt']:
+                    running_balance += rx['summa']
+                    sum_html = f'<span class="text-danger fw-bold">+{rx["summa"]:,.0f}</span>'
+                else:
+                    running_balance -= rx['summa']
+                    sum_html = f'<span class="text-success fw-bold">-{rx["summa"]:,.0f}</span>'
+                    
+                bal_color = 'text-danger fw-bold' if running_balance > 0 else 'text-success fw-bold'
+                
+                html += f"""
+                    <tr>
+                        <td>{d_str}</td>
+                        <td class="fw-bold">{rx['hujjat']}</td>
+                        <td>{turi_badge}</td>
+                        <td class="text-end">{sum_html}</td>
+                        <td class="text-end {bal_color}">{running_balance:,.0f}</td>
+                    </tr>
+                """
+                
+            html += "</tbody></table></div>"
+            
+            # Render the Grand Total at the bottom
+            final_color = 'text-danger' if running_balance > 0 else 'text-success'
+            html += f"""
+            <div class="mt-3 text-end">
+                <h4 class="{final_color} fw-bold">Jami Qarz: {running_balance:,.0f} so'm</h4>
+            </div>
+            """
+            
+            partner.x_van_hisob_kitob_html = html
 
     def _compute_van_pos_stats(self):
         for partner in self:
