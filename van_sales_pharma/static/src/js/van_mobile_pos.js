@@ -22,6 +22,7 @@ export class VanMobilePos extends Component {
             clients: [],
             inventory: [],
             allProducts: [],
+            agentsList: [],
 
             // Active selection
             selectedClient: { id: false, name: 'Naqt savdo', total_due: 0 },
@@ -326,22 +327,111 @@ export class VanMobilePos extends Component {
     }
 
     async loadCurrentAgent() {
+        // Always load from IDB cache first
         try {
-            // Always load from IDB cache first
             const cached = await this.getFromIDB('agent');
             if (cached && cached.length > 0) {
                 this.state.currentAgent = cached[0];
             }
-            // Then refresh from server if online
-            if (this.state.isOnline) {
-                const result = await rpc("/van/pos/get_current_agent", {});
+        } catch (e) {
+            console.error("Failed to load agent from IDB:", e);
+        }
+
+        if (!this.state.isOnline) {
+            // If offline and no cached agent, we can't proceed
+            if (!this.state.currentAgent) {
+                this.showToast("Offline rejimda agent ma'lumotlari mavjud emas.", "warning");
+            }
+            return;
+        }
+
+        try {
+            const result = await rpc('/van/pos/get_current_agent');
+            if (result) {
+                // If the user is an admin but hasn't selected an agent yet, force selection screen
+                if (result.is_admin && !result.is_admin_mode) {
+                    this.state.screen = 'select_agent';
+                    await this.loadAgentsList();
+                    return; // Halt normal initialization
+                }
+
                 this.state.currentAgent = result;
-                await this.saveToIDB('agent', [result], false);
+                await this.saveToIDB('agent', [result], false); // Save as array for consistency with getFromIDB
             }
         } catch (e) {
-            console.error(e);
-            const cached = await this.getFromIDB('agent');
-            if (cached && cached.length > 0) this.state.currentAgent = cached[0];
+            console.error("Agent yuklashda xatolik:", e);
+            // If online fetch fails, rely on cached data if available
+            if (!this.state.currentAgent) {
+                this.showToast("Agent ma'lumotlarini yuklashda xatolik. Offline rejimga o'tildi.", "danger");
+            }
+        }
+    }
+
+    async loadAgentsList() {
+        try {
+            const result = await rpc('/van/pos/get_agents');
+            if (result && result.success) {
+                this.state.agentsList = result.agents;
+            } else {
+                this.showToast(result.error || "Agentlarni yuklashda xatolik.", "danger");
+            }
+        } catch (e) {
+            console.error("Agentlarni yuklashda xatolik:", e);
+            this.showToast("Tarmoqda xatolik: Agentlarni yuklab bo'lmadi.", "danger");
+        }
+    }
+
+    async selectAgent(agentId) {
+        this.state.loading = true;
+        try {
+            const result = await rpc('/van/pos/set_agent', { agent_id: agentId });
+            if (result.success) {
+                // Clear cached data belonging to old context
+                if (this.db) {
+                    await this.saveToIDB('inventory', [], true);
+                    await this.saveToIDB('clients', [], true);
+                    await this.saveToIDB('taminotchis', [], true);
+                }
+                // Reload session context
+                await this.loadCurrentAgent();
+                await Promise.all([
+                    this.loadClients(),
+                    this.loadInventory(),
+                    this.loadTaminotchis()
+                ]);
+                this.state.screen = 'products';
+                this.showToast("Agent tanlandi. Tizim ishga tayyor.", "success");
+            } else {
+                this.showToast(result.error || "Agentni faollashtirib bo'lmadi.", "danger");
+            }
+        } catch (e) {
+            console.error("Agent tanlashda xatolik:", e);
+            this.showToast("Tarmoqda xatolik: Agentni tanlab bo'lmadi.", "danger");
+        } finally {
+            this.state.loading = false;
+        }
+    }
+
+    async clearAgentSession() {
+        this.state.loading = true;
+        try {
+            await rpc('/van/pos/clear_agent');
+            // Clear cached user context
+            if (this.db) {
+                await this.saveToIDB('inventory', [], true);
+                await this.saveToIDB('clients', [], true);
+                await this.saveToIDB('agent', [], true);
+                await this.saveToIDB('taminotchis', [], true);
+            }
+            this.state.currentAgent = null;
+            this.state.screen = 'select_agent';
+            await this.loadAgentsList();
+            this.showToast("Agent sessiyasi tozalandi.", "info");
+        } catch (e) {
+            console.error("Agent sessiyasini tozalashda xatolik:", e);
+            this.showToast("Agent sessiyasini tozalab bo'lmadi.", "danger");
+        } finally {
+            this.state.loading = false;
         }
     }
 
