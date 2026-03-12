@@ -112,10 +112,21 @@ class VanAgentSummary(models.Model):
 
             rec.jami_nasiya = total_credit - total_kirim
 
-    @api.depends('total_foyda', 'oylik_balansi')
+    @api.depends('agent_id', 'oylik_balansi')
     def _compute_agentdan_qoladigan(self):
         for rec in self:
-            rec.qoladigan_pul = rec.total_foyda - rec.oylik_balansi
+            all_time_orders = self.env['van.pos.order'].search([
+                ('agent_id', '=', rec.agent_id.id),
+                ('state', '=', 'done')
+            ])
+            
+            absolute_margin = 0.0
+            for order in all_time_orders:
+                for line in order.line_ids:
+                    cost_unit = line.product_id.cost_price or 0.0
+                    absolute_margin += (line.price_unit - cost_unit) * line.qty
+                    
+            rec.qoladigan_pul = absolute_margin - rec.oylik_balansi
 
     @api.depends('date_from', 'date_to', 'agent_id')
     def _compute_financials(self):
