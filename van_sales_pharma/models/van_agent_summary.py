@@ -100,7 +100,8 @@ class VanAgentSummary(models.Model):
         for rec in self:
             credit_sales = self.env['van.pos.order'].search([
                 ('agent_id', '=', rec.agent_id.id),
-                ('payment_type', '=', 'nasiya')
+                ('partner_id', '!=', False),
+                ('state', '=', 'done')
             ])
             total_credit = sum(credit_sales.mapped('amount_total'))
 
