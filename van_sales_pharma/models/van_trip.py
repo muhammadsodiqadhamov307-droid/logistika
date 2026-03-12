@@ -211,6 +211,8 @@ class VanTrip(models.Model):
         domain_pos = []
         domain_vp = []
         domain_foyda = [('state', '=', 'done')]
+        domain_chiqim = [('payment_type', '=', 'out')]
+        
         
         if date_from:
             dt_from = datetime.strptime(date_from, "%Y-%m-%d")
@@ -218,6 +220,7 @@ class VanTrip(models.Model):
             domain_pos.append(('date', '>=', s_date))
             domain_vp.append(('date', '>=', s_date))
             domain_foyda.append(('date', '>=', s_date))
+            domain_chiqim.append(('date', '>=', s_date))
             
         if date_to:
             dt_to = datetime.strptime(date_to, "%Y-%m-%d")
@@ -225,9 +228,11 @@ class VanTrip(models.Model):
             domain_pos.append(('date', '<=', e_date))
             domain_vp.append(('date', '<=', e_date))
             domain_foyda.append(('date', '<=', e_date))
+            domain_chiqim.append(('date', '<=', e_date))
             
         if not date_from and not date_to:
             domain_foyda.append(('date', '>=', today_start))
+            domain_chiqim.append(('date', '>=', today_start))
         
         # 1. Total Global Nasiya
         # We find all partners and sum up x_van_total_due (which represents their actual debt)
@@ -238,7 +243,6 @@ class VanTrip(models.Model):
         pos_orders = self.env['van.pos.order'].search(domain_pos)
         t_cash = 0.0  # Will be filled from van.payment AND Naqt Savdo
         t_card = 0.0
-        t_chiqim = 0.0
         
         # --- POS Naqt Savdo (Cash Sales) ---
         t_cash += sum(o.amount_total for o in pos_orders.filtered(lambda x: not x.partner_id and x.state == 'done'))
@@ -251,8 +255,10 @@ class VanTrip(models.Model):
                 if vp.payment_method == 'cash':
                     t_cash += vp.amount
             elif vp.payment_type == 'out':
-                t_chiqim += vp.amount
                 t_cash -= vp.amount  # Subtract chiqim so Naqt Pul equals agent's current balance
+                
+        # Independent Chiqim Calculation (Display exclusively Today if no filter is applied)
+        t_chiqim_display = sum(self.env['van.payment'].search(domain_chiqim).mapped('amount'))
 
         # 4. Calculate Margin (Foyda) for Filtered sales
         margin_today = 0.0
@@ -338,7 +344,7 @@ class VanTrip(models.Model):
             'active_trips_count': len(pos_orders.filtered(lambda o: o.state == 'done')),
             'total_cash': t_cash,
             'total_card': t_card,
-            'total_chiqim': t_chiqim,
+            'total_chiqim': t_chiqim_display,
             'total_global_nasiya': total_global_nasiya,
             'margin_today': margin_today,
             'top_customers': top_customers,
