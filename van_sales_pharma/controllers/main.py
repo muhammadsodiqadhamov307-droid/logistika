@@ -40,10 +40,8 @@ class VanPosController(http.Controller):
 
     @http.route('/van/mobile-pos/change-agent', type='http', auth='user')
     def mobile_pos_change_agent(self):
-        user = request.env.user
-        is_admin = user.has_group('van_sales_pharma.group_van_admin') or user.has_group('base.group_system')
-        if is_admin:
-            request.session.pop('acting_as_agent_id', None)
+        if request.session.get('acting_as_agent_id'):
+            del request.session['acting_as_agent_id']
         return request.redirect('/van/mobile-pos')
 
     @http.route('/van/pos/get_clients', type='jsonrpc', auth='user')
