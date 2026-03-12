@@ -25,7 +25,7 @@ class VanAgentSummary(models.Model):
     jami_nasiya = fields.Monetary(string='Jami Nasiya', compute='_compute_jami_nasiya', currency_field='currency_id')
     
     total_foyda = fields.Monetary(string='Foyda', compute='_compute_financials', currency_field='currency_id')
-    qoladigan_pul = fields.Monetary(string='Agentdan Qoladigan', compute='_compute_financials', currency_field='currency_id')
+    qoladigan_pul = fields.Monetary(string='Agentdan Qoladigan', compute='_compute_agentdan_qoladigan', currency_field='currency_id')
 
     # === Moliyaviy ko'rsatkichlar ===
     total_cash = fields.Monetary(string='Naqt Pul', currency_field='currency_id',
@@ -112,6 +112,11 @@ class VanAgentSummary(models.Model):
 
             rec.jami_nasiya = total_credit - total_kirim
 
+    @api.depends('total_foyda', 'oylik_balansi')
+    def _compute_agentdan_qoladigan(self):
+        for rec in self:
+            rec.qoladigan_pul = rec.total_foyda - rec.oylik_balansi
+
     @api.depends('date_from', 'date_to', 'agent_id')
     def _compute_financials(self):
         for rec in self:
@@ -171,11 +176,6 @@ class VanAgentSummary(models.Model):
                     cost_unit = line.product_id.cost_price or 0.0
                     margin += (line.price_unit - cost_unit) * line.qty
             rec.total_foyda = margin
-            
-            komissiya_percent = rec.agent_id.komissiya_foizi / 100.0 if rec.agent_id.komissiya_foizi else 0.0
-            period_commission = total_sales * komissiya_percent
-            
-            rec.qoladigan_pul = margin - period_commission
 
     def action_view_pos_orders(self):
         self.ensure_one()
