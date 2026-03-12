@@ -17,7 +17,7 @@
                     <div class="row g-4 justify-content-center">
                         <t t-foreach="agents" t-as="agent">
                             <div class="col-6 col-md-4 col-lg-3">
-                                <a t-attf-href="/van/mobile-pos/set-agent/{{ agent.id }}" style="text-decoration: none;">
+                                <a t-attf-href="/van/mobile-pos/select-agent?agent_id={{ agent.id }}" style="text-decoration: none;">
                                     <div class="card h-100 text-center border-0 shadow-sm" style="border-radius: 12px; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
                                         <div class="card-body p-4">
                                             <img t-attf-src="/web/image?model=res.users&amp;id={{ agent.id }}&amp;field=avatar_128" class="rounded-circle mb-3 border" style="width: 80px; height: 80px; object-fit: cover; border-width: 3px !important; border-color: #e5e7eb !important;"/>

@@ -24,17 +24,19 @@ class VanPosController(http.Controller):
             acting_agent_id = request.session.get('acting_as_agent_id')
             if not acting_agent_id:
                 agent_group = request.env.ref('van_sales_pharma.group_van_agent')
-                agents = agent_group.sudo().users
+                agents = request.env['res.users'].sudo().search([('groups_id', '=', agent_group.id)])
                 return request.render('van_sales_pharma.agent_select_template', {'agents': agents})
                 
         # If normal agent, or admin with an already selected agent session, boot the OWL app
         return request.redirect('/web#action=van_sales_pharma.action_van_mobile_pos')
 
-    @http.route('/van/mobile-pos/set-agent/<int:agent_id>', type='http', auth='user')
-    def mobile_pos_set_agent(self, agent_id):
+    @http.route('/van/mobile-pos/select-agent', type='http', auth='user', methods=['GET'], csrf=False)
+    def select_agent(self, agent_id=None, **kwargs):
         user = request.env.user
         is_admin = user.has_group('van_sales_pharma.group_van_admin') or user.has_group('base.group_system')
-        if is_admin:
+        if not is_admin:
+            return request.redirect('/van/mobile-pos')
+        if agent_id:
             request.session['acting_as_agent_id'] = int(agent_id)
         return request.redirect('/van/mobile-pos')
 
