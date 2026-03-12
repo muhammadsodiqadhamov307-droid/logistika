@@ -7,6 +7,45 @@ _logger = logging.getLogger(__name__)
 
 class VanPosController(http.Controller):
 
+    def _get_agent_id(self):
+        """Returns the acting agent ID if an admin has selected one, otherwise the actual user ID."""
+        if request.env.user.has_group('van_sales_pharma.group_van_admin'):
+            acting_id = request.session.get('acting_as_agent_id')
+            if acting_id:
+                return acting_id
+        return request.env.uid
+
+    @http.route('/van/mobile-pos', type='http', auth='user')
+    def mobile_pos_entry(self):
+        user = request.env.user
+        is_admin = user.has_group('van_sales_pharma.group_van_admin') or user.has_group('base.group_system')
+        
+        if is_admin:
+            acting_agent_id = request.session.get('acting_as_agent_id')
+            if not acting_agent_id:
+                agent_group = request.env.ref('van_sales_pharma.group_van_agent')
+                agents = request.env['res.users'].sudo().search([('groups_id', 'in', agent_group.id)])
+                return request.render('van_sales_pharma.agent_select_template', {'agents': agents})
+                
+        # If normal agent, or admin with an already selected agent session, boot the OWL app
+        return request.redirect('/web#action=van_sales_pharma.action_van_mobile_pos')
+
+    @http.route('/van/mobile-pos/set-agent/<int:agent_id>', type='http', auth='user')
+    def mobile_pos_set_agent(self, agent_id):
+        user = request.env.user
+        is_admin = user.has_group('van_sales_pharma.group_van_admin') or user.has_group('base.group_system')
+        if is_admin:
+            request.session['acting_as_agent_id'] = int(agent_id)
+        return request.redirect('/van/mobile-pos')
+
+    @http.route('/van/mobile-pos/change-agent', type='http', auth='user')
+    def mobile_pos_change_agent(self):
+        user = request.env.user
+        is_admin = user.has_group('van_sales_pharma.group_van_admin') or user.has_group('base.group_system')
+        if is_admin:
+            request.session.pop('acting_as_agent_id', None)
+        return request.redirect('/van/mobile-pos')
+
     @http.route('/van/pos/get_clients', type='jsonrpc', auth='user')
     def get_clients(self):
         partners = request.env['res.partner'].search([('x_is_van_customer', '=', True)])
@@ -22,7 +61,8 @@ class VanPosController(http.Controller):
 
     @http.route('/van/pos/get_inventory', type='jsonrpc', auth='user')
     def get_inventory(self):
-        summary = request.env['van.agent.summary'].with_context(lang='uz_UZ').search([('agent_id', '=', request.env.uid)], limit=1)
+        agent_id = self._get_agent_id()
+        summary = request.env['van.agent.summary'].with_context(lang='uz_UZ').search([('agent_id', '=', agent_id)], limit=1)
         if not summary:
             return []
             
@@ -80,7 +120,8 @@ class VanPosController(http.Controller):
                         continue
                         
                     partner_id = data.get('partner_id')
-                    agent_id = env.user.id
+                    part_agent_id = self._get_agent_id()
+                    agent_id = part_agent_id
                     lines = data.get('lines', [])
                     
                     if not lines:
@@ -120,7 +161,7 @@ class VanPosController(http.Controller):
                     payment_type = 'in' if tx_type == 'kirim' else 'out'
                     vals = {
                         'payment_type': payment_type,
-                        'agent_id': env.user.id,
+                        'agent_id': self._get_agent_id(),
                         'offline_id': offline_id,
                         'amount': float(data.get('amount', 0)),
                         'note': data.get('note', ''),
@@ -161,7 +202,7 @@ class VanPosController(http.Controller):
         """
         try:
             order_vals = {
-                'agent_id': request.env.uid,
+                'agent_id': self._get_agent_id(),
                 'partner_id': partner_id if partner_id else False,
                 'line_ids': [(0, 0, {
                     'product_id': l['product_id'],
@@ -189,7 +230,7 @@ class VanPosController(http.Controller):
             
         payment = request.env['van.payment'].create({
             'partner_id': nasiya.partner_id.id,
-            'agent_id': request.env.uid,
+            'agent_id': self._get_agent_id(),
             'nasiya_id': nasiya.id,
             'payment_type': 'in',
             'payment_method': payment_method,
@@ -202,7 +243,7 @@ class VanPosController(http.Controller):
     def submit_quick_action(self, type, amount, note='', partner_id=None, expense_type='daily'):
         try:
             payment_vals = {
-                'agent_id': request.env.uid,
+                'agent_id': self._get_agent_id(),
                 'payment_type': 'in' if type == 'kirim' else 'out',
                 'expense_type': expense_type if type == 'chiqim' else False,
                 'amount': float(amount),
@@ -278,7 +319,7 @@ class VanPosController(http.Controller):
                 return {'success': False, 'error': "Mijozni tanlash so'rov qoldirish uchun majburiy!"}
 
             request_vals = {
-                'agent_id': request.env.uid,
+                'agent_id': self._get_agent_id(),
                 'partner_id': partner_id,
                 'notes': notes,
                 'line_ids': [(0, 0, {
@@ -295,7 +336,8 @@ class VanPosController(http.Controller):
     @http.route('/van/pos/get_current_agent', type='jsonrpc', auth='user')
     def get_current_agent(self):
         try:
-            user = request.env.user
+            agent_id = self._get_agent_id()
+            user = request.env['res.users'].sudo().browse(agent_id)
             if user.has_group('van_sales_pharma.group_van_agent') or user.has_group('base.group_system'):
                 # Get the summary ID for this agent
                 summary = request.env['van.agent.summary'].sudo().search([('agent_id', '=', user.id)], limit=1)
@@ -303,6 +345,10 @@ class VanPosController(http.Controller):
                     summary = request.env['van.agent.summary'].sudo().create({'agent_id': user.id})
                 summary_id = summary.id
                 
+                # Check if currently acting as an admin
+                is_admin_mode = bool(request.env.user.has_group('van_sales_pharma.group_van_admin') and request.session.get('acting_as_agent_id'))
+                is_admin = request.env.user.has_group('van_sales_pharma.group_van_admin')
+
                 return {
                     'id': user.id,
                     'summary_id': summary_id,
@@ -311,7 +357,9 @@ class VanPosController(http.Controller):
                     'oylik_balansi': user.oylik_balansi,
                     'default_taminotchi_id': user.default_taminotchi_id.id,
                     'default_taminotchi_name': user.default_taminotchi_id.name or '',
-                    'image_url': f'/web/image?model=res.users&id={user.id}&field=avatar_128'
+                    'image_url': f'/web/image?model=res.users&id={user.id}&field=avatar_128',
+                    'is_admin_mode': is_admin_mode,
+                    'is_admin': is_admin
                 }
             return None
         except Exception as e:
@@ -383,7 +431,8 @@ class VanPosController(http.Controller):
             user_tz = pytz.timezone(request.env.user.tz or 'Asia/Tashkent')
             
             # Fetch trips associated with the current agent
-            trips = request.env['van.trip'].sudo().search([('agent_id', '=', request.env.uid)], order='date desc, id desc', limit=100)
+            agent_id = self._get_agent_id()
+            trips = request.env['van.trip'].sudo().search([('agent_id', '=', agent_id)], order='date desc, id desc', limit=100)
             res = []
             
             for trip in trips:

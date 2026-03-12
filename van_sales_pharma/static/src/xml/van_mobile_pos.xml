@@ -20,7 +20,6 @@
                         <t t-if="state.screen === 'kirim'">To'lov Qabul Qilish</t>
                         <t t-if="state.screen === 'requests_list'">So'rovlar Ro'yxati</t>
                         <t t-if="state.screen === 'new_request_form'">Yangi So'rov</t>
-                        <t t-if="state.screen === 'select_agent'">Agentni Tanlang</t>
                     </span>
                     <div t-if="state.currentAgent and state.currentAgent.is_admin_mode" style="background: #fef08a; color: #854d0e; font-size: 12px; font-weight: bold; padding: 3px 8px; border-radius: 10px; margin-left: 10px; border: 1px solid #eab308; white-space: nowrap;">
                         <i class="fa fa-user-secret"></i> Agent: <t t-esc="state.currentAgent.name"/>
@@ -74,13 +73,13 @@
                             <i class="fa fa-clipboard" style="margin-right: 10px; width: 15px;"></i> So'rovlar
                         </button>
 
-                        <button t-if="state.currentAgent and state.currentAgent.is_admin" t-on-click="() => { this.clearAgentSession(); state.showActionMenu = false; }" style="display: flex; align-items: center; width: 100%; text-align: left; background: none; border: none; padding: 10px; font-size: 15px; border-radius: 5px; color: #f59e0b; font-weight: bold; margin-bottom: 5px;">
+                        <a t-if="state.currentAgent and state.currentAgent.is_admin" href="/van/mobile-pos/change-agent" style="display: flex; align-items: center; width: 100%; text-align: left; background: none; border: none; padding: 10px; font-size: 15px; border-radius: 5px; color: #f59e0b; font-weight: bold; margin-bottom: 5px; text-decoration: none;">
                             <i class="fa fa-users" style="margin-right: 10px; width: 15px;"></i> Agent Tanlash
-                        </button>
+                        </a>
 
-                        <button t-if="state.currentAgent and state.currentAgent.is_admin" t-on-click="() => { this.goToDashboard(); state.showActionMenu = false; }" style="display: flex; align-items: center; width: 100%; text-align: left; background: none; border: none; padding: 10px; font-size: 15px; border-radius: 5px; color: #10b981; font-weight: bold; margin-bottom: 5px;">
+                        <a t-if="state.currentAgent and state.currentAgent.is_admin" href="/web" style="display: flex; align-items: center; width: 100%; text-align: left; background: none; border: none; padding: 10px; font-size: 15px; border-radius: 5px; color: #10b981; font-weight: bold; margin-bottom: 5px; text-decoration: none;">
                             <i class="fa fa-tachometer" style="margin-right: 10px; width: 15px;"></i> Bosh Panel
-                        </button>
+                        </a>
                         
                         <div style="height: 1px; background: #e5e7eb; margin: 5px 0;"></div>
                         
@@ -171,28 +170,7 @@
             <!-- Content Area -->
             <div class="van-pos-content" style="flex: 1; overflow-y: auto; padding: 10px; padding-bottom: 80px;">
                 
-                <!-- AGENT SELECTION SCREEN (Admin Only) -->
-                <t t-if="state.screen === 'select_agent'">
-                    <div style="text-align: center; margin-bottom: 20px;">
-                        <h2 style="color: #1f2937; font-weight: bold; margin-bottom: 5px;">Agentni Tanlang</h2>
-                        <p style="color: #6b7280; font-size: 14px;">Boshqariladigan diler profilini tanlang</p>
-                    </div>
 
-                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 15px;">
-                        <t t-foreach="state.agentsList" t-as="agent" t-key="agent.id">
-                            <div t-on-click="() => this.selectAgent(agent.id)" 
-                                 style="background: white; border-radius: 12px; padding: 15px; text-align: center; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); cursor: pointer; border: 2px solid transparent; transition: all 0.2s;"
-                                 onmouseover="this.style.borderColor='#3b82f6'" onmouseout="this.style.borderColor='transparent'">
-                                <img t-att-src="agent.image_url" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; margin-bottom: 10px; border: 3px solid #e5e7eb;"/>
-                                <div style="font-weight: bold; font-size: 16px; color: #111827; margin-bottom: 5px;"><t t-esc="agent.name"/></div>
-                                <div style="font-size: 12px; color: #6b7280; margin-bottom: 8px;"><t t-esc="agent.email"/></div>
-                                <div style="background: #f3f4f6; color: #374151; font-weight: bold; font-size: 13px; padding: 4px 8px; border-radius: 6px;">
-                                    B: <t t-esc="agent.oylik_balansi.toLocaleString()"/>
-                                </div>
-                            </div>
-                        </t>
-                    </div>
-                </t>
 
                 <!-- CLIENTS SCREEN -->
                 <t t-if="state.screen === 'clients'">

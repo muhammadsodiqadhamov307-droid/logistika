@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <record id="action_van_mobile_pos" model="ir.actions.client">
+    <record id="action_van_mobile_pos" model="ir.actions.act_url">
         <field name="name">Mobil POS</field>
-        <field name="tag">van_sales_pharma.MobilePosClientAction</field>
-        <field name="target">fullscreen</field>
+        <field name="url">/van/mobile-pos</field>
+        <field name="target">self</field>
     </record>
 
     <menuitem id="menu_van_mobile_pos" 

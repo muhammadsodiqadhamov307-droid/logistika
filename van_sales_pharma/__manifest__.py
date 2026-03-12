@@ -32,6 +32,7 @@
         'views/van_dashboard_detail_views.xml',
         'views/van_pos_order_views.xml',
         'views/van_mobile_pos_action.xml',
+        'views/van_mobile_pos_templates.xml',
         'views/client_request_template.xml',
         'views/web_layout_inherit.xml',
         'views/login_layout_inherit.xml',
