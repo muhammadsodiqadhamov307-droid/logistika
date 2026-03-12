@@ -93,7 +93,7 @@
                                        readonly="1"/>
                             </h4>
                         </div>
-                        <div class="col-md-3 col-6 text-center mb-3">
+                        <div class="col-md-3 col-6 text-center border-end mb-3">
                             <small class="text-muted">📋 Nasiya</small>
                             <h4 class="fw-bold" style="color:#e0a800">
                                 <field name="total_nasiya"
@@ -102,7 +102,18 @@
                                        readonly="1"/>
                             </h4>
                         </div>
-                        <div class="col-md-3 col-6 text-center border-end">
+
+                        <!-- Row 2 -->
+                        <div class="col-md-3 col-6 text-center border-end mb-3">
+                            <small class="text-muted">📋 Jami Nasiya</small>
+                            <h4 class="fw-bold text-danger">
+                                <field name="jami_nasiya"
+                                       widget="monetary"
+                                       options="{'currency_field': 'currency_id'}"
+                                       readonly="1"/>
+                            </h4>
+                        </div>
+                        <div class="col-md-3 col-6 text-center border-end mb-3">
                             <small class="text-muted">📉 Chiqim</small>
                             <h4 class="fw-bold text-danger">
                                 <field name="total_chiqim"
@@ -111,7 +122,7 @@
                                        readonly="1"/>
                             </h4>
                         </div>
-                        <div class="col-md-3 col-6 text-center border-end">
+                        <div class="col-md-3 col-6 text-center border-end mb-3">
                             <small class="text-muted">💰 Balans</small>
                             <h4 class="fw-bold text-info">
                                 <field name="total_balance"
@@ -120,8 +131,7 @@
                                        readonly="1"/>
                             </h4>
                         </div>
-                        <!-- Foyda (Admin only) -->
-                        <div class="col-md-3 col-6 text-center border-end mb-3" groups="van_sales_pharma.group_van_admin">
+                        <div class="col-md-3 col-6 text-center mb-3" groups="van_sales_pharma.group_van_admin">
                             <small class="text-muted" style="color: #0d9488 !important;">💹 Foyda</small>
                             <h4 class="fw-bold" style="color: #0f766e;">
                                 <field name="total_foyda"
@@ -130,21 +140,21 @@
                                        readonly="1"/>
                             </h4>
                         </div>
-                        <!-- Qoladigan Pul (Admin only) -->
-                        <div class="col-md-3 col-6 text-center border-end mb-3" groups="van_sales_pharma.group_van_admin">
-                            <small class="text-muted" style="color: #4338ca !important;">💰 Agentdan qoladigan</small>
-                            <h4 class="fw-bold" style="color: #3730a3;"
-                                decoration-danger="qoladigan_pul &lt; 0">
-                                <field name="qoladigan_pul"
+
+                        <!-- Row 3 -->
+                        <div class="col-md-6 col-12 text-center border-end mb-3 d-flex flex-column justify-content-center align-items-center">
+                            <small class="text-muted" style="color: #4338ca !important;">💵 Agent Oyligi</small>
+                            <h4 class="fw-bold" style="color: #3730a3;">
+                                <field name="agent_oyligi"
                                        widget="monetary"
                                        options="{'currency_field': 'currency_id'}"
                                        readonly="1"/>
                             </h4>
                         </div>
-                        <div class="col-md-3 col-6 text-center" style="background: rgba(139, 92, 246, 0.1); border-radius: 8px;">
-                            <small class="text-muted" style="color: #6b21a8 !important;">💵 Oylik Balansi</small>
-                            <h4 class="fw-bold" style="color: #7c3aed;">
-                                <field name="oylik_balansi"
+                        <div class="col-md-6 col-12 text-center mb-3 d-flex flex-column justify-content-center align-items-center" style="background: rgba(139, 92, 246, 0.1); border-radius: 8px; padding: 15px;" groups="van_sales_pharma.group_van_admin">
+                            <small class="text-muted" style="color: #6b21a8 !important; font-size: 1.1em;">💰 Agentdan qoladigan</small>
+                            <h4 class="fw-bold m-0 mt-2" style="color: #7c3aed; font-size: 1.5em;" decoration-danger="qoladigan_pul &lt; 0">
+                                <field name="qoladigan_pul"
                                        widget="monetary"
                                        options="{'currency_field': 'currency_id'}"
                                        readonly="1"/>

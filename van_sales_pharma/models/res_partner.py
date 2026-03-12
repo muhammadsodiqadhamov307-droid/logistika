@@ -154,7 +154,6 @@ class ResPartner(models.Model):
                     <thead class="table-light">
                         <tr>
                             <th>Sana</th>
-                            <th>Hujjat</th>
                             <th>Turi</th>
                             <th class="text-end">Summa</th>
                             <th class="text-end">Balans</th>
@@ -166,7 +165,7 @@ class ResPartner(models.Model):
                 html += """
                     <tbody>
                         <tr>
-                            <td colspan="5" class="text-center text-muted py-3">Ma'lumot topilmadi</td>
+                            <td colspan="4" class="text-center text-muted py-3">Ma'lumot topilmadi</td>
                         </tr>
                     </tbody>
                 """
@@ -188,7 +187,6 @@ class ResPartner(models.Model):
                     <tbody>
                         <tr class="sotuv-row" onclick="var d = document.getElementById('detail-{rx['order_id']}'); if(d) {{ var isHidden = (d.style.display === 'none' || d.style.display === ''); d.style.display = isHidden ? 'table-row-group' : 'none'; var a = this.querySelector('.fold-arrow'); if(a) a.textContent = isHidden ? '▼' : '▶'; }}" style="cursor: pointer;">
                             <td><span class="fold-arrow text-primary me-2" style="display:inline-block; width:15px; text-align:center;">▶</span> {d_str}</td>
-                            <td class="fw-bold">{rx['hujjat']}</td>
                             <td>{turi_badge}</td>
                             <td class="text-end">{sum_html}</td>
                             <td class="text-end {bal_color}">{rx['computed_balance']:,.0f}</td>
@@ -203,7 +201,7 @@ class ResPartner(models.Model):
                         subtotal = qty * price
                         html += f"""
                         <tr>
-                            <td colspan="2" class="ps-4 text-muted border-0"><small>└─ {prod_name}</small></td>
+                            <td colspan="1" class="ps-4 text-muted border-0"><small>└─ {prod_name}</small></td>
                             <td class="text-muted border-0"><small>× {qty:g}</small></td>
                             <td class="text-end text-muted border-0"><small>{price:,.0f} so'm</small></td>
                             <td class="text-end text-muted border-0"><small>{subtotal:,.0f} so'm</small></td>
@@ -216,7 +214,6 @@ class ResPartner(models.Model):
                     <tbody>
                         <tr>
                             <td class="ps-4">{d_str}</td>
-                            <td class="fw-bold">{rx['hujjat']}</td>
                             <td>{turi_badge}</td>
                             <td class="text-end">{sum_html}</td>
                             <td class="text-end {bal_color}">{rx['computed_balance']:,.0f}</td>

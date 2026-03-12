@@ -21,7 +21,9 @@ class VanAgentSummary(models.Model):
     company_id = fields.Many2one('res.company', default=lambda self: self.env.company)
     currency_id = fields.Many2one('res.currency', related='company_id.currency_id', store=True)
 
-    oylik_balansi = fields.Monetary(related='agent_id.oylik_balansi', string='Oylik Balansi', readonly=True)
+    agent_oyligi = fields.Monetary(string='Agent Oyligi', compute='_compute_financials', currency_field='currency_id')
+    jami_nasiya = fields.Monetary(string='Jami Nasiya', compute='_compute_jami_nasiya', currency_field='currency_id')
+    
     total_foyda = fields.Monetary(string='Foyda', compute='_compute_financials', currency_field='currency_id')
     qoladigan_pul = fields.Monetary(string='Agentdan Qoladigan', compute='_compute_financials', currency_field='currency_id')
 
@@ -92,6 +94,23 @@ class VanAgentSummary(models.Model):
         string='Kirimlar',
     )
 
+                    
+    @api.depends('agent_id')
+    def _compute_jami_nasiya(self):
+        for rec in self:
+            credit_sales = self.env['van.pos.order'].search([
+                ('agent_id', '=', rec.agent_id.id),
+                ('payment_type', '=', 'nasiya')
+            ])
+            total_credit = sum(credit_sales.mapped('amount_total'))
+
+            kirimlar = self.env['van.payment'].search([
+                ('agent_id', '=', rec.agent_id.id),
+            ])
+            total_kirim = sum(kirimlar.mapped('amount'))
+
+            rec.jami_nasiya = total_credit - total_kirim
+
     @api.depends('date_from', 'date_to', 'agent_id')
     def _compute_financials(self):
         for rec in self:
@@ -133,6 +152,8 @@ class VanAgentSummary(models.Model):
             
             total_sales = sum(g1_orders.mapped('amount_total'))
             naqt_savdo_total = sum(o.amount_total for o in g1_orders if not o.partner_id)
+            nasiya_sales = sum(o.amount_total for o in g1_orders if o.partner_id)
+            
             kirim_total = sum(g1_kirims.mapped('amount'))
             chiqim_total = sum(g1_chiqims.mapped('amount'))
             cash = naqt_savdo_total + kirim_total
@@ -141,45 +162,20 @@ class VanAgentSummary(models.Model):
             rec.total_cash = cash
             rec.total_chiqim = chiqim_total
             rec.total_balance = cash - chiqim_total
+            rec.total_nasiya = nasiya_sales - kirim_total
             
-            # --- Group 2: Default All-Time, Obeys Filter ---
-            # Used for: Nasiya, Foyda, Agentdan qoladigan
-            g2_order_domain = [('agent_id', '=', rec.agent_id.id), ('state', '=', 'done')]
-            if has_filter:
-                g2_order_domain.extend([('date', '>=', g1_utc_start), ('date', '<=', g1_utc_end)])
-                
-            g2_orders = self.env['van.pos.order'].search(g2_order_domain)
-            
-            # Nasiya = all credit sales mapped in this domain - all incoming payments (kirims)
-            g2_payment_domain = [('agent_id', '=', rec.agent_id.id), ('payment_type', '=', 'in')]
-            if has_filter:
-                g2_payment_domain.extend([('date', '>=', g1_utc_start), ('date', '<=', g1_utc_end)])
-                
-            g2_kirims = self.env['van.payment'].search(g2_payment_domain)
-            
-            nasiya_sales = sum(o.amount_total for o in g2_orders if o.partner_id)
-            total_kirim_g2 = sum(g2_kirims.mapped('amount'))
-            
-            rec.total_nasiya = nasiya_sales - total_kirim_g2
-            
-            # Foyda (period or all-time depending on has_filter)
             margin = 0.0
-            for order in g2_orders:
+            for order in g1_orders:
                 for line in order.line_ids:
                     cost_unit = line.product_id.cost_price or 0.0
                     margin += (line.price_unit - cost_unit) * line.qty
             rec.total_foyda = margin
             
-            # Agentdan qoladigan:
             komissiya_percent = rec.agent_id.komissiya_foizi / 100.0 if rec.agent_id.komissiya_foizi else 0.0
-            if has_filter:
-                # Agentdan qoladigan = Foyda in period - Oylik in period
-                g2_total_sales = sum(g2_orders.mapped('amount_total'))
-                period_commission = g2_total_sales * komissiya_percent
-                rec.qoladigan_pul = margin - period_commission
-            else:
-                # Agentdan qoladigan = Foyda all-time - Oylik all-time
-                rec.qoladigan_pul = margin - rec.oylik_balansi
+            oylik = total_sales * komissiya_percent
+            
+            rec.agent_oyligi = oylik
+            rec.qoladigan_pul = margin - oylik
 
     def action_view_pos_orders(self):
         self.ensure_one()
