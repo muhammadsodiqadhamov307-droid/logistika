@@ -21,7 +21,7 @@ class VanAgentSummary(models.Model):
     company_id = fields.Many2one('res.company', default=lambda self: self.env.company)
     currency_id = fields.Many2one('res.currency', related='company_id.currency_id', store=True)
 
-    agent_oyligi = fields.Monetary(string='Agent Oyligi', compute='_compute_financials', currency_field='currency_id')
+    oylik_balansi = fields.Monetary(string='Agent Oyligi', compute='_compute_financials', currency_field='currency_id')
     jami_nasiya = fields.Monetary(string='Jami Nasiya', compute='_compute_jami_nasiya', currency_field='currency_id')
     
     total_foyda = fields.Monetary(string='Foyda', compute='_compute_financials', currency_field='currency_id')
@@ -174,7 +174,7 @@ class VanAgentSummary(models.Model):
             komissiya_percent = rec.agent_id.komissiya_foizi / 100.0 if rec.agent_id.komissiya_foizi else 0.0
             oylik = total_sales * komissiya_percent
             
-            rec.agent_oyligi = oylik
+            rec.oylik_balansi = oylik
             rec.qoladigan_pul = margin - oylik
 
     def action_view_pos_orders(self):
