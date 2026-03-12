@@ -107,6 +107,7 @@ class VanAgentSummary(models.Model):
 
             kirimlar = self.env['van.payment'].search([
                 ('agent_id', '=', rec.agent_id.id),
+                ('payment_type', '=', 'in'),
             ])
             total_kirim = sum(kirimlar.mapped('amount'))
 
