@@ -33,9 +33,6 @@
                         <t t-if="state.screen === 'requests_list'">So'rovlar Ro'yxati</t>
                         <t t-if="state.screen === 'new_request_form'">Yangi So'rov</t>
                     </span>
-                    <div t-if="state.currentAgent and state.currentAgent.is_admin_mode" style="background: #fef08a; color: #854d0e; font-size: 12px; font-weight: bold; padding: 3px 8px; border-radius: 10px; margin-left: 10px; border: 1px solid #eab308; white-space: nowrap;">
-                        <i class="fa fa-user-secret"></i> Agent: <t t-esc="state.currentAgent.name"/>
-                    </div>
                 <div style="display: flex; align-items: center; gap: 10px; position:relative;">
                     <!-- Network Status Indicator -->
                     <div style="font-size: 10px; margin-right: 15px; display: flex; align-items: center; gap: 5px;">
