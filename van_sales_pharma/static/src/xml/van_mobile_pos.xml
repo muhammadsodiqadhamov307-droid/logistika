@@ -59,10 +59,7 @@
                             style="background: none; border: none; color: white; border-radius: 5px; padding: 5px 10px; font-weight: bold; font-size: 20px;">
                         <i class="fa fa-ellipsis-v"></i>
                     </button>
-                    <!-- Close POS -->
-                    <button t-if="state.screen === 'products'" t-on-click="closePos" style="background: none; border: none; color: white; font-size: 20px; margin-left: 5px;">
-                        <i class="fa fa-times"></i>
-                    </button>
+
 
                     <!-- Dropdown Menu Content -->
                     <div t-if="state.showActionMenu and (state.screen === 'clients' or state.screen === 'products')" 
