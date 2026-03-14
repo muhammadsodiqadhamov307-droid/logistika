@@ -47,6 +47,10 @@ export class VanMobilePos extends Component {
             // Action Menu (3-dots)
             showActionMenu: false,
 
+            // Agent Picker (admin)
+            showAgentPicker: false,
+            agentsList: [],
+
             // Requests (So'rovlar)
             requestsList: [],
             requestFilter: 'draft',
@@ -277,6 +281,30 @@ export class VanMobilePos extends Component {
             if (!menu.contains(event.target) && !dotsButton.contains(event.target)) {
                 this.state.showActionMenu = false;
             }
+        }
+    }
+
+    async openAgentPicker() {
+        if (!this.state.currentAgent || !this.state.currentAgent.is_admin) return;
+        try {
+            const agents = await rpc('/van/pos/get_agents', {});
+            this.state.agentsList = agents || [];
+            this.state.showAgentPicker = true;
+        } catch (e) {
+            this.showToast("Agentlar ro'yxatini yuklashda xatolik", "danger");
+        }
+    }
+
+    async selectAgentFromModal(agentId) {
+        try {
+            await rpc('/van/pos/set_agent_session', { agent_id: agentId });
+            this.state.showAgentPicker = false;
+            // Refresh agent info and inventory with newly selected agent
+            await this.loadCurrentAgent();
+            await this.loadInventory();
+            this.showToast("Agent o'zgartirildi", "success");
+        } catch (e) {
+            this.showToast("Agent almashtirishda xatolik", "danger");
         }
     }
 

@@ -48,6 +48,34 @@ class VanPosController(http.Controller):
             del request.session['acting_as_agent_id']
         return request.redirect('/van/mobile-pos')
 
+    @http.route('/van/pos/get_agents', type='jsonrpc', auth='user')
+    def get_agents(self):
+        """Returns list of all agent users. Admin only."""
+        user = request.env.user
+        is_admin = user.has_group('van_sales_pharma.group_van_admin') or user.has_group('base.group_system')
+        if not is_admin:
+            return []
+        agent_group = request.env.ref('van_sales_pharma.group_van_agent')
+        request.env.cr.execute("SELECT uid FROM res_groups_users_rel WHERE gid = %s", (agent_group.id,))
+        user_ids = [row[0] for row in request.env.cr.fetchall()]
+        agents = request.env['res.users'].sudo().browse(user_ids)
+        return [{
+            'id': a.id,
+            'name': a.name,
+            'image_url': f'/web/image?model=res.users&id={a.id}&field=avatar_128',
+        } for a in agents]
+
+    @http.route('/van/pos/set_agent_session', type='jsonrpc', auth='user')
+    def set_agent_session(self, agent_id):
+        """Sets acting_as_agent_id in session for admin users."""
+        user = request.env.user
+        is_admin = user.has_group('van_sales_pharma.group_van_admin') or user.has_group('base.group_system')
+        if not is_admin:
+            return {'success': False}
+        if agent_id:
+            request.session['acting_as_agent_id'] = int(agent_id)
+        return {'success': True}
+
     @http.route('/van/pos/get_clients', type='jsonrpc', auth='user')
     def get_clients(self):
         partners = request.env['res.partner'].search([('x_is_van_customer', '=', True)])

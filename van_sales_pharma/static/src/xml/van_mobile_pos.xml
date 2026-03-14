@@ -12,6 +12,18 @@
                         <t t-if="state.screen === 'clients'">Mijoz Tanlash</t>
                         <t t-if="state.screen === 'products'">
                             <span style="margin-right: 5px;">POS</span>
+                            <!-- Agent button - only for admins -->
+                            <button t-if="state.currentAgent and state.currentAgent.is_admin"
+                                    t-on-click="openAgentPicker"
+                                    style="background: rgba(253,224,71,0.25); border: 1px solid #fde047; color: white; border-radius: 5px; padding: 4px 8px; font-size: 14px; display: flex; align-items: center; gap: 5px; margin-right: 5px;">
+                                <i class="fa fa-user-secret"></i>
+                                <t t-if="state.currentAgent.is_admin_mode">
+                                    <t t-esc="state.currentAgent.name"/>
+                                </t>
+                                <t t-else="">Agent tanlang</t>
+                                <i class="fa fa-caret-down"></i>
+                            </button>
+                            <!-- Client button -->
                             <button t-on-click="() => state.screen = 'clients'" style="background: rgba(255,255,255,0.2); border: 1px solid white; color: white; border-radius: 5px; padding: 4px 8px; font-size: 14px; display: flex; align-items: center; gap: 5px;">
                                 <i class="fa fa-user"></i> <t t-esc="state.selectedClient.name"/> <i class="fa fa-caret-down"></i>
                             </button>
@@ -73,9 +85,6 @@
                             <i class="fa fa-clipboard" style="margin-right: 10px; width: 15px;"></i> So'rovlar
                         </button>
 
-                        <a t-if="state.currentAgent and state.currentAgent.is_admin" href="/van/mobile-pos/change-agent" style="display: flex; align-items: center; width: 100%; text-align: left; background: none; border: none; padding: 10px; font-size: 15px; border-radius: 5px; color: #f59e0b; font-weight: bold; margin-bottom: 5px; text-decoration: none;">
-                            <i class="fa fa-users" style="margin-right: 10px; width: 15px;"></i> Agent Tanlash
-                        </a>
 
                         <a t-if="state.currentAgent and state.currentAgent.is_admin" href="/web#action=van_sales_pharma.action_van_sales_dashboard" style="display: flex; align-items: center; width: 100%; text-align: left; background: none; border: none; padding: 10px; font-size: 15px; border-radius: 5px; color: #10b981; font-weight: bold; margin-bottom: 5px; text-decoration: none;">
                             <i class="fa fa-tachometer" style="margin-right: 10px; width: 15px;"></i> Bosh Panel
@@ -96,7 +105,28 @@
                 </div>
             </div>
 
+            <!-- Agent Picker Modal (admin only) -->
+            <div t-if="state.showAgentPicker" style="position: fixed; top:0; left:0; right:0; bottom:0; background: rgba(0,0,0,0.6); display: flex; justify-content: center; align-items: flex-start; z-index: 2000; padding: 20px; overflow-y: auto;">
+                <div style="background: white; border-radius: 12px; width: 100%; max-width: 480px; padding: 20px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3); margin-top: 40px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h3 style="margin: 0; color: #1f2937; font-size: 18px;"><i class="fa fa-users" style="color: #f59e0b; margin-right: 8px;"></i>Agent tanlang</h3>
+                        <button t-on-click="() => state.showAgentPicker = false" style="background: none; border: none; font-size: 22px; cursor: pointer; color: #6b7280;"><i class="fa fa-times"></i></button>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                        <t t-foreach="state.agentsList" t-as="agent">
+                            <button t-on-click="() => selectAgentFromModal(agent.id)"
+                                style="display: flex; flex-direction: column; align-items: center; padding: 16px 8px; border: 2px solid #e5e7eb; border-radius: 10px; background: white; cursor: pointer; transition: all 0.2s;"
+                                t-attf-style="border-color: {{ state.currentAgent and state.currentAgent.is_admin_mode and state.currentAgent.id === agent.id ? '#2563eb' : '#e5e7eb' }};">
+                                <img t-attf-src="{{ agent.image_url }}" style="width: 64px; height: 64px; border-radius: 50%; object-fit: cover; margin-bottom: 8px; border: 2px solid #e5e7eb;"/>
+                                <span style="font-weight: bold; font-size: 13px; color: #1f2937; text-align: center;"><t t-esc="agent.name"/></span>
+                            </button>
+                        </t>
+                    </div>
+                </div>
+            </div>
+
             <!-- Quick Action Modal -->
+
             <div t-if="state.showQuickAction" style="position: absolute; top:0; left:0; right:0; bottom:0; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 1000; padding: 20px;">
                 <div style="background: white; border-radius: 10px; width: 100%; max-width: 400px; padding: 20px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
