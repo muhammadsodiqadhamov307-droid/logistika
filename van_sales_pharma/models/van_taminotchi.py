@@ -162,8 +162,8 @@ class VanTaminotchi(models.Model):
                     """
                     for line in rx['lines']:
                         prod_name = line.product_id.name or 'Unknown'
-                        qty = line.qty
-                        cost = line.cost_price or 0.0
+                        qty = line.loaded_qty
+                        cost = line.product_id.cost_price or 0.0
                         subtotal = qty * cost
                         html += f"""
                         <tr>
