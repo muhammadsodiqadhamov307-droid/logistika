@@ -15,17 +15,21 @@
                             <!-- Agent button - only for admins -->
                             <button t-if="state.currentAgent and state.currentAgent.is_admin"
                                     t-on-click="openAgentPicker"
-                                    style="background: rgba(253,224,71,0.25); border: 1px solid #fde047; color: white; border-radius: 5px; padding: 4px 8px; font-size: 14px; display: flex; align-items: center; gap: 5px; margin-right: 5px;">
-                                <i class="fa fa-user-secret"></i>
-                                <t t-if="state.currentAgent.is_admin_mode">
-                                    <t t-esc="state.currentAgent.name"/>
-                                </t>
-                                <t t-else="">Agent tanlang</t>
-                                <i class="fa fa-caret-down"></i>
+                                    style="background: rgba(253,224,71,0.25); border: 1px solid #fde047; color: white; border-radius: 5px; padding: 4px 8px; font-size: 14px; display: flex; align-items: center; gap: 4px; margin-right: 4px; max-width: 120px;">
+                                <i class="fa fa-user-secret" style="flex-shrink:0;"></i>
+                                <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 75px;">
+                                    <t t-if="state.currentAgent.is_admin_mode">
+                                        <t t-esc="state.currentAgent.name"/>
+                                    </t>
+                                    <t t-else="">Agent tanlang</t>
+                                </span>
+                                <i class="fa fa-caret-down" style="flex-shrink:0;"></i>
                             </button>
                             <!-- Client button -->
-                            <button t-on-click="() => state.screen = 'clients'" style="background: rgba(255,255,255,0.2); border: 1px solid white; color: white; border-radius: 5px; padding: 4px 8px; font-size: 14px; display: flex; align-items: center; gap: 5px;">
-                                <i class="fa fa-user"></i> <t t-esc="state.selectedClient.name"/> <i class="fa fa-caret-down"></i>
+                            <button t-on-click="() => state.screen = 'clients'" style="background: rgba(255,255,255,0.2); border: 1px solid white; color: white; border-radius: 5px; padding: 4px 8px; font-size: 14px; display: flex; align-items: center; gap: 4px; max-width: 120px;">
+                                <i class="fa fa-user" style="flex-shrink:0;"></i>
+                                <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 75px;"><t t-esc="state.selectedClient.name"/></span>
+                                <i class="fa fa-caret-down" style="flex-shrink:0;"></i>
                             </button>
                         </t>
                         <t t-if="state.screen === 'checkout'">Xaridni Tasdiqlash</t>
@@ -33,21 +37,21 @@
                         <t t-if="state.screen === 'requests_list'">So'rovlar Ro'yxati</t>
                         <t t-if="state.screen === 'new_request_form'">Yangi So'rov</t>
                     </span>
-                <div style="display: flex; align-items: center; gap: 10px; position:relative;">
+                <div style="display: flex; align-items: center; gap: 6px; position:relative; flex-shrink: 0;">
                     <!-- Network Status Indicator -->
-                    <div style="font-size: 10px; margin-right: 15px; display: flex; align-items: center; gap: 5px;">
-                        <div t-attf-style="width: 10px; height: 10px; border-radius: 50%; background-color: {{ state.isOnline ? '#22c55e' : '#ef4444' }};"></div>
+                    <div style="font-size: 10px; display: flex; align-items: center; gap: 4px; padding: 2px 6px; background: rgba(0,0,0,0.15); border-radius: 10px;">
+                        <div t-attf-style="width: 8px; height: 8px; border-radius: 50%; background-color: {{ state.isOnline ? '#22c55e' : '#ef4444' }}; flex-shrink:0;"></div>
                         <span t-attf-style="color: {{ state.isOnline ? '#22c55e' : '#ef4444' }};">
                             <t t-if="state.isOnline">Online</t>
                             <t t-else="">Offline</t>
                         </span>
                         <t t-if="state.syncQueue.length > 0">
-                            <span style="margin-left: 5px; background: #eab308; color: white; padding: 2px 6px; border-radius: 10px; font-weight: bold;">
+                            <span style="background: #eab308; color: white; padding: 1px 5px; border-radius: 10px; font-weight: bold;">
                                 <i class="fa fa-refresh"></i> <t t-esc="state.syncQueue.length"/>
                             </span>
                         </t>
                     </div>
-                    
+
                     <!-- 3-Dots Menu Dropdown Toggle -->
                     <button t-if="state.screen === 'clients' or state.screen === 'products'" 
                             id="dots-button"
