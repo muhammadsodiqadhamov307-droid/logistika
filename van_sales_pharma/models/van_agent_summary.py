@@ -113,11 +113,33 @@ class VanAgentSummary(models.Model):
 
             rec.jami_nasiya = total_credit - total_kirim
 
-    @api.depends('total_balance', 'agent_id')
+    @api.depends('total_balance', 'agent_id', 'date_from', 'date_to')
     def _compute_oylik_balansi(self):
-        """Agent Oyligi = Balans × (komissiya_foizi / 100)."""
+        """Agent Oyligi = (Balans × komissiya%) − oylik chiqimlar paid in period."""
         for rec in self:
-            rec.oylik_balansi = rec.total_balance * (rec.agent_id.komissiya_foizi / 100.0)
+            # Step 1: Earned commission based on Balans
+            earned = rec.total_balance * (rec.agent_id.komissiya_foizi / 100.0)
+
+            # Step 2: Subtract oylik chiqimlar already paid in this period
+            has_filter = bool(rec.date_from and rec.date_to)
+            today = fields.Date.context_today(self)
+            date_from = rec.date_from if has_filter else today
+            date_to = rec.date_to if has_filter else today
+
+            tz = pytz.timezone(self.env.user.tz or self.env.context.get('tz') or 'UTC')
+            utc_start = tz.localize(datetime.combine(date_from, time.min)).astimezone(pytz.UTC).replace(tzinfo=None)
+            utc_end = tz.localize(datetime.combine(date_to, time.max)).astimezone(pytz.UTC).replace(tzinfo=None)
+
+            oylik_chiqimlar = self.env['van.payment'].search([
+                ('agent_id', '=', rec.agent_id.id),
+                ('payment_type', '=', 'out'),
+                ('expense_type', '=', 'salary'),
+                ('date', '>=', utc_start),
+                ('date', '<=', utc_end),
+            ])
+            total_paid = sum(oylik_chiqimlar.mapped('amount'))
+
+            rec.oylik_balansi = earned - total_paid
 
 
     @api.depends('total_foyda', 'oylik_balansi')
