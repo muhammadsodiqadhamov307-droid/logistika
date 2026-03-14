@@ -80,9 +80,15 @@ class ResPartner(models.Model):
         sanitize=False,
         help="Mijozning qarz va to'lovlar xronologiyasi"
     )
+    hk_date_from = fields.Date(string='Dan', store=True)
+    hk_date_to = fields.Date(string='Gacha', store=True)
 
+    @api.depends('x_van_ostatka_ids', 'x_van_ostatka_ids.amount',
+                 'hk_date_from', 'hk_date_to')
     def _compute_van_hisob_kitob_html(self):
         for partner in self:
+            date_from = partner.hk_date_from
+            date_to = partner.hk_date_to
             transactions = []
             
             # 1. Boshlang'ich qarz (Ostatka)
@@ -97,10 +103,15 @@ class ResPartner(models.Model):
                     })
                     
             # 2. Sotuvlar (POS Orders)
-            pos_orders = self.env['van.pos.order'].search([
+            order_domain = [
                 ('partner_id', '=', partner.id),
-                ('state', '=', 'done')
-            ])
+                ('state', '=', 'done'),
+            ]
+            if date_from:
+                order_domain.append(('date', '>=', str(date_from) + ' 00:00:00'))
+            if date_to:
+                order_domain.append(('date', '<=', str(date_to) + ' 23:59:59'))
+            pos_orders = self.env['van.pos.order'].search(order_domain)
             for order in pos_orders:
                 if order.amount_total > 0:
                     transactions.append({
@@ -114,10 +125,15 @@ class ResPartner(models.Model):
                     })
                     
             # 3. Kirimlar (Payments)
-            payments = self.env['van.payment'].search([
+            payment_domain = [
                 ('partner_id', '=', partner.id),
-                ('payment_type', '=', 'in')
-            ])
+                ('payment_type', '=', 'in'),
+            ]
+            if date_from:
+                payment_domain.append(('date', '>=', str(date_from) + ' 00:00:00'))
+            if date_to:
+                payment_domain.append(('date', '<=', str(date_to) + ' 23:59:59'))
+            payments = self.env['van.payment'].search(payment_domain)
             for payment in payments:
                 if payment.amount > 0:
                     transactions.append({
@@ -145,9 +161,14 @@ class ResPartner(models.Model):
             
             # Build HTML table, putting Jami Qarz at the very top securely
             final_color = 'text-danger' if running_balance > 0 else 'text-success'
+            filter_info = ''
+            if date_from or date_to:
+                f_str = date_from.strftime('%d.%m.%Y') if date_from else '...'
+                t_str = date_to.strftime('%d.%m.%Y') if date_to else '...'
+                filter_info = f'<small class="text-muted ms-3">({f_str} — {t_str})</small>'
             html = f"""
             <div class="mb-3 d-flex justify-content-between align-items-center">
-                <h4 class="{final_color} fw-bold m-0">Jami Qarz: {running_balance:,.0f} so'm</h4>
+                <h4 class="{final_color} fw-bold m-0">Jami Qarz: {running_balance:,.0f} so'm{filter_info}</h4>
             </div>
             <div class="table-responsive">
                 <table class="table table-sm table-hover table-striped mb-0" style="border: 1px solid #dee2e6;">
@@ -227,6 +248,15 @@ class ResPartner(models.Model):
             """
             
             partner.x_van_hisob_kitob_html = html
+
+    def action_apply_hk_filter(self):
+        return True
+
+    def action_clear_hk_filter(self):
+        for rec in self:
+            rec.hk_date_from = False
+            rec.hk_date_to = False
+        return True
 
     def _compute_van_pos_stats(self):
         for partner in self:

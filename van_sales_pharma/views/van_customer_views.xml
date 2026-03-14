@@ -87,8 +87,18 @@
 
                     <notebook>
                         <page name="hisob_kitob" string="📋 Hisob-kitob">
+                            <!-- Date filter bar -->
+                            <div class="d-flex align-items-center gap-2 mb-3 p-2" style="background:#f8f9fa; border-radius:6px; border:1px solid #dee2e6;">
+                                <span class="text-muted">📅</span>
+                                <field name="hk_date_from" nolabel="1" placeholder="Dan tarixi"/>
+                                <span class="text-muted">—</span>
+                                <field name="hk_date_to" nolabel="1" placeholder="Gacha tarixi"/>
+                                <button name="action_apply_hk_filter" type="object" string="Filtrlash" class="btn btn-sm btn-primary ms-2"/>
+                                <button name="action_clear_hk_filter" type="object" string="Tozalash" class="btn btn-sm btn-secondary"/>
+                            </div>
                             <field name="x_van_hisob_kitob_html" readonly="1" nolabel="1"/>
                         </page>
+
                         <page name="ostatka_qarzi" string="Ostatka Qarzi" style="background-color: #FFFDE7; border: 1px solid #ccc; border-radius: 4px; padding: 10px;">
                             <field name="x_van_ostatka_ids">
                                 <list editable="bottom" string="Ostatka Qarzi">
