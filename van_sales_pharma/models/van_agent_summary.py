@@ -21,7 +21,7 @@ class VanAgentSummary(models.Model):
     company_id = fields.Many2one('res.company', default=lambda self: self.env.company)
     currency_id = fields.Many2one('res.currency', related='company_id.currency_id', store=True)
 
-    agent_oyligi = fields.Monetary(string='Agent Oyligi', compute='_compute_agent_oyligi', currency_field='currency_id')
+    oylik_balansi = fields.Monetary(string='Agent Oyligi', compute='_compute_oylik_balansi', currency_field='currency_id')
     jami_nasiya = fields.Monetary(string='Jami Nasiya', compute='_compute_jami_nasiya', currency_field='currency_id')
     
     total_foyda = fields.Monetary(string='Foyda', compute='_compute_financials', currency_field='currency_id')
@@ -114,7 +114,7 @@ class VanAgentSummary(models.Model):
             rec.jami_nasiya = total_credit - total_kirim
 
     @api.depends('date_from', 'date_to', 'agent_id')
-    def _compute_agent_oyligi(self):
+    def _compute_oylik_balansi(self):
         """Agent Oyligi: commission earned in the filtered period (today by default)."""
         for rec in self:
             has_filter = bool(rec.date_from and rec.date_to)
@@ -129,13 +129,13 @@ class VanAgentSummary(models.Model):
                 ('date', '<=', fields.Datetime.to_datetime(date_to).replace(hour=23, minute=59, second=59)),
             ])
             total_sales = sum(orders.mapped('amount_total'))
-            rec.agent_oyligi = total_sales * (rec.agent_id.komissiya_foizi / 100.0)
+            rec.oylik_balansi = total_sales * (rec.agent_id.komissiya_foizi / 100.0)
 
-    @api.depends('total_foyda', 'agent_oyligi')
+    @api.depends('total_foyda', 'oylik_balansi')
     def _compute_agentdan_qoladigan(self):
-        """Agentdan qoladigan = Foyda(filtered) - Agent Oyligi(filtered)."""
+        """Agentdan qoladigan = Foyda(filtered) - Oylik(filtered)."""
         for rec in self:
-            rec.qoladigan_pul = rec.total_foyda - rec.agent_oyligi
+            rec.qoladigan_pul = rec.total_foyda - rec.oylik_balansi
 
     @api.depends('date_from', 'date_to', 'agent_id')
     def _compute_financials(self):

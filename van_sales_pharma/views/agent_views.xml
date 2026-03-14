@@ -145,11 +145,10 @@
                         <div class="col-md-6 col-12 text-center border-end mb-3 d-flex flex-column justify-content-center align-items-center">
                             <small class="text-muted" style="color: #4338ca !important;">💵 Agent Oyligi</small>
                             <h4 class="fw-bold" style="color: #3730a3;">
-                                <field name="agent_oyligi"
+                                <field name="oylik_balansi"
                                        widget="monetary"
                                        options="{'currency_field': 'currency_id'}"
                                        readonly="1"/>
-
                             </h4>
                         </div>
                         <div class="col-md-6 col-12 text-center mb-3 d-flex flex-column justify-content-center align-items-center" style="background: rgba(139, 92, 246, 0.1); border-radius: 8px; padding: 15px;" groups="van_sales_pharma.group_van_admin">
@@ -335,7 +334,7 @@
                             </div>
                             <div class="mt-1">
                                 <span class="text-muted" style="color: #6b21a8 !important;"><i class="fa fa-wallet me-1"/> Agent Oyligi: </span>
-                                <span class="fw-bold" style="font-size: 1.1em; color: #7c3aed;"><field name="agent_oyligi" widget="monetary"/></span>
+                                <span class="fw-bold" style="font-size: 1.1em; color: #7c3aed;"><field name="oylik_balansi" widget="monetary"/></span>
                             </div>
                         </main>
                     </t>
