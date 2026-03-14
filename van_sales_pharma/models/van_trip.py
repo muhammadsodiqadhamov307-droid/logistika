@@ -15,7 +15,14 @@ class VanTrip(models.Model):
 
     taminotchi_id = fields.Many2one('van.taminotchi', string="Taminotchi (Yetkazib beruvchi)", required=True)
     agent_id = fields.Many2one('res.users', string='Savdo Agenti', required=True, default=lambda self: self.env.user)
-    location_id = fields.Many2one('stock.location', string='Mashina Ombori', required=True, domain=[('usage', '=', 'internal')])
+    location_id = fields.Many2one(
+        'stock.location',
+        string='Mashina Ombori',
+        required=True,
+        domain=[('usage', '=', 'internal')],
+        default=lambda self: self.env['stock.location'].search([('complete_name', 'ilike', 'WH/Stock')], limit=1)
+    )
+
     
     date = fields.Date(string='Sana', required=True, default=fields.Date.context_today)
     

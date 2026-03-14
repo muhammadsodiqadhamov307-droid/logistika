@@ -224,12 +224,13 @@ export class VanSalesDashboard extends Component {
             return;
         }
 
-        // Chiqim = expenses from van.dashboard.detail
-        let domain = [];
+        // Chiqim = go to the Chiqimlar menu directly
         if (method === 'chiqim') {
-            domain = [['transaction_type', '=', 'chiqim']];
+            this.action.doAction('van_sales_pharma.action_van_chiqimlar_global');
+            return;
         }
 
+        let domain = [];
         if (this.state.date_from) {
             domain.push(['date', '>=', this.state.date_from + ' 00:00:00']);
         }
@@ -239,7 +240,7 @@ export class VanSalesDashboard extends Component {
 
         this.action.doAction({
             type: 'ir.actions.act_window',
-            name: method === 'chiqim' ? 'Chiqim Amaliyotlari' : 'Amaliyotlar',
+            name: 'Amaliyotlar',
             res_model: 'van.dashboard.detail',
             view_mode: 'list,form',
             views: [[false, 'list'], [false, 'form']],
@@ -247,6 +248,7 @@ export class VanSalesDashboard extends Component {
             target: 'current',
         });
     }
+
 
 }
 
