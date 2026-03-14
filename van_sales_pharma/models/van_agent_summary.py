@@ -113,23 +113,12 @@ class VanAgentSummary(models.Model):
 
             rec.jami_nasiya = total_credit - total_kirim
 
-    @api.depends('date_from', 'date_to', 'agent_id')
+    @api.depends('total_balance', 'agent_id')
     def _compute_oylik_balansi(self):
-        """Agent Oyligi: commission earned in the filtered period (today by default)."""
+        """Agent Oyligi = Balans × (komissiya_foizi / 100)."""
         for rec in self:
-            has_filter = bool(rec.date_from and rec.date_to)
-            today = fields.Date.context_today(self)
-            date_from = rec.date_from if has_filter else today
-            date_to = rec.date_to if has_filter else today
+            rec.oylik_balansi = rec.total_balance * (rec.agent_id.komissiya_foizi / 100.0)
 
-            orders = self.env['van.pos.order'].search([
-                ('agent_id', '=', rec.agent_id.id),
-                ('state', '=', 'done'),
-                ('date', '>=', fields.Datetime.to_datetime(date_from)),
-                ('date', '<=', fields.Datetime.to_datetime(date_to).replace(hour=23, minute=59, second=59)),
-            ])
-            total_sales = sum(orders.mapped('amount_total'))
-            rec.oylik_balansi = total_sales * (rec.agent_id.komissiya_foizi / 100.0)
 
     @api.depends('total_foyda', 'oylik_balansi')
     def _compute_agentdan_qoladigan(self):
