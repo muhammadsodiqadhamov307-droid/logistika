@@ -113,7 +113,7 @@
                         <button t-on-click="() => state.showAgentPicker = false" style="background: none; border: none; font-size: 22px; cursor: pointer; color: #6b7280;"><i class="fa fa-times"></i></button>
                     </div>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-                        <t t-foreach="state.agentsList" t-as="agent">
+                        <t t-foreach="state.agentsList" t-as="agent" t-key="agent.id">
                             <button t-on-click="() => selectAgentFromModal(agent.id)"
                                 style="display: flex; flex-direction: column; align-items: center; padding: 16px 8px; border: 2px solid #e5e7eb; border-radius: 10px; background: white; cursor: pointer; transition: all 0.2s;"
                                 t-attf-style="border-color: {{ state.currentAgent and state.currentAgent.is_admin_mode and state.currentAgent.id === agent.id ? '#2563eb' : '#e5e7eb' }};">
