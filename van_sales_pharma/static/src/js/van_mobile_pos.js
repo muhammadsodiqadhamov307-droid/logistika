@@ -1074,6 +1074,10 @@ export class VanMobilePos extends Component {
         } else if (this.state.screen === 'trip_details') {
             this.state.activeTrip = null;
             this.state.screen = 'trips_list';
+        } else {
+            // Already on root screen (products) — keep the history trap active so
+            // the hardware back button never navigates away from the POS.
+            window.history.pushState(null, null, window.location.href);
         }
     }
 
