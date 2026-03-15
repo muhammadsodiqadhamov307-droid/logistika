@@ -136,7 +136,6 @@
                 <field name="image_128"/>
                 <field name="street"/>
                 <field name="x_van_total_due"/>
-                <field name="assigned_agent_ids"/>
                 <templates>
                     <t t-name="card">
                         <div class="d-flex">
@@ -152,12 +151,6 @@
                                     <strong>Qarz: </strong>
                                     <span t-attf-class="{{record.x_van_total_due.raw_value > 0 ? 'text-danger fw-bold' : 'text-success fw-bold'}}">
                                         <field name="x_van_total_due" widget="monetary"/>
-                                    </span>
-                                </div>
-                                <div t-if="record.assigned_agent_ids.raw_value.length > 0" class="mt-1">
-                                    <span class="badge rounded-pill bg-info text-dark small">
-                                        <i class="fa fa-user-circle me-1"/>
-                                        <field name="assigned_agent_ids" widget="many2many_tags"/>
                                     </span>
                                 </div>
                                 <div t-if="record.street.value" class="text-muted small mt-1">
@@ -179,10 +172,8 @@
             <search>
                 <field name="name" string="Mijoz nomi" filter_domain="['|', '|', ('name', 'ilike', self), ('parent_id', 'ilike', self), ('ref', '=', self)]"/>
                 <field name="phone" string="Telefon"/>
-                <field name="assigned_agent_ids" string="Agent bo'yicha"/>
                 <separator/>
                 <filter string="Qarzdorlar" name="has_debt" domain="[('x_van_total_due', '&lt;', 0)]"/>
-                <filter string="Mening Mijozlarim" name="my_customers" domain="[('assigned_agent_ids', 'in', [uid])]"/>
                 <group expand="0" string="Guruhlash">
                     <filter name="group_by_city" string="Shahar" context="{'group_by': 'city'}"/>
                 </group>
