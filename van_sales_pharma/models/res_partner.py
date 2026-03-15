@@ -13,7 +13,6 @@ class ResPartner(models.Model):
         'partner_id',
         'agent_id',
         string='Agentlar',
-        domain=[('groups_id', 'in', [6])], # van_sales_pharma.group_van_agent is usually 6 or we can just leave it as is
         help='Bu mijozga tayinlangan agentlar.'
     )
 
