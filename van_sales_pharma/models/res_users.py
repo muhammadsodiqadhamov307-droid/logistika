@@ -42,12 +42,26 @@ class ResUsers(models.Model):
             user.agent_oyligi = user.agent_oyligi_earned
 
     def _compute_oylik_balansi(self):
-        if not self.ids:
+        # Initialize all computed fields for all records in the set
+        # This prevents "Compute method failed to assign" error during creation
+        for user in self:
+            user.yalpi_balans = 0.0
+            user.agent_oyligi_earned = 0.0
+            user.oylik_olindi = 0.0
+            user.oylik_qoldigi = 0.0
+            user.sof_balans = 0.0
+            user.oylik_balansi = 0.0
+
+        # Only process records that exist in the database
+        real_users = self.filtered(lambda u: isinstance(u.id, int))
+        if not real_users:
             return
+
+        user_ids = real_users.ids
 
         # --- 1. Batch fetch Naqt Savdo Totals ---
         naqt_rg = self.env['van.pos.order'].read_group(
-            domain=[('agent_id', 'in', self.ids), ('state', '=', 'done'), ('partner_id', '=', False)],
+            domain=[('agent_id', 'in', user_ids), ('state', '=', 'done'), ('partner_id', '=', False)],
             fields=['agent_id', 'amount_total'],
             groupby=['agent_id']
         )
@@ -55,7 +69,7 @@ class ResUsers(models.Model):
 
         # --- 2. Batch fetch Payments ---
         pay_rg = self.env['van.payment'].read_group(
-            domain=[('agent_id', 'in', self.ids)],
+            domain=[('agent_id', 'in', user_ids)],
             fields=['agent_id', 'payment_type', 'expense_type', 'amount'],
             groupby=['agent_id', 'payment_type', 'expense_type'],
             lazy=False
@@ -78,7 +92,7 @@ class ResUsers(models.Model):
                 if e_type in ('salary', 'payout'):
                     salary_paid_dict[ag_id] = salary_paid_dict.get(ag_id, 0.0) + amt
 
-        for user in self:
+        for user in real_users:
             uid = user.id
             naqt_savdo_total = naqt_dict.get(uid, 0.0)
             kirim_total = kirim_dict.get(uid, 0.0)
