@@ -9,9 +9,6 @@ class ResPartner(models.Model):
     telegram_chat_id = fields.Char(string='Telegram Chat ID', help="Avtomatik ravishda bot orqali to'ldiriladi.")
     agent_ids = fields.Many2many(
         'res.users',
-        'van_agent_partner_rel',
-        'partner_id',
-        'agent_id',
         string='Agentlar',
         help='Bu mijozga tayinlangan agentlar.'
     )
