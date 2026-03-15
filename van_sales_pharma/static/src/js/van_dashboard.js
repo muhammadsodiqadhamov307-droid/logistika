@@ -37,6 +37,22 @@ export class VanSalesDashboard extends Component {
         });
 
         onWillStart(async () => {
+            // Security guard: agents must never land on the dashboard
+            // If a pure agent somehow navigates here (e.g. browser back button),
+            // redirect them immediately to the Mobile POS before anything renders.
+            try {
+                const isAdmin = await this.orm.call('res.users', 'has_group', ['van_sales_pharma.group_van_admin']);
+                const isSysAdmin = await this.orm.call('res.users', 'has_group', ['base.group_system']);
+                if (!isAdmin && !isSysAdmin) {
+                    // Pure agent — redirect to POS immediately
+                    window.location.href = '/van/mobile-pos';
+                    return;
+                }
+            } catch (e) {
+                // On error, still try to protect by redirecting
+                window.location.href = '/van/mobile-pos';
+                return;
+            }
             await this.fetchDashboardData();
         });
 
