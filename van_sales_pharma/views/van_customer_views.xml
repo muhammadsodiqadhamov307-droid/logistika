@@ -175,9 +175,7 @@
                 <field name="name" string="Mijoz nomi" filter_domain="['|', '|', ('name', 'ilike', self), ('parent_id', 'ilike', self), ('ref', '=', self)]"/>
                 <field name="phone" string="Telefon"/>
                 <separator/>
-                <group expand="0" string="Guruhlash">
-                    <filter name="group_by_city" string="Shahar" context="{'group_by': 'city'}"/>
-                </group>
+                <filter name="group_by_city" string="Shahar" context="{'group_by': 'city'}"/>
             </search>
         </field>
     </record>
