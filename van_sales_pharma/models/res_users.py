@@ -36,7 +36,6 @@ class ResUsers(models.Model):
         'agent_id',
         'partner_id',
         string='Mijozlar',
-        domain=[('x_is_van_customer', '=', True)],
         help='Bu agentga tayinlangan mijozlar. Agent faqat shu mijozlarni ko\'ra oladi.'
     )
 
