@@ -7,12 +7,12 @@ class ResPartner(models.Model):
     _inherit = 'res.partner'
     currency_id = fields.Many2one('res.currency', string='Valyuta', related='company_id.currency_id', readonly=True)
     telegram_chat_id = fields.Char(string='Telegram Chat ID', help="Avtomatik ravishda bot orqali to'ldiriladi.")
-    # van_agent_id = fields.Many2one(
-    #     'res.users',
-    #     string='Agent',
-    #     domain="[('share', '=', False)]",
-    #     help='Bu mijozga tayinlangan agent.'
-    # )
+    van_agent_id = fields.Many2one(
+        'res.users',
+        string='Agent',
+        domain="[('share', '=', False)]",
+        help='Bu mijozga tayinlangan agent.'
+    )
 
     x_van_total_due = fields.Monetary(
         string='Jami Nasiya Qarzi',
