@@ -123,7 +123,7 @@
                             </h4>
                         </div>
                         <div class="col-md-3 col-6 text-center border-end mb-3">
-                            <small class="text-muted">💰 Sof Balans (Naqd pulsiz)</small>
+                            <small class="text-muted">💰 Sof Balans</small>
                             <h4 class="fw-bold text-info">
                                 <field name="sof_balans"
                                        widget="monetary"
@@ -171,7 +171,7 @@
                             </h4>
                         </div>
                         <div class="col-md-3 col-6 text-center border-end mb-3 d-flex flex-column justify-content-center align-items-center">
-                            <small class="text-muted" style="color: #059669 !important;">💸 Oylik Qoldig'i (To'lanishi kerak)</small>
+                            <small class="text-muted" style="color: #059669 !important;">💸 Oylik Qoldig'i</small>
                             <h4 class="fw-bold" style="color: #047857;">
                                 <field name="oylik_qoldigi"
                                        widget="monetary"
