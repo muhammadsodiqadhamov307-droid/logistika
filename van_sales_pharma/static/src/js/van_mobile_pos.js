@@ -57,14 +57,11 @@ export class VanMobilePos extends Component {
             requestPartnerId: '',
             requestPartnerName: '',
             requestNote: '',
-            newRequestLines: [],
+            requestCart: {},
 
             // Picker Modals for newRequest form
             showClientPickerModal: false,
             clientSearchModal: '',
-            showProductPickerModal: false,
-            productSearchModal: '',
-            tempSelectedProducts: new Set(),
 
             // Mahsulot Yuklash (Trip Load) features
             currentAgent: null,
@@ -534,91 +531,40 @@ export class VanMobilePos extends Component {
         );
     }
 
-    get filteredModalProducts() {
-        let base = this.state.allProducts;
-        if (!this.state.productSearchModal) {
-            return base;
-        }
-        const search = this.state.productSearchModal.toLowerCase();
-        return base.filter(prod =>
-            prod.name.toLowerCase().includes(search)
-        );
+    get requestCartTotal() {
+        return Object.values(this.state.requestCart).reduce((sum, item) => sum + (item.qty * item.price), 0);
     }
 
-    // Modal Picker Handlers
-    openClientPicker() {
-        this.state.clientSearchModal = '';
-        this.state.showClientPickerModal = true;
-    }
-
-    closeClientPicker() {
-        this.state.showClientPickerModal = false;
-    }
-
-    selectRequestClient(client) {
-        this.state.requestPartnerId = client.id;
-        this.state.requestPartnerName = client.name;
-        this.closeClientPicker();
-    }
-
-    openProductPicker() {
-        this.state.productSearchModal = '';
-        // Pre-fill temp selection based on active screen
-        if (this.state.screen === 'mahsulot_yuklash_form') {
-            this.state.tempSelectedProducts = new Set(this.state.newTripLines.map(l => l.product_id));
+    changeRequestLineQty(product, delta) {
+        if (!this.state.requestCart) this.state.requestCart = {};
+        const pId = product.product_id;
+        if (!this.state.requestCart[pId]) {
+            if (delta > 0) {
+                this.state.requestCart[pId] = { product_id: pId, qty: delta, price: product.price };
+            }
         } else {
-            this.state.tempSelectedProducts = new Set(this.state.newRequestLines.map(l => l.product_id));
-        }
-        this.state.showProductPickerModal = true;
-    }
-
-    closeProductPicker() {
-        this.state.showProductPickerModal = false;
-    }
-
-    toggleProductSelection(product_id) {
-        if (this.state.tempSelectedProducts.has(product_id)) {
-            this.state.tempSelectedProducts.delete(product_id);
-        } else {
-            this.state.tempSelectedProducts.add(product_id);
-        }
-        // Force Owl update for Set
-        this.state.tempSelectedProducts = new Set(this.state.tempSelectedProducts);
-    }
-
-    confirmProductSelection() {
-        const currentLinesMap = new Map();
-        const activeContainer = this.state.screen === 'mahsulot_yuklash_form' ? this.state.newTripLines : this.state.newRequestLines;
-
-        activeContainer.forEach(l => {
-            currentLinesMap.set(l.product_id, l);
-        });
-
-        // Rebuild lines
-        const newLines = [];
-        for (const product_id of this.state.tempSelectedProducts) {
-            const product = this.state.allProducts.find(p => p.product_id === product_id);
-            if (!product) continue;
-
-            if (currentLinesMap.has(product_id)) {
-                newLines.push(currentLinesMap.get(product_id));
-            } else {
-                newLines.push({
-                    product_id: product_id,
-                    product_name: product.name,
-                    price: product.price,
-                    qty: 1
-                });
+            this.state.requestCart[pId].qty += delta;
+            if (this.state.requestCart[pId].qty <= 0) {
+                delete this.state.requestCart[pId];
             }
         }
+    }
 
-        if (this.state.screen === 'mahsulot_yuklash_form') {
-            this.state.newTripLines = newLines;
+    setRequestLineQty(product, ev) {
+        if (!this.state.requestCart) this.state.requestCart = {};
+        const pId = product.product_id;
+        let newQty = parseInt(ev.target.value);
+        if (isNaN(newQty) || newQty <= 0) {
+            delete this.state.requestCart[pId];
+            ev.target.value = 0;
         } else {
-            this.state.newRequestLines = newLines;
+            if (!this.state.requestCart[pId]) {
+                this.state.requestCart[pId] = { product_id: pId, qty: newQty, price: product.price };
+            } else {
+                this.state.requestCart[pId].qty = newQty;
+            }
+            ev.target.value = newQty;
         }
-
-        this.closeProductPicker();
     }
 
     get tripCartTotal() {
@@ -986,7 +932,7 @@ export class VanMobilePos extends Component {
                 this.state.requestFilter = 'draft';
                 this.state.requestPartnerId = '';
                 this.state.requestNote = '';
-                this.state.newRequestLines = [];
+                this.state.requestCart = {};
                 this.state.activeRequest = null;
             } else {
                 this.state.error = result.error || "So'rovlarni o'qishda xatolik";
@@ -997,26 +943,20 @@ export class VanMobilePos extends Component {
         this.state.loading = false;
     }
 
-    addRequestLine() {
-        // Obsolete function, replaced by multi-select modal confirmProductSelection
+    // Modal Picker Handlers
+    openClientPicker() {
+        this.state.clientSearchModal = '';
+        this.state.showClientPickerModal = true;
     }
 
-    removeRequestLine(index) {
-        if (this.state.newRequestLines.length > 1) {
-            this.state.newRequestLines.splice(index, 1);
-        }
+    closeClientPicker() {
+        this.state.showClientPickerModal = false;
     }
 
-    updateRequestLineProduct(index, ev) {
-        this.state.newRequestLines[index].product_id = ev.target.value;
-    }
-
-    updateRequestLineQty(index, ev) {
-        this.state.newRequestLines[index].qty = ev.target.value;
-    }
-
-    updateTripLineQty(index, ev) {
-        this.state.newTripLines[index].qty = ev.target.value;
+    selectRequestClient(client) {
+        this.state.requestPartnerId = client.id;
+        this.state.requestPartnerName = client.name;
+        this.closeClientPicker();
     }
 
     async updateRequestState(requestId, newState) {
@@ -1043,7 +983,7 @@ export class VanMobilePos extends Component {
             return;
         }
 
-        const validLines = this.state.newRequestLines.filter(l => l.product_id && parseFloat(l.qty) > 0);
+        const validLines = Object.values(this.state.requestCart).filter(l => l.qty > 0);
 
         if (validLines.length === 0) {
             this.state.error = "Iltimos kamida bitta mahsulot va uning sonini kiriting.";

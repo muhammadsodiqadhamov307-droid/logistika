@@ -675,29 +675,58 @@
                             </button>
                         </div>
 
-                        <div style="margin-top: 20px; margin-bottom: 10px; font-weight: bold; color: #374151; font-size: 16px;">Mahsulotlar ro'yxati</div>
-                        
-                        <t t-foreach="state.newRequestLines" t-as="line" t-key="line_index">
-                            <div style="display: flex; gap: 10px; margin-bottom: 10px; background: #f9fafb; padding: 10px; border-radius: 8px; border: 1px solid #e5e7eb; align-items: center;">
-                                <div style="flex: 2; display: flex; align-items: center; gap: 10px;">
-                                    <img t-att-src="'/web/image?model=van.product&amp;id=' + line.product_id + '&amp;field=image_1920'" style="width: 40px; height: 40px; border-radius: 5px; object-fit: cover; border: 1px solid #d1d5db;" onerror="this.src='/van_sales_pharma/static/description/icon.png';"/>
-                                    <div>
-                                        <div style="font-weight: bold; font-size: 14px; color: #374151;"><t t-esc="line.product_name"/></div>
-                                        <div style="font-size: 12px; color: #6b7280;"><t t-esc="(line.price || 0).toLocaleString()"/> UZS</div>
+                        <div style="margin-top: 20px; font-weight: bold; color: #374151; font-size: 16px;">
+                            <i class="fa fa-list" style="margin-right: 5px;"></i> Barcha Mahsulotlar
+                        </div>
+
+                        <!-- Real-time search/filter for Requests -->
+                        <div style="margin-bottom: 15px; position: relative; margin-top: 15px;">
+                            <i class="fa fa-search" style="position: absolute; left: 12px; top: 12px; color: #9ca3af;"></i>
+                            <input type="text" placeholder="Mahsulot izlash..." t-model="state.productSearchQuery" style="width: 100%; padding: 12px 12px 12px 35px; border-radius: 8px; border: 1px solid #d1d5db; font-size: 15px; box-sizing: border-box; outline: none;"/>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;">
+                            <t t-foreach="filteredAllProducts" t-as="p" t-key="'req-'+p.product_id">
+                                <div t-attf-style="background: {{ state.requestCart[p.product_id] ? '#eff6ff' : 'white' }}; border: {{ state.requestCart[p.product_id] ? '2px solid #2563eb' : '1px solid #e5e7eb' }}; border-radius: 12px; overflow: hidden; display: flex; flex-direction: column;">
+                                    <div style="height: 110px; background: #f9fafb; display: flex; align-items: center; justify-content: center; padding: 10px;">
+                                        <t t-if="p.image_url">
+                                            <img t-att-src="p.image_url" style="max-height: 100%; max-width: 100%; object-fit: contain; border-radius: 6px;" onerror="this.src='/van_sales_pharma/static/description/icon.png';"/>
+                                        </t>
+                                        <t t-else="">
+                                            <i class="fa fa-box" style="font-size: 30px; color: #d1d5db;"></i>
+                                        </t>
+                                    </div>
+                                    
+                                    <!-- Details -->
+                                    <div style="padding: 10px; flex: 1; display: flex; flex-direction: column;">
+                                        <div style="font-weight: bold; font-size: 13px; line-height: 1.2; margin-bottom: 5px; color: #1f2937; flex: 1;">
+                                            <t t-esc="p.name"/>
+                                        </div>
+                                        <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 8px;">
+                                            <div style="font-size: 13px; font-weight: bold; color: #16a34a;"><t t-esc="p.price.toLocaleString()"/> UZS</div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Quantity Controls -->
+                                    <div style="padding: 8px; border-top: 1px solid #f3f4f6; background: #f9fafb;">
+                                        <div style="display: flex; align-items: center; justify-content: space-between; border: 1px solid #d1d5db; border-radius: 8px; overflow: hidden; height: 38px; background: white;">
+                                            <button t-on-click="(ev) => this.changeRequestLineQty(p, -1)" style="flex: 0 0 35px; height: 100%; display: flex; align-items: center; justify-content: center; background: #f3f4f6; border: none; border-right: 1px solid #d1d5db; color: #dc2626; cursor: pointer;">
+                                                <i t-attf-class="{{ state.requestCart[p.product_id]?.qty === 1 ? 'fa fa-trash' : 'fa fa-minus' }}" style="font-size: 12px; font-weight: black;"></i>
+                                            </button>
+                                            
+                                            <input type="number" 
+                                                   t-att-value="state.requestCart[p.product_id]?.qty || 0" 
+                                                   t-on-change="(ev) => this.setRequestLineQty(p, ev)" 
+                                                   style="flex: 1; text-align: center; font-weight: bold; font-size: 15px; color: #000000; background: white; border: none; outline: none; width: 100%; height: 100%; margin: 0; padding: 0;"/>
+                                            
+                                            <button t-on-click="(ev) => this.changeRequestLineQty(p, 1)" style="flex: 0 0 35px; height: 100%; display: flex; align-items: center; justify-content: center; background: #2563eb; border: none; border-left: 1px solid #1e40af; color: white; cursor: pointer;">
+                                                <i class="fa fa-plus" style="font-size: 12px; font-weight: black;"></i>
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
-                                <div style="flex: 1;">
-                                    <input type="number" t-att-value="line.qty" t-on-change="(ev) => this.updateRequestLineQty(line_index, ev)" placeholder="Soni" style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 5px; font-size: 14px; box-sizing: border-box; outline: none; text-align: center; font-weight: bold;"/>
-                                </div>
-                                <button t-on-click="() => this.removeRequestLine(line_index)" style="background: #fee2e2; border: none; color: #ef4444; width: 35px; height: 35px; border-radius: 5px; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
-                                    <i class="fa fa-trash"></i>
-                                </button>
-                            </div>
-                        </t>
-                        
-                        <button t-on-click="openProductPicker" style="width: 100%; padding: 12px; background: #eff6ff; border: 2px dashed #3b82f6; color: #3b82f6; border-radius: 8px; font-weight: bold; margin-bottom: 20px; cursor: pointer; font-size: 15px;">
-                            <i class="fa fa-plus-circle" style="margin-right: 5px;"></i> Mahsulot Qo'shish / Tanlash
-                        </button>
+                            </t>
+                        </div>
 
                         <div style="margin-bottom: 20px;">
                             <label style="display: block; font-size: 14px; font-weight: bold; margin-bottom: 5px; color: #374151;">Umumiy Izoh</label>
@@ -705,7 +734,7 @@
                         </div>
 
                         <button t-on-click="submitRequest" style="width: 100%; padding: 15px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; color: white; cursor: pointer; background-color: #10b981; box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.5);">
-                            So'rovni Saqlash
+                            SO'ROVNI SAQLASH (<t t-esc="requestCartTotal.toLocaleString()"/> so'm)
                         </button>
                     </div>
                 </t>
@@ -948,58 +977,7 @@
                     </div>
                 </div>
             </t>
-            <!-- PRODUCT MULTI-SELECT PICKER MODAL -->
-            <t t-if="state.showProductPickerModal">
-                <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: white; z-index: 1000; overflow-y: auto; -webkit-overflow-scrolling: touch; display: flex; flex-direction: column;">
-                    
-                    <!-- Header -->
-                    <div style="position: sticky; top: 0; background: white; z-index: 1010; padding: 15px; border-bottom: 1px solid #e5e7eb; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);">
-                        <div style="font-size: 18px; font-weight: bold; color: #111827;">Mahsulotlarni Tanlang</div>
-                        <button t-on-click="closeProductPicker" style="background: none; border: none; font-size: 24px; color: #6b7280;">×</button>
-                    </div>
 
-                    <!-- Search Bar -->
-                    <div style="padding: 15px;">
-                        <input type="text" t-model="state.productSearchModal" placeholder="Nomi bo'yicha qidirish..." style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; box-sizing: border-box; outline: none; background: #f9fafb;"/>
-                    </div>
-
-                    <!-- Products Grid -->
-                    <div style="padding: 0 15px 120px 15px; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; flex-grow: 1; align-content: flex-start; align-items: flex-start;">
-                        <t t-foreach="filteredModalProducts" t-as="product" t-key="'mpproduct-'+product.product_id">
-                            
-                            <!-- Card highlighting based on selection -->
-                            <t t-set="isSelected" t-value="state.tempSelectedProducts.has(product.product_id)"/>
-                            
-                            <div t-on-click="() => this.toggleProductSelection(product.product_id)" 
-                                 t-att-style="isSelected ? 'background: #eff6ff; border: 2px solid #3b82f6; border-radius: 10px; padding: 10px; text-align: center; position: relative; cursor: pointer;' 
-                                                         : 'background: white; border: 1px solid #e5e7eb; border-radius: 10px; padding: 10px; text-align: center; position: relative; cursor: pointer;'">
-                                
-                                <!-- Checkmark overlay -->
-                                <t t-if="isSelected">
-                                    <div style="position: absolute; top: 5px; right: 5px; background: #3b82f6; color: white; width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; z-index: 10;">
-                                        <i class="fa fa-check"></i>
-                                    </div>
-                                </t>
-
-                                <img t-att-src="'/web/image?model=van.product&amp;id=' + product.product_id + '&amp;field=image_1920'" style="width: 100%; height: 120px; object-fit: cover; border-radius: 8px; margin-bottom: 8px; border: 1px solid #f3f4f6;" onerror="this.src='/van_sales_pharma/static/description/icon.png';"/>
-                                <div style="font-weight: bold; font-size: 13px; color: #374151; word-wrap: break-word;"><t t-esc="product.name"/></div>
-                                <div style="font-size: 12px; color: #6b7280; margin-top: 5px;"><t t-esc="product.price.toLocaleString()"/> UZS</div>
-                            </div>
-                        </t>
-                        <t t-if="filteredModalProducts.length === 0">
-                            <div style="grid-column: 1 / -1; text-align: center; padding: 30px; color: #6b7280;">Bunday mahsulot topilmadi.</div>
-                        </t>
-                    </div>
-
-                    <!-- Bottom Fixed Confirm Button -->
-                    <div style="position: fixed; bottom: 0; left: 0; right: 0; background: white; padding: 15px 20px; box-shadow: 0 -4px 10px rgba(0,0,0,0.1); z-index: 1020; border-top: 1px solid #e5e7eb;">
-                        <button t-on-click="confirmProductSelection" style="width: 100%; background-color: #3b82f6; color: white; font-weight: bold; font-size: 18px; border: none; padding: 15px; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.4);">
-                            <t t-esc="state.tempSelectedProducts.size"/> ta tanlandi - Tasdiqlash
-                        </button>
-                    </div>
-
-                </div>
-            </t>
 
 
         </div>
