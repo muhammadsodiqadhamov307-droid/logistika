@@ -211,20 +211,18 @@
                     </div>
                     
                     <div class="client-list">
-                        <div class="client-card" t-on-click="() => this.selectClient({id: false, name: 'Naqt savdo', total_due: 0})" style="background: #e5e7eb; padding: 15px; border-radius: 10px; margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; border: 2px solid #9ca3af; cursor: pointer;">
-                            <div>
-                                <div style="font-weight: bold; font-size: 16px;"><i class="fa fa-user-secret"></i> Naqt savdo (Mijozsiz)</div>
-                            </div>
-                            <i class="fa fa-chevron-right" style="color: #6b7280;"></i>
-                        </div>
-
-                        <t t-foreach="filteredClients" t-as="client" t-key="client.id">
-                            <div class="client-card" t-on-click="() => this.selectClient(client)" style="background: white; padding: 15px; border-radius: 10px; margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; cursor: pointer;">
+                        <t t-foreach="filteredClients" t-as="client" t-key="client.id || 'cash'">
+                            <div class="client-card" 
+                                 t-on-click="() => this.selectClient(client)" 
+                                 t-attf-style="padding: 15px; border-radius: 10px; margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; cursor: pointer; {{ client.id === false ? 'background: #e5e7eb; border: 2px solid #9ca3af;' : 'background: white;' }}">
                                 <div>
-                                    <div style="font-weight: bold; font-size: 16px; margin-bottom: 5px;"><t t-esc="client.name"/></div>
-                                    <div style="font-size: 14px; color: #4b5563;">Hozirgi qarz: <span style="color: #dc2626; font-weight: bold;"><t t-esc="client.total_due.toLocaleString()"/></span></div>
+                                    <div t-attf-style="font-weight: bold; font-size: 16px; {{ client.id !== false ? 'margin-bottom: 5px;' : '' }}">
+                                        <i t-if="client.id === false" class="fa fa-user-secret"></i>
+                                        <t t-esc="client.name"/>
+                                    </div>
+                                    <div t-if="client.id !== false" style="font-size: 14px; color: #4b5563;">Hozirgi qarz: <span style="color: #dc2626; font-weight: bold;"><t t-esc="client.total_due.toLocaleString()"/></span></div>
                                 </div>
-                                <i class="fa fa-chevron-right" style="color: #9ca3af;"></i>
+                                <i class="fa fa-chevron-right" t-attf-style="color: {{ client.id === false ? '#6b7280' : '#9ca3af' }};"></i>
                             </div>
                         </t>
                         <t t-if="filteredClients.length === 0">

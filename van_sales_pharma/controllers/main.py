@@ -78,16 +78,38 @@ class VanPosController(http.Controller):
 
     @http.route('/van/pos/get_clients', type='jsonrpc', auth='user')
     def get_clients(self):
-        partners = request.env['res.partner'].search([('x_is_van_customer', '=', True)])
-        # recompute balances based on new nasiya
-        partners._compute_van_nasiya_stats()
+        agent_id = self._get_agent_id()
+        agent = request.env['res.users'].sudo().browse(agent_id)
         
-        return [{
+        if agent.mijoz_ids:
+            partners = agent.mijoz_ids
+        else:
+            partners = request.env['res.partner'].sudo().search([('x_is_van_customer', '=', True)])
+            
+        # recompute balances based on new nasiya
+        partners.sudo()._compute_van_nasiya_stats()
+        
+        # Build client list
+        client_list = [{
             'id': p.id,
             'name': p.name,
             'balance': p.x_van_balance,
             'total_due': p.x_van_total_due
         } for p in partners]
+        
+        # Sort by name for better UX
+        client_list.sort(key=lambda x: x['name'])
+        
+        # Always Prepend "Naqt savdo (Mijozisiz)"
+        client_list.insert(0, {
+            'id': False,
+            'name': "Naqt savdo (Mijozisiz)",
+            'balance': 0.0,
+            'total_due': 0.0,
+            'is_cash_sale': True
+        })
+        
+        return client_list
 
     @http.route('/van/pos/get_inventory', type='jsonrpc', auth='user')
     def get_inventory(self):

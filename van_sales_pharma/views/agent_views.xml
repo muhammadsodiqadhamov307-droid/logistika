@@ -562,6 +562,16 @@ action = {
                         </group>
                     </group>
                     <notebook>
+                        <page string="Mijozlar" name="mijozlar">
+                            <field name="mijoz_ids">
+                                <list string="Tayinlangan Mijozlar">
+                                    <field name="name"/>
+                                    <field name="x_phone" optional="show"/>
+                                    <field name="x_van_balance" widget="monetary" string="Balansi"/>
+                                    <field name="currency_id" column_invisible="True"/>
+                                </list>
+                            </field>
+                        </page>
                         <page string="Ostatka Inventar">
                             <field name="ostatka_ids">
                                 <list string="Ostatka Inventar" editable="bottom">
