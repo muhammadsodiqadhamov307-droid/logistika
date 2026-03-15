@@ -154,12 +154,7 @@
                                         <field name="x_van_total_due" widget="monetary"/>
                                     </span>
                                 </div>
-                                <div t-if="record.van_agent_id.raw_value" class="mt-1">
-                                    <span class="badge rounded-pill bg-info text-dark small">
-                                        <i class="fa fa-user-circle me-1"/>
-                                        <field name="van_agent_id"/>
-                                    </span>
-                                </div>
+                                <!-- Removed agent badge per request -->
                                 <div t-if="record.street.value" class="text-muted small mt-1">
                                     <i class="fa fa-map-marker me-1" title="Manzil"/><field name="street"/>
                                 </div>
@@ -179,12 +174,8 @@
             <search>
                 <field name="name" string="Mijoz nomi" filter_domain="['|', '|', ('name', 'ilike', self), ('parent_id', 'ilike', self), ('ref', '=', self)]"/>
                 <field name="phone" string="Telefon"/>
-                <field name="van_agent_id" string="Agent bo'yicha"/>
                 <separator/>
-                <filter string="Qarzdorlar" name="has_debt" domain="[('x_van_total_due', '&lt;', 0)]"/>
-                <filter string="Mening Mijozlarim" name="my_customers" domain="[('van_agent_id', '=', uid)]"/>
                 <group expand="0" string="Guruhlash">
-                    <filter name="group_by_agent" string="Agent" context="{'group_by': 'van_agent_id'}"/>
                     <filter name="group_by_city" string="Shahar" context="{'group_by': 'city'}"/>
                 </group>
             </search>
