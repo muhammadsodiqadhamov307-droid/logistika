@@ -733,6 +733,12 @@
                             <input type="text" t-model="state.requestNote" placeholder="Aloxida talab bo'lsa..." style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; box-sizing: border-box; outline: none;"/>
                         </div>
 
+                        <!-- Spacer so the last item isn't hidden by the bottom bar -->
+                        <div style="height: 100px;"></div>
+                    </div>
+
+                    <!-- Fixed Submit Button -->
+                    <div style="position: fixed; bottom: 0; left: 0; right: 0; background: white; padding: 15px 20px; box-shadow: 0 -4px 10px rgba(0,0,0,0.1); z-index: 1020; border-top: 1px solid #e5e7eb;">
                         <button t-on-click="submitRequest" style="width: 100%; padding: 15px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; color: white; cursor: pointer; background-color: #10b981; box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.5);">
                             SO'ROVNI SAQLASH (<t t-esc="requestCartTotal.toLocaleString()"/> so'm)
                         </button>
