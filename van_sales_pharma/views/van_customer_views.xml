@@ -136,6 +136,7 @@
                 <field name="image_128"/>
                 <field name="street"/>
                 <field name="x_van_total_due"/>
+                <field name="agent_ids"/>
                 <templates>
                     <t t-name="card">
                         <div class="d-flex">
@@ -153,6 +154,12 @@
                                         <field name="x_van_total_due" widget="monetary"/>
                                     </span>
                                 </div>
+                                <div t-if="record.agent_ids.raw_value.length > 0" class="mt-1">
+                                    <span class="badge rounded-pill bg-info text-dark small">
+                                        <i class="fa fa-user-circle me-1"/>
+                                        <field name="agent_ids" widget="many2many_tags"/>
+                                    </span>
+                                </div>
                                 <div t-if="record.street.value" class="text-muted small mt-1">
                                     <i class="fa fa-map-marker me-1" title="Manzil"/><field name="street"/>
                                 </div>
@@ -161,6 +168,25 @@
                     </t>
                 </templates>
             </kanban>
+        </field>
+    </record>
+
+    <!-- SEARCH VIEW (V2) -->
+    <record id="view_van_customer_search_v2" model="ir.ui.view">
+        <field name="name">van.customer.search.v2</field>
+        <field name="model">res.partner</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name" string="Mijoz nomi" filter_domain="['|', '|', ('name', 'ilike', self), ('parent_id', 'ilike', self), ('ref', '=', self)]"/>
+                <field name="phone" string="Telefon"/>
+                <field name="agent_ids" string="Agent bo'yicha"/>
+                <separator/>
+                <filter string="Qarzdorlar" name="has_debt" domain="[('x_van_total_due', '&lt;', 0)]"/>
+                <filter string="Mening Mijozlarim" name="my_customers" domain="[('agent_ids', 'in', [uid])]"/>
+                <group expand="0" string="Guruhlash">
+                    <filter name="group_by_city" string="Shahar" context="{'group_by': 'city'}"/>
+                </group>
+            </search>
         </field>
     </record>
 
@@ -181,5 +207,6 @@
             (0, 0, {'view_mode': 'kanban', 'view_id': ref('van_sales_pharma.view_van_customer_kanban_v2')}),
             (0, 0, {'view_mode': 'list',   'view_id': ref('van_sales_pharma.view_van_customer_list_v2')}),
             (0, 0, {'view_mode': 'form',   'view_id': ref('van_sales_pharma.view_van_customer_form_v2')})]"/>
+        <field name="search_view_id" ref="view_van_customer_search_v2"/>
     </record>
 </odoo>
