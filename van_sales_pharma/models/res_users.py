@@ -31,19 +31,41 @@ class ResUsers(models.Model):
 
     def _compute_agent_oyligi(self):
         for user in self:
-            # Agent Oyligi equals the computed `oylik_balansi` from their Agent Summary profile.
-            summary = self.env['van.agent.summary'].search([('agent_id', '=', user.id)], limit=1)
-            if summary:
-                # Need to calculate it without date filters (all time)
-                # But since we just want it to match, we can use the summary's logic
-                # Actually, summary.oylik_balansi is already computed. Let's just grab it.
-                user.agent_oyligi = summary.oylik_balansi
-            else:
-                user.agent_oyligi = 0.0
+            user.agent_oyligi = user.oylik_balansi
 
     def _compute_oylik_balansi(self):
         for user in self:
-            user.oylik_balansi = user.agent_oyligi
+            # Step 1: Calculate "All-Time Balance"
+            # Done Orders (Naqt + Nasiya that might be paid later, but total_balance in summary is Cash - Chiqim)
+            # Actually, Agent Summary says:
+            # cash = naqt_savdo_total + kirim_total
+            # total_chiqim = chiqim_total
+            # total_balance = cash - total_chiqim
+            # earned = total_balance * (komissiya_foizi / 100.0)
+            
+            # Let's reproduce this all-time:
+            all_orders = self.env['van.pos.order'].search([
+                ('agent_id', '=', user.id),
+                ('state', '=', 'done')
+            ])
+            naqt_savdo_total = sum(o.amount_total for o in all_orders if not o.partner_id)
+            
+            all_payments = self.env['van.payment'].search([
+                ('agent_id', '=', user.id)
+            ])
+            kirim_total = sum(p.amount for p in all_payments if p.payment_type == 'in')
+            chiqim_total = sum(p.amount for p in all_payments if p.payment_type == 'out')
+            
+            cash = naqt_savdo_total + kirim_total
+            total_balance = cash - chiqim_total
+            
+            earned = total_balance * (user.komissiya_foizi / 100.0)
+            
+            # Step 2: Subtract already paid salaries
+            salary_payments = all_payments.filtered(lambda p: p.payment_type == 'out' and p.expense_type in ('salary', 'payout'))
+            total_paid = sum(salary_payments.mapped('amount'))
+            
+            user.oylik_balansi = earned - total_paid
 
     def action_close_salary(self):
         """
