@@ -86,50 +86,6 @@ export class VanMobilePos extends Component {
         useExternalListener(window, "offline", this.onOffline.bind(this));
 
         onWillStart(async () => {
-            // ============================================================
-            // BACK BUTTON TRAP — Capture phase so we fire BEFORE Odoo router
-            // ============================================================
-            const currentHref = window.location.href;
-
-            // Push a deep stack of states upfront
-            for (let i = 0; i < 30; i++) {
-                window.history.pushState({ van_pos: true, depth: i }, '', currentHref);
-            }
-
-            // Use CAPTURE phase (3rd arg = true) so we beat Odoo's own popstate handler
-            this.popStateHandler = (ev) => {
-                // Block Odoo's router from ever seeing this event
-                ev.stopImmediatePropagation();
-                ev.stopPropagation();
-
-                // Refill the stack immediately
-                for (let i = 0; i < 10; i++) {
-                    window.history.pushState({ van_pos: true }, '', currentHref);
-                }
-
-                // Handle internal POS screen navigation
-                this.goBack();
-            };
-            window.addEventListener('popstate', this.popStateHandler, true); // capture=true
-
-            // Guard against full-page unload
-            this.beforeUnloadHandler = (ev) => {
-                ev.preventDefault();
-                ev.returnValue = '';
-            };
-            window.addEventListener('beforeunload', this.beforeUnloadHandler);
-
-            // Catch bfcache restores (iOS Safari back gesture, Android bfcache)
-            this.pageShowHandler = (ev) => {
-                if (ev.persisted) {
-                    // Page was served from cache — we're back in the POS, reinitialize trap
-                    for (let i = 0; i < 30; i++) {
-                        window.history.pushState({ van_pos: true }, '', currentHref);
-                    }
-                }
-            };
-            window.addEventListener('pageshow', this.pageShowHandler);
-
             // CRITICAL: wait for IDB to be ready BEFORE loading data
             // Without this, this.db is null and all IDB reads return empty
             await this.initIDB();
@@ -160,9 +116,6 @@ export class VanMobilePos extends Component {
         });
 
         onWillDestroy(() => {
-            window.removeEventListener('popstate', this.popStateHandler, true);
-            window.removeEventListener('beforeunload', this.beforeUnloadHandler);
-            window.removeEventListener('pageshow', this.pageShowHandler);
             if (this.state.pollingInterval) {
                 clearInterval(this.state.pollingInterval);
             }
@@ -1112,10 +1065,6 @@ export class VanMobilePos extends Component {
         } else if (this.state.screen === 'trip_details') {
             this.state.activeTrip = null;
             this.state.screen = 'trips_list';
-        } else {
-            // Already on root screen (products) — keep the history trap active so
-            // the hardware back button never navigates away from the POS.
-            window.history.pushState(null, null, window.location.href);
         }
     }
 
