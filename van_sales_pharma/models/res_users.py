@@ -31,30 +31,19 @@ class ResUsers(models.Model):
 
     def _compute_agent_oyligi(self):
         for user in self:
-            user.agent_oyligi = user.oylik_balansi
+            # Agent Oyligi equals the computed `oylik_balansi` from their Agent Summary profile.
+            summary = self.env['van.agent.summary'].search([('agent_id', '=', user.id)], limit=1)
+            if summary:
+                # Need to calculate it without date filters (all time)
+                # But since we just want it to match, we can use the summary's logic
+                # Actually, summary.oylik_balansi is already computed. Let's just grab it.
+                user.agent_oyligi = summary.oylik_balansi
+            else:
+                user.agent_oyligi = 0.0
 
     def _compute_oylik_balansi(self):
         for user in self:
-            # 1. Total Commission Earned (sales with state='done')
-            # Instead of multiplying all historic sales by the current percentage, 
-            # we sum up the explicitly locked commission_amount from the POS Order to allow percentage changes securely.
-            pos_orders = self.env['van.pos.order'].search([
-                ('agent_id', '=', user.id),
-                ('state', '=', 'done')
-            ])
-            total_earned = sum(pos_orders.mapped('commission_amount'))
-
-            # 2. Total Salary Paid Out (van.payment where expense_type in ('salary', 'payout'))
-            # 'salary' is for intermediate advance payments (Chiqim)
-            # 'payout' is for final salary close (Oylik Yopish)
-            salary_payments = self.env['van.payment'].search([
-                ('agent_id', '=', user.id),
-                ('payment_type', '=', 'out'),
-                ('expense_type', 'in', ('salary', 'payout'))
-            ])
-            total_paid = sum(salary_payments.mapped('amount'))
-
-            user.oylik_balansi = total_earned - total_paid
+            user.oylik_balansi = user.agent_oyligi
 
     def action_close_salary(self):
         """
