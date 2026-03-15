@@ -112,15 +112,6 @@ export class VanMobilePos extends Component {
             };
             window.addEventListener('popstate', this.popStateHandler, true); // capture=true
 
-            // Intercept hashchange too (Odoo uses hash routing for actions)
-            this.hashChangeHandler = (ev) => {
-                ev.stopImmediatePropagation();
-                ev.stopPropagation();
-                // Restore the correct POS hash immediately
-                window.history.pushState({ van_pos: true }, '', currentHref);
-            };
-            window.addEventListener('hashchange', this.hashChangeHandler, true); // capture=true
-
             // Guard against full-page unload
             this.beforeUnloadHandler = (ev) => {
                 ev.preventDefault();
@@ -170,7 +161,6 @@ export class VanMobilePos extends Component {
 
         onWillDestroy(() => {
             window.removeEventListener('popstate', this.popStateHandler, true);
-            window.removeEventListener('hashchange', this.hashChangeHandler, true);
             window.removeEventListener('beforeunload', this.beforeUnloadHandler);
             window.removeEventListener('pageshow', this.pageShowHandler);
             if (this.state.pollingInterval) {
