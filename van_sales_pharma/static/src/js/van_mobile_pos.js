@@ -86,13 +86,27 @@ export class VanMobilePos extends Component {
         useExternalListener(window, "offline", this.onOffline.bind(this));
 
         onWillStart(async () => {
-            // Setup history trap for hardware back buttons
-            window.history.pushState(null, null, window.location.href);
+            // Setup AGGRESSIVE history trap for hardware back buttons
+            // Push many states upfront so the history stack is deep
+            for (let i = 0; i < 50; i++) {
+                window.history.pushState({ van_pos: true }, '', window.location.href);
+            }
+
             this.popStateHandler = () => {
-                window.history.pushState(null, null, window.location.href); // Keep trapping
+                // Immediately re-fill the stack so it never drains
+                for (let i = 0; i < 10; i++) {
+                    window.history.pushState({ van_pos: true }, '', window.location.href);
+                }
                 this.goBack();
             };
             window.addEventListener('popstate', this.popStateHandler);
+
+            // Also guard against page unload/navigation
+            this.beforeUnloadHandler = (ev) => {
+                ev.preventDefault();
+                ev.returnValue = '';
+            };
+            window.addEventListener('beforeunload', this.beforeUnloadHandler);
 
             // CRITICAL: wait for IDB to be ready BEFORE loading data
             // Without this, this.db is null and all IDB reads return empty
@@ -125,6 +139,7 @@ export class VanMobilePos extends Component {
 
         onWillDestroy(() => {
             window.removeEventListener('popstate', this.popStateHandler);
+            window.removeEventListener('beforeunload', this.beforeUnloadHandler);
             if (this.state.pollingInterval) {
                 clearInterval(this.state.pollingInterval);
             }
