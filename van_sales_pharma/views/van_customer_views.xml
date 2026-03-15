@@ -136,7 +136,7 @@
                 <field name="image_128"/>
                 <field name="street"/>
                 <field name="x_van_total_due"/>
-                <field name="agent_ids"/>
+                <field name="assigned_agent_ids"/>
                 <templates>
                     <t t-name="card">
                         <div class="d-flex">
