@@ -30,11 +30,9 @@ class ResUsers(models.Model):
     oylik_olindi = fields.Monetary(string='Oylik Olindi', compute='_compute_oylik_balansi', currency_field='x_currency_id')
     oylik_qoldigi = fields.Monetary(string='Oylik Qoldig\'i', compute='_compute_oylik_balansi', currency_field='x_currency_id')
     sof_balans = fields.Monetary(string='Sof Balans', compute='_compute_oylik_balansi', currency_field='x_currency_id')
-    mijoz_ids = fields.Many2many(
+    mijoz_ids = fields.One2many(
         'res.partner',
-        'van_agent_partner_rel',
-        'agent_id',
-        'partner_id',
+        'van_agent_id',
         string='Mijozlar',
         help='Bu agentga tayinlangan mijozlar. Agent faqat shu mijozlarni ko\'ra oladi.'
     )
