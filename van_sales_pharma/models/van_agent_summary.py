@@ -95,6 +95,13 @@ class VanAgentSummary(models.Model):
         string='Chiqimlar',
     )
     
+    # === Oylik To'lovlar ro'yxati (computed, for tab display) ===
+    oylik_chiqim_ids = fields.Many2many(
+        'van.payment',
+        compute='_compute_financials',
+        string='Oylik To\'lovlar',
+    )
+    
     # === Kirimlar ro'yxati (computed, for tab display) ===
     kirim_ids = fields.Many2many(
         'van.payment',
@@ -201,30 +208,32 @@ class VanAgentSummary(models.Model):
             ]
             g1_all_payments = self.env['van.payment'].search(g1_payment_domain)
             g1_kirims = g1_all_payments.filtered(lambda p: p.payment_type == 'in')
-            g1_chiqims = g1_all_payments.filtered(lambda p: p.payment_type == 'out')
+            
+            g1_chiqims = g1_all_payments.filtered(lambda p: p.payment_type == 'out' and p.expense_type not in ('salary', 'payout'))
+            g1_oylik_chiqims = g1_all_payments.filtered(lambda p: p.payment_type == 'out' and p.expense_type in ('salary', 'payout'))
             
             # Group 1 Calcs
             rec.pos_order_ids = g1_orders
             rec.pos_order_count = len(g1_orders)
             rec.kirim_ids = g1_kirims
             rec.chiqim_ids = g1_chiqims
+            rec.oylik_chiqim_ids = g1_oylik_chiqims
             
             total_sales = sum(g1_orders.mapped('amount_total'))
             naqt_savdo_total = sum(o.amount_total for o in g1_orders if not o.partner_id)
             nasiya_sales = sum(o.amount_total for o in g1_orders if o.partner_id)
             
             kirim_total = sum(g1_kirims.mapped('amount'))
-            chiqim_total = sum(g1_chiqims.mapped('amount'))
             
             # To fix the gross balance, subtract out the salary portions of total chiqim
-            total_paid_salary = sum(p.amount for p in g1_chiqims if p.expense_type in ('salary', 'payout'))
-            daily_chiqim = chiqim_total - total_paid_salary
+            total_paid_salary = sum(g1_oylik_chiqims.mapped('amount'))
+            daily_chiqim = sum(g1_chiqims.mapped('amount'))
             
             cash = naqt_savdo_total + kirim_total
             
             rec.total_sales = total_sales
             rec.total_cash = cash
-            rec.total_chiqim = chiqim_total
+            rec.total_chiqim = daily_chiqim
             
             # Gross balance = cash - only daily expenses
             rec.yalpi_balans = cash - daily_chiqim
@@ -292,7 +301,7 @@ class VanAgentSummary(models.Model):
 
     def action_view_chiqimlar(self):
         self.ensure_one()
-        domain = [('agent_id', '=', self.agent_id.id), ('payment_type', '=', 'out')]
+        domain = [('agent_id', '=', self.agent_id.id), ('payment_type', '=', 'out'), ('expense_type', 'not in', ('salary', 'payout'))]
         tz = pytz.timezone(self.env.user.tz or self.env.context.get('tz') or 'UTC')
         
         if self.date_from:

@@ -234,13 +234,28 @@
                             </div>
                             <field name="chiqim_ids" readonly="1">
                                 <list string="Chiqimlar" decoration-danger="1">
-                                    <field name="name"/>
-                                    <field name="date"/>
-                                    <field name="partner_id" optional="show"/>
-                                    <field name="payment_method"/>
-                                    <field name="amount" widget="monetary" options="{'currency_field': 'currency_id'}" sum="Jami Chiqim"/>
-                                    <field name="note" optional="show"/>
-                                    <field name="state" widget="badge"/>
+                                    <field name="name" string="To'lov Raqami"/>
+                                    <field name="date" string="Sana"/>
+                                    <field name="partner_id" string="Kirim Qilgan Mijoz" optional="show"/>
+                                    <field name="payment_method" string="To'lov Usuli"/>
+                                    <field name="amount" string="Mablag'" widget="monetary" options="{'currency_field': 'currency_id'}" sum="Jami Chiqim"/>
+                                    <field name="note" string="Izoh" optional="show"/>
+                                    <field name="state" string="Holat" widget="badge"/>
+                                    <field name="currency_id" column_invisible="True"/>
+                                </list>
+                            </field>
+                        </page>
+
+                        <page string="Oylik To'lovlar" name="oylik_chiqimlar">
+                            <field name="oylik_chiqim_ids" readonly="1">
+                                <list string="Oylik To'lovlar" decoration-warning="1" default_order="date desc">
+                                    <field name="name" string="To'lov Raqami"/>
+                                    <field name="date" string="Sana"/>
+                                    <field name="partner_id" string="Kirim Qilgan Mijoz" optional="hide"/>
+                                    <field name="payment_method" string="To'lov Usuli"/>
+                                    <field name="amount" string="Mablag'" widget="monetary" options="{'currency_field': 'currency_id'}" sum="Jami Oylik To'lov"/>
+                                    <field name="note" string="Izoh" optional="show"/>
+                                    <field name="state" string="Holat" widget="badge"/>
                                     <field name="currency_id" column_invisible="True"/>
                                 </list>
                             </field>
