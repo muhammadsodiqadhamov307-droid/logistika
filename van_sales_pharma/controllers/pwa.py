@@ -17,7 +17,7 @@ class VanSalesPWA(http.Controller):
         
         # Agents go strictly to Mobile POS
         if is_agent and not is_admin:
-            return request.redirect('/web#action=van_sales_pharma.action_van_mobile_pos')
+            return request.redirect('/web#action=van_sales_pharma.action_van_mobile_pos_app')
             
         # Admins or others go to the Van Sales Dashboard
         return request.redirect('/web#action=van_sales_pharma.action_van_sales_dashboard')

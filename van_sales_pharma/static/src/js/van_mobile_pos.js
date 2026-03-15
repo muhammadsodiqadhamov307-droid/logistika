@@ -113,6 +113,17 @@ export class VanMobilePos extends Component {
             this.state.pollingInterval = setInterval(() => {
                 if (this.state.isOnline) this.loadInventorySilent();
             }, 15000);
+
+            // Hide Odoo Navbar for standalone app experience
+            this.posStyle = document.createElement('style');
+            this.posStyle.id = 'van-pos-fullscreen-style';
+            this.posStyle.innerHTML = `
+                .o_main_navbar { display: none !important; }
+                .o_web_client { padding-top: 0 !important; }
+                .o_content { overflow: auto !important; height: 100vh !important; }
+            `;
+            document.head.appendChild(this.posStyle);
+            document.body.classList.add('van-pos-active');
         });
 
         onWillDestroy(() => {
@@ -120,6 +131,10 @@ export class VanMobilePos extends Component {
             if (this.state.pollingInterval) {
                 clearInterval(this.state.pollingInterval);
             }
+            if (this.posStyle) {
+                this.posStyle.remove();
+            }
+            document.body.classList.remove('van-pos-active');
         });
     }
 

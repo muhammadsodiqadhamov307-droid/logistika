@@ -30,7 +30,7 @@ class VanPosController(http.Controller):
                 return request.render('van_sales_pharma.agent_select_template', {'agents': agents})
                 
         # If normal agent, or admin with an already selected agent session, boot the OWL app
-        return request.redirect('/web#action=van_sales_pharma.action_van_mobile_pos')
+        return request.redirect('/web#action=van_sales_pharma.action_van_mobile_pos_app')
 
     @http.route('/van/mobile-pos/select-agent', type='http', auth='user', methods=['GET'], csrf=False)
     def select_agent(self, agent_id=None, **kwargs):

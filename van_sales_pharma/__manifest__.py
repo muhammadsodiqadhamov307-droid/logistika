@@ -1,6 +1,6 @@
 {
     'name': 'Van Sales — Dori Savdosi Tizimi',
-    'version': '1.0',
+    'version': '1.1',
     'category': 'Sales/Point of Sale',
     'summary': 'Agentlar mashinasi savdosi, nasiya boshqaruvi va moliyaviy dashboard',
     'author': '',

@@ -17,6 +17,21 @@ class ResUsers(models.Model):
     salary_payout_ids = fields.One2many('van.salary.payout', 'agent_id', string='Oylik To\'lovlar Tarixi')
     default_taminotchi_id = fields.Many2one('van.taminotchi', string="Asosiy Taminotchi", help="Yangi Yuklash qilishda avtomatik tanlanuvchi Taminotchi")
 
+    agent_oyligi = fields.Monetary(
+        string='Agent Oyligi', 
+        compute='_compute_agent_oyligi', 
+        currency_field='x_currency_id',
+        help="Komissiya - Oylik Chiqimlar"
+    )
+    agent_chiqim_ids = fields.One2many(
+        'van.payment', 'agent_id', 
+        string="Oylik To'lovlar Tarixi", 
+        domain=[('payment_type', '=', 'out'), ('expense_type', '=', 'salary')]
+    )
+
+    def _compute_agent_oyligi(self):
+        for user in self:
+            user.agent_oyligi = user.oylik_balansi
 
     def _compute_oylik_balansi(self):
         for user in self:
@@ -63,7 +78,7 @@ class ResUsers(models.Model):
     def _get_login_action(self, *args, **kwargs):
         res = super()._get_login_action(*args, **kwargs)
         if self.env.user.has_group('van_sales_pharma.group_van_agent') and not self.env.user.has_group('van_sales_pharma.group_van_admin') and not self.env.user.has_group('base.group_system'):
-            pos_action = self.env.ref('van_sales_pharma.action_van_mobile_pos', raise_if_not_found=False)
+            pos_action = self.env.ref('van_sales_pharma.action_van_mobile_pos_app', raise_if_not_found=False)
             if pos_action:
                 return pos_action.read()[0]
         return res

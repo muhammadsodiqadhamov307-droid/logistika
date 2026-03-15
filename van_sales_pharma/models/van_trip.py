@@ -346,6 +346,10 @@ class VanTrip(models.Model):
         detail_view = self.env.ref('van_sales_pharma.view_van_dashboard_detail_list', raise_if_not_found=False)
         margin_view = self.env.ref('van_sales_pharma.view_van_pos_margin_list', raise_if_not_found=False)
 
+        # 7. Total Taminotchi Balance (All-Time)
+        taminotchilar = self.env['van.taminotchi'].sudo().search([])
+        total_taminotchi_balance = sum(taminotchilar.mapped('balance'))
+
         return {
             'today_trips_count': len(pos_orders),
             'active_trips_count': len(pos_orders.filtered(lambda o: o.state == 'done')),
@@ -353,6 +357,7 @@ class VanTrip(models.Model):
             'total_card': t_card,
             'total_chiqim': t_chiqim_display,
             'total_global_nasiya': total_global_nasiya,
+            'total_taminotchi_balance': total_taminotchi_balance,
             'margin_today': margin_today,
             'top_customers': top_customers,
             'top_agents': top_agents,

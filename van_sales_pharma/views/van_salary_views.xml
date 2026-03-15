@@ -9,7 +9,7 @@
             <list string="Agent Oyliklari" create="0" delete="0" decoration-info="oylik_balansi > 0">
                 <field name="name" string="Agent"/>
                 <field name="komissiya_foizi" string="Komissiya (%)"/>
-                <field name="oylik_balansi" string="Joriy Oylik Balansi" sum="Jami Oylik Qarzimiz" widget="monetary" options="{'currency_field': 'x_currency_id'}"/>
+                <field name="agent_oyligi" string="Agent Oyligi" sum="Jami Oylik Qarzimiz" widget="monetary" options="{'currency_field': 'x_currency_id'}"/>
                 <field name="x_currency_id" column_invisible="True"/>
                 <button name="action_close_salary" type="object" string="Oylikni Yopish (To'lash)" class="btn-success" invisible="oylik_balansi &lt;= 0" confirm="Agentga ushbu oylikni to'liq to'laganingizni tasdiqlaysizmi? (Balans 0 ga tushadi)"/>
             </list>
@@ -48,9 +48,9 @@
                     </div>
                     <group>
                         <group>
-                            <label for="oylik_balansi" string="Joriy Oylik Balansi"/>
+                            <label for="agent_oyligi" string="Agent Oyligi"/>
                             <div class="o_row">
-                                <field name="oylik_balansi" widget="monetary" options="{'currency_field': 'x_currency_id'}" style="font-size: 20px; font-weight: bold; color: #1e3a8a;"/>
+                                <field name="agent_oyligi" widget="monetary" options="{'currency_field': 'x_currency_id'}" style="font-size: 20px; font-weight: bold; color: #1e3a8a;"/>
                                 <field name="x_currency_id" invisible="1"/>
                             </div>
                         </group>
@@ -62,9 +62,19 @@
                     </group>
                     
                     <notebook>
-                        <page string="Oylik To'lovlar Tarixi" name="payouts">
+                        <page string="Oylik To'lovlar Tarixi" name="chiqim_payouts">
+                            <field name="agent_chiqim_ids" readonly="1">
+                                <list string="Oylik To'lovlar Tarixi" default_order="date desc">
+                                    <field name="date" string="Sana"/>
+                                    <field name="amount" string="Summa" sum="Jami Summa" widget="monetary"/>
+                                    <field name="note" string="Izoh"/>
+                                    <field name="currency_id" column_invisible="True"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Yopilgan Oyliklar Tarixi" name="payouts">
                             <field name="salary_payout_ids" readonly="1">
-                                <list string="To'lovlar Tarixi">
+                                <list string="To'lovlar Tarixi" default_order="date desc">
                                     <field name="date" string="Sana"/>
                                     <field name="summa" string="Summa" sum="Jami To'langan" widget="monetary"/>
                                     <field name="notes" string="Izoh"/>

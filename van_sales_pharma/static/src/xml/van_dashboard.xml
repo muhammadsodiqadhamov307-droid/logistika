@@ -29,8 +29,8 @@
                     </div>
 
                     <!-- Kpi Cards -->
-                    <div class="row row-cols-1 row-cols-md-5 g-3 mb-4">
-                        <div class="col">
+                    <div class="row g-3 mb-4">
+                        <div class="col-md">
                             <div class="card shadow-sm border-0 h-100" t-on-click="() =&gt; this.openSalesByMethod('cash')" style="cursor: pointer; background: linear-gradient(135deg, #198754 0%, #12633e 100%);">
                                 <div class="card-body text-center p-3">
                                     <h6 class="card-title fw-bold mb-2" style="color: white !important;">Naqt Pul</h6>
@@ -40,8 +40,18 @@
                                 </div>
                             </div>
                         </div>
+                        <div class="col-md">
+                            <div class="card shadow-sm border-0 h-100" t-on-click="openTaminotchilar" style="cursor: pointer; background: linear-gradient(135deg, #6f42c1 0%, #4b2c85 100%);">
+                                <div class="card-body text-center p-3">
+                                    <h6 class="card-title fw-bold mb-2" style="color: white !important;">🏭 Jami Qarzim (Taminotchi)</h6>
+                                    <h3 class="fw-bold m-0" style="color: white !important;">
+                                        <t t-esc="formatPrice(state.total_taminotchi_balance)"/>
+                                    </h3>
+                                </div>
+                            </div>
+                        </div>
 
-                        <div class="col">
+                        <div class="col-md">
                             <div class="card shadow-sm border-0 h-100" t-on-click="() =&gt; this.openSalesByMethod('chiqim')" style="cursor: pointer; background: linear-gradient(135deg, #dc3545 0%, #a71d2a 100%);">
                                 <div class="card-body text-center p-3">
                                     <h6 class="card-title fw-bold mb-2" style="color: white !important;">Chiqim</h6>
@@ -51,7 +61,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="col">
+                        <div class="col-md">
                             <div class="card shadow-sm border-0 h-100" t-on-click="() =&gt; this.openSalesByMethod('nasiya')" style="cursor: pointer; background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%);">
                                 <div class="card-body text-center p-3">
                                     <h6 class="card-title fw-bold mb-2" style="color: #212529 !important;">Nasiya (Qarz)</h6>
@@ -61,7 +71,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="col">
+                        <div class="col-md">
                             <div class="card shadow-sm border-0 h-100" t-on-click="openMarginDetails" style="cursor: pointer; background: linear-gradient(135deg, #20c997 0%, #158b68 100%);">
                                 <div class="card-body text-center p-3">
                                     <h6 class="card-title fw-bold mb-2" style="color: white !important;">Foyda</h6>
