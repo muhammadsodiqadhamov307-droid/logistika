@@ -31,7 +31,7 @@
                     <!-- Kpi Cards -->
                     <div class="row g-3 mb-4">
                         <!-- 1. Naqt Pul -->
-                        <div class="col-md-4 col-xl-2">
+                        <div class="col-12 col-md-6 col-xl-3">
                             <div class="card shadow-sm border-0 h-100" t-on-click="() =&gt; this.openSalesByMethod('cash')" style="cursor: pointer; background: linear-gradient(135deg, #198754 0%, #12633e 100%);">
                                 <div class="card-body text-center p-3">
                                     <h6 class="card-title fw-bold mb-2" style="color: white !important;">Naqt Pul</h6>
@@ -43,7 +43,7 @@
                         </div>
 
                         <!-- 2. Nasiya (Qarz) -->
-                        <div class="col-md-4 col-xl-2">
+                        <div class="col-12 col-md-6 col-xl-3">
                             <div class="card shadow-sm border-0 h-100" t-on-click="() =&gt; this.openSalesByMethod('nasiya')" style="cursor: pointer; background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%);">
                                 <div class="card-body text-center p-3">
                                     <h6 class="card-title fw-bold mb-2" style="color: #212529 !important;">Nasiya (Qarz)</h6>
@@ -55,7 +55,7 @@
                         </div>
 
                         <!-- 3. Jami -->
-                        <div class="col-md-4 col-xl-2">
+                        <div class="col-12 col-md-6 col-xl-3">
                             <div class="card shadow-sm border-0 h-100" style="background: linear-gradient(135deg, #0dcaf0 0%, #087990 100%);">
                                 <div class="card-body text-center p-3">
                                     <h6 class="card-title fw-bold mb-2" style="color: white !important;">💰 Jami</h6>
@@ -66,9 +66,21 @@
                             </div>
                         </div>
 
-                        <!-- 4. Sof Foyda -->
-                        <div class="col-md-4 col-xl-2">
+                        <!-- 4. Jami Qarzim (Taminotchi) -->
+                        <div class="col-12 col-md-6 col-xl-3">
                             <div class="card shadow-sm border-0 h-100" t-on-click="openTaminotchilar" style="cursor: pointer; background: linear-gradient(135deg, #6f42c1 0%, #4b2c85 100%);">
+                                <div class="card-body text-center p-3">
+                                    <h6 class="card-title fw-bold mb-2" style="color: white !important;">🏭 Jami Qarzim (Taminotchi)</h6>
+                                    <h3 class="fw-bold m-0" style="color: white !important;">
+                                        <t t-esc="formatPrice(state.total_taminotchi_balance)"/>
+                                    </h3>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 5. Sof Foyda -->
+                        <div class="col-12 col-md-4 col-xl-4">
+                            <div class="card shadow-sm border-0 h-100" style="background: linear-gradient(135deg, #59359a 0%, #301663 100%);">
                                 <div class="card-body text-center p-3">
                                     <h6 class="card-title fw-bold mb-2" style="color: white !important;">💵 Sof Foyda</h6>
                                     <h3 class="fw-bold m-0" style="color: white !important;">
@@ -78,8 +90,8 @@
                             </div>
                         </div>
 
-                        <!-- 5. Chiqim -->
-                        <div class="col-md-4 col-xl-2">
+                        <!-- 6. Chiqim -->
+                        <div class="col-12 col-md-4 col-xl-4">
                             <div class="card shadow-sm border-0 h-100" t-on-click="() =&gt; this.openSalesByMethod('chiqim')" style="cursor: pointer; background: linear-gradient(135deg, #dc3545 0%, #a71d2a 100%);">
                                 <div class="card-body text-center p-3">
                                     <h6 class="card-title fw-bold mb-2" style="color: white !important;">Chiqim</h6>
@@ -90,8 +102,8 @@
                             </div>
                         </div>
 
-                        <!-- 6. Foyda -->
-                        <div class="col-md-4 col-xl-2">
+                        <!-- 7. Foyda -->
+                        <div class="col-12 col-md-4 col-xl-4">
                             <div class="card shadow-sm border-0 h-100" t-on-click="openMarginDetails" style="cursor: pointer; background: linear-gradient(135deg, #20c997 0%, #158b68 100%);">
                                 <div class="card-body text-center p-3">
                                     <h6 class="card-title fw-bold mb-2" style="color: white !important;">Foyda</h6>
