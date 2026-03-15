@@ -5,7 +5,7 @@
             
             <!-- Navbar -->
             <div class="van-navbar" style="background-color: #2563eb; color: white; padding: 15px; display: flex; align-items: center; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); justify-content: space-between;">
-                    <button t-if="state.screen === 'clients' or state.screen === 'checkout'" t-on-click="goBack" style="background: none; border: none; color: white; font-size: 20px; margin-right: 15px;">
+                    <button t-if="state.screen !== 'products'" t-on-click="goBack" style="background: none; border: none; color: white; font-size: 20px; margin-right: 15px;">
                         <i class="fa fa-arrow-left"></i>
                     </button>
                     <span style="font-size: 18px; font-weight: bold; display: flex; align-items: center; gap: 10px;">
@@ -36,6 +36,10 @@
                         <t t-if="state.screen === 'kirim'">To'lov Qabul Qilish</t>
                         <t t-if="state.screen === 'requests_list'">So'rovlar Ro'yxati</t>
                         <t t-if="state.screen === 'new_request_form'">Yangi So'rov</t>
+                        <t t-if="state.screen === 'trips_list'">Mahsulot Yuklash</t>
+                        <t t-if="state.screen === 'mahsulot_yuklash_form'">Yangi Yuklash</t>
+                        <t t-if="state.screen === 'request_details'">So'rov Tafsilotlari</t>
+                        <t t-if="state.screen === 'trip_details'">Yuklash Tafsilotlari</t>
                     </span>
                 <div style="display: flex; align-items: center; gap: 6px; position:relative; flex-shrink: 0;">
                     <!-- Network Status Indicator -->
