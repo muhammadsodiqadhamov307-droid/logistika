@@ -563,7 +563,7 @@ action = {
                     </group>
                     <notebook>
                         <page string="Mijozlar" name="mijozlar">
-                            <field name="mijoz_ids">
+                            <field name="mijoz_ids" context="{'form_view_ref': 'van_sales_pharma.view_van_customer_form_v2', 'tree_view_ref': 'van_sales_pharma.view_van_customer_list_v2', 'default_x_is_van_customer': True, 'default_customer_rank': 1, 'default_is_company': False}">
                                 <list string="Tayinlangan Mijozlar">
                                     <field name="name"/>
                                     <field name="phone" optional="show"/>
