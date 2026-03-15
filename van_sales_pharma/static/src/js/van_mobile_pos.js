@@ -86,27 +86,58 @@ export class VanMobilePos extends Component {
         useExternalListener(window, "offline", this.onOffline.bind(this));
 
         onWillStart(async () => {
-            // Setup AGGRESSIVE history trap for hardware back buttons
-            // Push many states upfront so the history stack is deep
-            for (let i = 0; i < 50; i++) {
-                window.history.pushState({ van_pos: true }, '', window.location.href);
+            // ============================================================
+            // BACK BUTTON TRAP — Capture phase so we fire BEFORE Odoo router
+            // ============================================================
+            const currentHref = window.location.href;
+
+            // Push a deep stack of states upfront
+            for (let i = 0; i < 30; i++) {
+                window.history.pushState({ van_pos: true, depth: i }, '', currentHref);
             }
 
-            this.popStateHandler = () => {
-                // Immediately re-fill the stack so it never drains
+            // Use CAPTURE phase (3rd arg = true) so we beat Odoo's own popstate handler
+            this.popStateHandler = (ev) => {
+                // Block Odoo's router from ever seeing this event
+                ev.stopImmediatePropagation();
+                ev.stopPropagation();
+
+                // Refill the stack immediately
                 for (let i = 0; i < 10; i++) {
-                    window.history.pushState({ van_pos: true }, '', window.location.href);
+                    window.history.pushState({ van_pos: true }, '', currentHref);
                 }
+
+                // Handle internal POS screen navigation
                 this.goBack();
             };
-            window.addEventListener('popstate', this.popStateHandler);
+            window.addEventListener('popstate', this.popStateHandler, true); // capture=true
 
-            // Also guard against page unload/navigation
+            // Intercept hashchange too (Odoo uses hash routing for actions)
+            this.hashChangeHandler = (ev) => {
+                ev.stopImmediatePropagation();
+                ev.stopPropagation();
+                // Restore the correct POS hash immediately
+                window.history.pushState({ van_pos: true }, '', currentHref);
+            };
+            window.addEventListener('hashchange', this.hashChangeHandler, true); // capture=true
+
+            // Guard against full-page unload
             this.beforeUnloadHandler = (ev) => {
                 ev.preventDefault();
                 ev.returnValue = '';
             };
             window.addEventListener('beforeunload', this.beforeUnloadHandler);
+
+            // Catch bfcache restores (iOS Safari back gesture, Android bfcache)
+            this.pageShowHandler = (ev) => {
+                if (ev.persisted) {
+                    // Page was served from cache — we're back in the POS, reinitialize trap
+                    for (let i = 0; i < 30; i++) {
+                        window.history.pushState({ van_pos: true }, '', currentHref);
+                    }
+                }
+            };
+            window.addEventListener('pageshow', this.pageShowHandler);
 
             // CRITICAL: wait for IDB to be ready BEFORE loading data
             // Without this, this.db is null and all IDB reads return empty
@@ -138,8 +169,10 @@ export class VanMobilePos extends Component {
         });
 
         onWillDestroy(() => {
-            window.removeEventListener('popstate', this.popStateHandler);
+            window.removeEventListener('popstate', this.popStateHandler, true);
+            window.removeEventListener('hashchange', this.hashChangeHandler, true);
             window.removeEventListener('beforeunload', this.beforeUnloadHandler);
+            window.removeEventListener('pageshow', this.pageShowHandler);
             if (this.state.pollingInterval) {
                 clearInterval(this.state.pollingInterval);
             }
