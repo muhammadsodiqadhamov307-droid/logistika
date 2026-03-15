@@ -149,6 +149,17 @@ class ResUsers(models.Model):
             }
         }
 
+    @api.model_create_multi
+    def create(self, vals_list):
+        users = super(ResUsers, self).create(vals_list)
+        for user in users:
+            if not user.share:
+                # Auto-create summary record if missing
+                summary_exists = self.env['van.agent.summary'].search_count([('agent_id', '=', user.id)])
+                if not summary_exists:
+                    self.env['van.agent.summary'].create({'agent_id': user.id})
+        return users
+
     @api.model
     def _get_login_action(self, *args, **kwargs):
         res = super()._get_login_action(*args, **kwargs)

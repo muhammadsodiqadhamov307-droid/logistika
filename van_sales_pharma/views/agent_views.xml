@@ -491,13 +491,21 @@
         <field name="model_id" ref="model_van_agent_summary"/>
         <field name="state">code</field>
         <field name="code">
-# Sayohat boshlanishida barcha agentlarning hisobot sanasini bugungi kunga qaytarish
+# 1. Reset dates to today
 today = datetime.date.today()
 env['van.agent.summary'].search([]).write({
     'date_from': today,
     'date_to': today
 })
 
+# 2. Auto-create missing summary records for all internal users
+existing_agent_ids = env['van.agent.summary'].search([]).mapped('agent_id.id')
+all_users = env['res.users'].search([('share', '=', False)])
+for user in all_users:
+    if user.id not in existing_agent_ids:
+        env['van.agent.summary'].create({'agent_id': user.id})
+
+# 3. Define action
 action = {
     'name': 'Agentlar Hisoboti',
     'type': 'ir.actions.act_window',
