@@ -350,6 +350,10 @@ class VanTrip(models.Model):
         taminotchilar = self.env['van.taminotchi'].sudo().search([])
         total_taminotchi_balance = sum(taminotchilar.mapped('balance'))
 
+        # Calculate new metrics based on specifications
+        jami = t_cash + total_global_nasiya
+        sof_foyda = jami - total_taminotchi_balance
+
         return {
             'today_trips_count': len(pos_orders),
             'active_trips_count': len(pos_orders.filtered(lambda o: o.state == 'done')),
@@ -358,6 +362,8 @@ class VanTrip(models.Model):
             'total_chiqim': t_chiqim_display,
             'total_global_nasiya': total_global_nasiya,
             'total_taminotchi_balance': total_taminotchi_balance,
+            'jami': jami,
+            'sof_foyda': sof_foyda,
             'margin_today': margin_today,
             'top_customers': top_customers,
             'top_agents': top_agents,

@@ -21,6 +21,8 @@ export class VanSalesDashboard extends Component {
             total_chiqim: 0,
             total_nasiya: 0,
             total_taminotchi_balance: 0,
+            jami: 0,
+            sof_foyda: 0,
             margin_today: 0,
             top_customers: [],
             top_agents: [],
@@ -57,7 +59,8 @@ export class VanSalesDashboard extends Component {
         this.state.total_chiqim = data.total_chiqim || 0;
         this.state.total_nasiya = data.total_global_nasiya;
         this.state.total_taminotchi_balance = data.total_taminotchi_balance || 0;
-        console.log("DASHBOARD DATA:", data);
+        this.state.jami = data.jami || 0;
+        this.state.sof_foyda = data.sof_foyda || 0;
         this.state.margin_today = data.margin_today || 0;
         this.state.top_customers = data.top_customers;
         this.state.top_agents = data.top_agents;
