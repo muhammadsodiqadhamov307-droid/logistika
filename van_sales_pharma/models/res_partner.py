@@ -7,8 +7,11 @@ class ResPartner(models.Model):
     _inherit = 'res.partner'
     currency_id = fields.Many2one('res.currency', string='Valyuta', related='company_id.currency_id', readonly=True)
     telegram_chat_id = fields.Char(string='Telegram Chat ID', help="Avtomatik ravishda bot orqali to'ldiriladi.")
-    agent_ids = fields.Many2many(
+    assigned_agent_ids = fields.Many2many(
         'res.users',
+        'van_agent_partner_rel',
+        'partner_id',
+        'agent_id',
         string='Agentlar',
         help='Bu mijozga tayinlangan agentlar.'
     )
