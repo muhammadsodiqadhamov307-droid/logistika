@@ -122,6 +122,15 @@ class ResUsers(models.Model):
             # Keep original alias for backward compatibility but return remaining commission
             user.oylik_balansi = user.oylik_qoldigi
 
+    def _set_password(self):
+        """
+        Guard against empty passwords during create/write.
+        Odoo's standard _set_password will crash if password is False.
+        """
+        for user in self:
+            if user.password:
+                super(ResUsers, user)._set_password()
+
     def action_close_salary(self):
         """
         Opens a wizard to pay out the entire remaining oylik_balansi to the agent.
