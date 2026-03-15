@@ -21,8 +21,16 @@ class ResUsers(models.Model):
         string='Agent Oyligi', 
         compute='_compute_agent_oyligi', 
         currency_field='x_currency_id',
-        help="Komissiya - Oylik Chiqimlar"
+        help="Komissiya ishlab topilgan (Yalpi balansdan)"
     )
+    
+    # NEW FIELDS FOR COMMISSION FIX:
+    yalpi_balans = fields.Monetary(string='Yalpi Balans', compute='_compute_oylik_balansi', currency_field='x_currency_id')
+    agent_oyligi_earned = fields.Monetary(string='Agent Oyligi (Ishlab topilgan)', compute='_compute_oylik_balansi', currency_field='x_currency_id')
+    oylik_olindi = fields.Monetary(string='Oylik Olindi', compute='_compute_oylik_balansi', currency_field='x_currency_id')
+    oylik_qoldigi = fields.Monetary(string='Oylik Qoldig\'i', compute='_compute_oylik_balansi', currency_field='x_currency_id')
+    sof_balans = fields.Monetary(string='Sof Balans', compute='_compute_oylik_balansi', currency_field='x_currency_id')
+
     agent_chiqim_ids = fields.One2many(
         'van.payment', 'agent_id', 
         string="Oylik To'lovlar Tarixi", 
@@ -31,41 +39,74 @@ class ResUsers(models.Model):
 
     def _compute_agent_oyligi(self):
         for user in self:
-            user.agent_oyligi = user.oylik_balansi
+            user.agent_oyligi = user.agent_oyligi_earned
 
     def _compute_oylik_balansi(self):
+        if not self.ids:
+            return
+
+        # --- 1. Batch fetch Naqt Savdo Totals ---
+        naqt_rg = self.env['van.pos.order'].read_group(
+            domain=[('agent_id', 'in', self.ids), ('state', '=', 'done'), ('partner_id', '=', False)],
+            fields=['agent_id', 'amount_total'],
+            groupby=['agent_id']
+        )
+        naqt_dict = {rg['agent_id'][0]: rg['amount_total'] for rg in naqt_rg}
+
+        # --- 2. Batch fetch Payments ---
+        pay_rg = self.env['van.payment'].read_group(
+            domain=[('agent_id', 'in', self.ids)],
+            fields=['agent_id', 'payment_type', 'expense_type', 'amount'],
+            groupby=['agent_id', 'payment_type', 'expense_type'],
+            lazy=False
+        )
+
+        kirim_dict = {}
+        chiqim_dict = {}
+        salary_paid_dict = {}
+
+        for rg in pay_rg:
+            ag_id = rg['agent_id'][0]
+            p_type = rg['payment_type']
+            e_type = rg.get('expense_type')
+            amt = rg['amount']
+
+            if p_type == 'in':
+                kirim_dict[ag_id] = kirim_dict.get(ag_id, 0.0) + amt
+            elif p_type == 'out':
+                chiqim_dict[ag_id] = chiqim_dict.get(ag_id, 0.0) + amt
+                if e_type in ('salary', 'payout'):
+                    salary_paid_dict[ag_id] = salary_paid_dict.get(ag_id, 0.0) + amt
+
         for user in self:
-            # Step 1: Calculate "All-Time Balance"
-            # Done Orders (Naqt + Nasiya that might be paid later, but total_balance in summary is Cash - Chiqim)
-            # Actually, Agent Summary says:
-            # cash = naqt_savdo_total + kirim_total
-            # total_chiqim = chiqim_total
-            # total_balance = cash - total_chiqim
-            # earned = total_balance * (komissiya_foizi / 100.0)
-            
-            # Let's reproduce this all-time:
-            all_orders = self.env['van.pos.order'].search([
-                ('agent_id', '=', user.id),
-                ('state', '=', 'done')
-            ])
-            naqt_savdo_total = sum(o.amount_total for o in all_orders if not o.partner_id)
-            
-            all_payments = self.env['van.payment'].search([
-                ('agent_id', '=', user.id)
-            ])
-            kirim_total = sum(p.amount for p in all_payments if p.payment_type == 'in')
-            chiqim_total = sum(p.amount for p in all_payments if p.payment_type == 'out')
+            uid = user.id
+            naqt_savdo_total = naqt_dict.get(uid, 0.0)
+            kirim_total = kirim_dict.get(uid, 0.0)
+            chiqim_total = chiqim_dict.get(uid, 0.0)
             
             cash = naqt_savdo_total + kirim_total
-            total_balance = cash - chiqim_total
+            total_paid = salary_paid_dict.get(uid, 0.0)
             
-            earned = total_balance * (user.komissiya_foizi / 100.0)
+            # Daily expenses are total chiqm minus salary payouts
+            daily_chiqim = chiqim_total - total_paid
             
-            # Step 2: Subtract already paid salaries
-            salary_payments = all_payments.filtered(lambda p: p.payment_type == 'out' and p.expense_type in ('salary', 'payout'))
-            total_paid = sum(salary_payments.mapped('amount'))
+            # Gross Balance (Yalpi) = incoming cash minus ONLY operating daily expenses
+            user.yalpi_balans = cash - daily_chiqim
             
-            user.oylik_balansi = earned - total_paid
+            # Earned Commission is based entirely on Yalpi Balans
+            user.agent_oyligi_earned = user.yalpi_balans * (user.komissiya_foizi / 100.0)
+            
+            # Salary taken
+            user.oylik_olindi = total_paid
+            
+            # Net Balance (Sof) = Yalpi minus salary taken
+            user.sof_balans = user.yalpi_balans - user.oylik_olindi
+            
+            # Remaining salary to payout
+            user.oylik_qoldigi = user.agent_oyligi_earned - user.oylik_olindi
+            
+            # Keep original alias for backward compatibility but return remaining commission
+            user.oylik_balansi = user.oylik_qoldigi
 
     def action_close_salary(self):
         """

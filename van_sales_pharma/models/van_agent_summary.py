@@ -21,11 +21,19 @@ class VanAgentSummary(models.Model):
     company_id = fields.Many2one('res.company', default=lambda self: self.env.company)
     currency_id = fields.Many2one('res.currency', related='company_id.currency_id', store=True)
 
-    oylik_balansi = fields.Monetary(string='Agent Oyligi', compute='_compute_oylik_balansi', currency_field='currency_id')
+    oylik_balansi = fields.Monetary(string='Oylik Qoldig\'i', compute='_compute_oylik_balansi', currency_field='currency_id') # Changed label slightly, keeps value
     jami_nasiya = fields.Monetary(string='Jami Nasiya', compute='_compute_jami_nasiya', currency_field='currency_id')
     
     total_foyda = fields.Monetary(string='Foyda', compute='_compute_financials', currency_field='currency_id')
     qoladigan_pul = fields.Monetary(string='Agentdan Qoladigan', compute='_compute_agentdan_qoladigan', currency_field='currency_id')
+
+    # NEW FIELDS FOR COMMISSION FIX:
+    yalpi_balans = fields.Monetary(string='Yalpi Balans', compute='_compute_financials', currency_field='currency_id')
+    agent_oyligi_earned = fields.Monetary(string='Agent Oyligi (Ishlab topilgan)', compute='_compute_oylik_balansi', currency_field='currency_id')
+    oylik_olindi = fields.Monetary(string='Oylik Olindi', compute='_compute_oylik_balansi', currency_field='currency_id')
+    oylik_qoldigi = fields.Monetary(string='Oylik Qoldig\'i', compute='_compute_oylik_balansi', currency_field='currency_id')
+    sof_balans = fields.Monetary(string='Sof Balans', compute='_compute_financials', currency_field='currency_id')
+
 
     # === Moliyaviy ko'rsatkichlar ===
     total_cash = fields.Monetary(string='Naqt Pul', currency_field='currency_id',
@@ -113,12 +121,12 @@ class VanAgentSummary(models.Model):
 
             rec.jami_nasiya = total_credit - total_kirim
 
-    @api.depends('total_balance', 'agent_id', 'date_from', 'date_to')
+    @api.depends('yalpi_balans', 'agent_id', 'date_from', 'date_to')
     def _compute_oylik_balansi(self):
-        """Agent Oyligi = (Balans × komissiya%) − oylik chiqimlar paid in period."""
+        """Agent Oyligi = (Yalpi Balans × komissiya%) − oylik chiqimlar paid in period."""
         for rec in self:
-            # Step 1: Earned commission based on Balans
-            earned = rec.total_balance * (rec.agent_id.komissiya_foizi / 100.0)
+            # Step 1: Earned commission based entirely on Yalpi Balans (Gross incoming cash)
+            earned = rec.yalpi_balans * (rec.agent_id.komissiya_foizi / 100.0)
 
             # Step 2: Subtract oylik chiqimlar already paid in this period
             has_filter = bool(rec.date_from and rec.date_to)
@@ -137,16 +145,30 @@ class VanAgentSummary(models.Model):
                 ('date', '>=', utc_start),
                 ('date', '<=', utc_end),
             ])
-            total_paid = sum(oylik_chiqimlar.mapped('amount'))
+            # Include agent payouts from earlier models as well
+            payouts = self.env['van.payment'].search([
+                ('agent_id', '=', rec.agent_id.id),
+                ('payment_type', '=', 'out'),
+                ('expense_type', '=', 'payout'),
+                ('date', '>=', utc_start),
+                ('date', '<=', utc_end),
+            ])
+            total_paid_salary = sum(oylik_chiqimlar.mapped('amount'))
+            total_paid_payouts = sum(payouts.mapped('amount'))
+            total_paid = total_paid_salary + total_paid_payouts
 
-            rec.oylik_balansi = earned - total_paid
+            rec.agent_oyligi_earned = earned
+            rec.oylik_olindi = total_paid
+            rec.oylik_qoldigi = earned - total_paid
+            rec.oylik_balansi = rec.oylik_qoldigi
 
 
-    @api.depends('total_foyda', 'oylik_balansi')
+
+    @api.depends('total_foyda', 'agent_oyligi_earned')
     def _compute_agentdan_qoladigan(self):
-        """Agentdan qoladigan = Foyda(filtered) - Oylik(filtered)."""
+        """Agentdan qoladigan = Foyda(filtered) - Oylik_earned(filtered)."""
         for rec in self:
-            rec.qoladigan_pul = rec.total_foyda - rec.oylik_balansi
+            rec.qoladigan_pul = rec.total_foyda - rec.agent_oyligi_earned
 
     @api.depends('date_from', 'date_to', 'agent_id')
     def _compute_financials(self):
@@ -193,12 +215,25 @@ class VanAgentSummary(models.Model):
             
             kirim_total = sum(g1_kirims.mapped('amount'))
             chiqim_total = sum(g1_chiqims.mapped('amount'))
+            
+            # To fix the gross balance, subtract out the salary portions of total chiqim
+            total_paid_salary = sum(p.amount for p in g1_chiqims if p.expense_type in ('salary', 'payout'))
+            daily_chiqim = chiqim_total - total_paid_salary
+            
             cash = naqt_savdo_total + kirim_total
             
             rec.total_sales = total_sales
             rec.total_cash = cash
             rec.total_chiqim = chiqim_total
-            rec.total_balance = cash - chiqim_total
+            
+            # Gross balance = cash - only daily expenses
+            rec.yalpi_balans = cash - daily_chiqim
+            
+            # Net balance = Gross balance - salary advances taken
+            rec.sof_balans = rec.yalpi_balans - total_paid_salary
+            
+            # Keep original total_balance matching sof_balans
+            rec.total_balance = rec.sof_balans
             rec.total_nasiya = nasiya_sales - kirim_total
             
             margin = 0.0
