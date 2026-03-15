@@ -566,9 +566,8 @@ action = {
                             <field name="mijoz_ids">
                                 <list string="Tayinlangan Mijozlar">
                                     <field name="name"/>
-                                    <field name="x_phone" optional="show"/>
+                                    <field name="phone" optional="show"/>
                                     <field name="x_van_balance" widget="monetary" string="Balansi"/>
-                                    <field name="currency_id" column_invisible="True"/>
                                 </list>
                             </field>
                         </page>
