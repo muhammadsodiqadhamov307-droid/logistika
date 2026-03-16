@@ -357,7 +357,7 @@ class VanAgentInventoryLine(models.Model):
     summary_id = fields.Many2one('van.agent.summary', required=True, ondelete='cascade')
     product_id = fields.Many2one('van.product', string='Mahsulot', required=True)
     price_unit = fields.Float(string='Narx (So\'m)')
-    cost_price = fields.Float(string='Kelish narxi', related='product_id.cost_price', readonly=True)
+    cost_price = fields.Float(string='Kelish narxi')
 
     loaded_qty = fields.Float(string='Yuklangan')
     # Not stored — always recomputes live so sold/remaining values reflect new POS orders immediately
