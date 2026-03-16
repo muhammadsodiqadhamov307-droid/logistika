@@ -203,7 +203,40 @@
             <!-- Content Area -->
             <div class="van-pos-content" style="flex: 1; overflow-y: auto; padding: 10px; padding-bottom: 80px;">
                 
-
+                <!-- CLIENTS SCREEN -->
+                <t t-if="state.screen === 'clients'">
+                    <div style="margin-bottom: 15px;">
+                        <input type="text" placeholder="Mijozni qidirish..." t-model="state.searchQuery" style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #d1d5db; font-size: 16px; box-sizing: border-box;"/>
+                    </div>
+                    
+                    <div class="client-list">
+                        <t t-foreach="filteredClients" t-as="client" t-key="client.id || 'cash'">
+                            <div class="client-card" 
+                                 t-on-click="() => this.selectClient(client)" 
+                                 t-attf-style="padding: 15px; border-radius: 10px; margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; cursor: pointer; {{ client.id === false ? 'background: #e5e7eb; border: 2px solid #9ca3af;' : 'background: white;' }}">
+                                <div>
+                                    <div t-attf-style="font-weight: bold; font-size: 16px; {{ client.id !== false ? 'margin-bottom: 5px;' : '' }}">
+                                        <i t-if="client.id === false" class="fa fa-user-secret"></i>
+                                        <t t-esc="client.name"/>
+                                    </div>
+                                    <div t-if="client.id !== false" style="font-size: 14px; color: #4b5563;">Hozirgi qarz: <span style="color: #dc2626; font-weight: bold;"><t t-esc="client.total_due.toLocaleString()"/></span></div>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 15px;">
+                                    <button t-if="client.id !== false" 
+                                            class="van-hisobot-btn" 
+                                            t-on-click="(ev) => this.openClientReport(client, ev)"
+                                            style="background: #f3f4f6; border: none; padding: 8px 12px; border-radius: 6px; font-size: 14px; color: #4b5563;">
+                                        📊 Hisobot
+                                    </button>
+                                    <i class="fa fa-chevron-right" t-attf-style="color: {{ client.id === false ? '#6b7280' : '#9ca3af' }};"></i>
+                                </div>
+                            </div>
+                        </t>
+                        <t t-if="filteredClients.length === 0">
+                            <div style="text-align: center; color: #6b7280; padding: 20px;">Mijoz topilmadi.</div>
+                        </t>
+                    </div>
+                </t>
 
                 
                 <!-- CLIENT REPORT SCREEN (Hisob-kitob) -->
