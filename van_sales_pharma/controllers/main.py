@@ -24,7 +24,9 @@ class VanPosController(http.Controller):
             acting_agent_id = request.session.get('acting_as_agent_id')
             if not acting_agent_id:
                 agent_group = request.env.ref('van_sales_pharma.group_van_agent')
-                agents = agent_group.sudo().users
+                request.env.cr.execute("SELECT uid FROM res_groups_users_rel WHERE gid = %s", (agent_group.id,))
+                user_ids = [row[0] for row in request.env.cr.fetchall()]
+                agents = request.env['res.users'].sudo().browse(user_ids)
                 return request.render('van_sales_pharma.agent_select_template', {'agents': agents})
                 
         # If normal agent, or admin with an already selected agent session, boot the OWL app
@@ -54,7 +56,9 @@ class VanPosController(http.Controller):
         if not is_admin:
             return []
         agent_group = request.env.ref('van_sales_pharma.group_van_agent')
-        agents = agent_group.sudo().users
+        request.env.cr.execute("SELECT uid FROM res_groups_users_rel WHERE gid = %s", (agent_group.id,))
+        user_ids = [row[0] for row in request.env.cr.fetchall()]
+        agents = request.env['res.users'].sudo().browse(user_ids)
         return [{
             'id': a.id,
             'name': a.name,
