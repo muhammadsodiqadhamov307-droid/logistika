@@ -268,7 +268,7 @@ class VanPosController(http.Controller):
         return [{
             'product_id': p.id,
             'name': p.display_name,
-            'price': p.list_price,
+            'price': p.cost_price,
             'image_url': f'/web/image?model=van.product&id={p.id}&field=image_1920',
         } for p in products]
 
@@ -595,7 +595,7 @@ class VanPosController(http.Controller):
                 'trip_line_ids': [(0, 0, {
                     'product_id': l['product_id'],
                     'loaded_qty': float(l['qty']),
-                    'price_unit': request.env['van.product'].sudo().browse(l['product_id']).list_price,
+                    'price_unit': request.env['van.product'].sudo().browse(l['product_id']).cost_price,
                 }) for l in lines]
             }
             
