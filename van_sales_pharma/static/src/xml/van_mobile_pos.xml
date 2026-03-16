@@ -425,7 +425,7 @@
                                         <span style="font-size: 16px; font-weight: bold; color: #1e40af;"><t t-esc="(req.total_amount || 0).toLocaleString()"/> so'm</span>
                                     </div>
                                     
-                                    <div t-if="req.notes" style="margin-top: 10px; font-size: 13px; color: #6b7280; font-style: italic; border-top: 1px dashed #e2e8f0; padding-top: 8px;">
+                                    <div t-if="req.notes" style="margin-top: 10px; font-size: 13px; color: #6b7280; font-style: italic; border-top: 1px dashed #e2e8f0; padding-top: 8px; white-space: pre-wrap;">
                                         "<t t-esc="req.notes"/>"
                                     </div>
                                     
