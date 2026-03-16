@@ -60,7 +60,8 @@
                                         <span class="input-group-text bg-light border-0 text-muted">gacha</span>
                                     </div>
                                     <button name="action_apply_filter" type="object" string="Filtrlash" icon="fa-search" class="btn btn-primary btn-sm shadow-sm"/>
-                                    <button name="action_clear_filter" type="object" string="Tozalash" icon="fa-times" class="btn btn-outline-secondary btn-sm shadow-sm"/>
+                                    <button name="action_clear_filter" type="object" string="Tozalash" icon="fa-times" class="btn btn-outline-secondary btn-sm shadow-sm ms-2"/>
+                                    <button name="action_filter_today" type="object" string="Bugun" icon="fa-calendar-day" class="btn btn-info text-white btn-sm shadow-sm ms-2"/>
                                     <button name="action_refresh_data" type="object" string="Yangilash" icon="fa-refresh" class="btn btn-outline-primary btn-sm shadow-sm ms-2"/>
                                 </div>
                             </div>
@@ -492,11 +493,10 @@
         <field name="model_id" ref="model_van_agent_summary"/>
         <field name="state">code</field>
         <field name="code">
-# 1. Reset dates to today
-today = datetime.date.today()
+# 1. Reset dates to empty (All-Time default)
 env['van.agent.summary'].search([]).write({
-    'date_from': today,
-    'date_to': today
+    'date_from': False,
+    'date_to': False
 })
 
 # 2. Auto-create missing summary records for all internal users

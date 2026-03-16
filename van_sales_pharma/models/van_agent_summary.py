@@ -15,8 +15,8 @@ class VanAgentSummary(models.Model):
 
     agent_id = fields.Many2one('res.users', string='Agent', required=True, index=True)
     # Filtrlash uchun sanalar (majburiy emas)
-    date_from = fields.Date(string='Dastlabki Sana', default=fields.Date.context_today, store=True)
-    date_to = fields.Date(string='Oxirgi Sana', default=fields.Date.context_today, store=True)
+    date_from = fields.Date(string='Dastlabki Sana', store=True)
+    date_to = fields.Date(string='Oxirgi Sana', store=True)
 
     company_id = fields.Many2one('res.company', default=lambda self: self.env.company)
     currency_id = fields.Many2one('res.currency', related='company_id.currency_id', store=True)
@@ -125,30 +125,33 @@ class VanAgentSummary(models.Model):
             earned = rec.yalpi_balans * (rec.agent_id.komissiya_foizi / 100.0)
 
             # Step 2: Subtract oylik chiqimlar already paid in this period
-            has_filter = bool(rec.date_from and rec.date_to)
-            today = fields.Date.context_today(self)
-            date_from = rec.date_from if has_filter else today
-            date_to = rec.date_to if has_filter else today
+            has_filter = bool(rec.date_from or rec.date_to)
 
-            tz = pytz.timezone(self.env.user.tz or self.env.context.get('tz') or 'UTC')
-            utc_start = tz.localize(datetime.combine(date_from, time.min)).astimezone(pytz.UTC).replace(tzinfo=None)
-            utc_end = tz.localize(datetime.combine(date_to, time.max)).astimezone(pytz.UTC).replace(tzinfo=None)
-
-            oylik_chiqimlar = self.env['van.payment'].search([
+            domain_chiqim = [
                 ('agent_id', '=', rec.agent_id.id),
                 ('payment_type', '=', 'out'),
                 ('expense_type', '=', 'salary'),
-                ('date', '>=', utc_start),
-                ('date', '<=', utc_end),
-            ])
-            # Include agent payouts from earlier models as well
-            payouts = self.env['van.payment'].search([
+            ]
+            domain_payout = [
                 ('agent_id', '=', rec.agent_id.id),
                 ('payment_type', '=', 'out'),
                 ('expense_type', '=', 'payout'),
-                ('date', '>=', utc_start),
-                ('date', '<=', utc_end),
-            ])
+            ]
+
+            if has_filter:
+                tz = pytz.timezone(self.env.user.tz or self.env.context.get('tz') or 'UTC')
+                if rec.date_from:
+                    utc_start = tz.localize(datetime.combine(rec.date_from, time.min)).astimezone(pytz.UTC).replace(tzinfo=None)
+                    domain_chiqim.append(('date', '>=', utc_start))
+                    domain_payout.append(('date', '>=', utc_start))
+                if rec.date_to:
+                    utc_end = tz.localize(datetime.combine(rec.date_to, time.max)).astimezone(pytz.UTC).replace(tzinfo=None)
+                    domain_chiqim.append(('date', '<=', utc_end))
+                    domain_payout.append(('date', '<=', utc_end))
+
+            oylik_chiqimlar = self.env['van.payment'].search(domain_chiqim)
+            # Include agent payouts from earlier models as well
+            payouts = self.env['van.payment'].search(domain_payout)
             total_paid_salary = sum(oylik_chiqimlar.mapped('amount'))
             total_paid_payouts = sum(payouts.mapped('amount'))
             total_paid = total_paid_salary + total_paid_payouts
@@ -171,33 +174,27 @@ class VanAgentSummary(models.Model):
         for rec in self:
             tz = pytz.timezone(self.env.user.tz or self.env.context.get('tz') or 'UTC')
             
-            has_filter = bool(rec.date_from and rec.date_to)
-            today = fields.Date.context_today(self)
+            has_filter = bool(rec.date_from or rec.date_to)
             
-            # --- Group 1: Default Today, Obeys Filter ---
-            # Used for: Sotuvlar, Jami Sotuv, Naqt, Chiqim, Balans
-            g1_date_from = rec.date_from if has_filter else today
-            g1_date_to = rec.date_to if has_filter else today
+            # --- Group 1: Configurable Period ---
+            # Used for: Sotuvlar, Jami Sotuv, Naqt, Chiqim, Balans, Foyda
+            g1_order_domain = [('agent_id', '=', rec.agent_id.id), ('state', '=', 'done')]
+            g1_payment_domain = [('agent_id', '=', rec.agent_id.id)]
             
-            g1_utc_start = tz.localize(datetime.combine(g1_date_from, time.min)).astimezone(pytz.UTC).replace(tzinfo=None)
-            g1_utc_end = tz.localize(datetime.combine(g1_date_to, time.max)).astimezone(pytz.UTC).replace(tzinfo=None)
+            if has_filter:
+                if rec.date_from:
+                    utc_start = tz.localize(datetime.combine(rec.date_from, time.min)).astimezone(pytz.UTC).replace(tzinfo=None)
+                    g1_order_domain.append(('date', '>=', utc_start))
+                    g1_payment_domain.append(('date', '>=', utc_start))
+                if rec.date_to:
+                    utc_end = tz.localize(datetime.combine(rec.date_to, time.max)).astimezone(pytz.UTC).replace(tzinfo=None)
+                    g1_order_domain.append(('date', '<=', utc_end))
+                    g1_payment_domain.append(('date', '<=', utc_end))
             
-            g1_order_domain = [
-                ('agent_id', '=', rec.agent_id.id), 
-                ('state', '=', 'done'),
-                ('date', '>=', g1_utc_start),
-                ('date', '<=', g1_utc_end)
-            ]
             g1_orders = self.env['van.pos.order'].search(g1_order_domain)
-            
-            g1_payment_domain = [
-                ('agent_id', '=', rec.agent_id.id),
-                ('date', '>=', g1_utc_start),
-                ('date', '<=', g1_utc_end)
-            ]
             g1_all_payments = self.env['van.payment'].search(g1_payment_domain)
-            g1_kirims = g1_all_payments.filtered(lambda p: p.payment_type == 'in')
             
+            g1_kirims = g1_all_payments.filtered(lambda p: p.payment_type == 'in')
             g1_chiqims = g1_all_payments.filtered(lambda p: p.payment_type == 'out' and p.expense_type not in ('salary', 'payout'))
             g1_oylik_chiqims = g1_all_payments.filtered(lambda p: p.payment_type == 'out' and p.expense_type in ('salary', 'payout'))
             
@@ -273,9 +270,19 @@ class VanAgentSummary(models.Model):
         """
         return True
         
+    def action_filter_today(self):
+        """
+        Sets the custom dates to today's date for an instantaneous view of today.
+        """
+        today = fields.Date.context_today(self)
+        for rec in self:
+            rec.date_from = today
+            rec.date_to = today
+        return True
+        
     def action_clear_filter(self):
         """
-        Wipes the custom dates to force them back to empty, triggering default filter logic.
+        Wipes the custom dates to force them back to empty, triggering all-time logical mode.
         """
         for rec in self:
             rec.date_from = False
