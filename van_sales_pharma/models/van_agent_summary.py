@@ -15,8 +15,8 @@ class VanAgentSummary(models.Model):
 
     agent_id = fields.Many2one('res.users', string='Agent', required=True, index=True)
     # Filtrlash uchun sanalar (majburiy emas)
-    date_from = fields.Date(string='Dastlabki Sana', store=True)
-    date_to = fields.Date(string='Oxirgi Sana', store=True)
+    date_from = fields.Date(string='Dastlabki Sana', default=fields.Date.context_today, store=True)
+    date_to = fields.Date(string='Oxirgi Sana', default=fields.Date.context_today, store=True)
 
     company_id = fields.Many2one('res.company', default=lambda self: self.env.company)
     currency_id = fields.Many2one('res.currency', related='company_id.currency_id', store=True)
@@ -270,23 +270,14 @@ class VanAgentSummary(models.Model):
         """
         return True
         
-    def action_filter_today(self):
+    def action_clear_filter(self):
         """
-        Sets the custom dates to today's date for an instantaneous view of today.
+        Wipes the custom dates to force them back to today's date.
         """
         today = fields.Date.context_today(self)
         for rec in self:
             rec.date_from = today
             rec.date_to = today
-        return True
-        
-    def action_clear_filter(self):
-        """
-        Wipes the custom dates to force them back to empty, triggering all-time logical mode.
-        """
-        for rec in self:
-            rec.date_from = False
-            rec.date_to = False
         return True
         
     def action_refresh_data(self):
