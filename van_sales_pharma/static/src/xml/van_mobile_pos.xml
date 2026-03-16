@@ -513,7 +513,7 @@
                             <i class="fa fa-calendar" style="width: 20px; text-align: center; margin-right: 8px; font-size: 16px;"></i> 
                             <span><t t-esc="state.activeRequest.date"/></span>
                         </div>
-                        <div t-if="state.activeRequest.notes" style="margin-top: 10px; font-size: 14px; color: #4b5563; background: #f9fafb; padding: 10px; border-radius: 6px; border-left: 3px solid #cbd5e1;">
+                        <div t-if="state.activeRequest.notes" style="margin-top: 10px; font-size: 14px; color: #4b5563; background: #f9fafb; padding: 10px; border-radius: 6px; border-left: 3px solid #cbd5e1; white-space: pre-wrap;">
                             Izoh: <t t-esc="state.activeRequest.notes"/>
                         </div>
                     </div>
@@ -732,7 +732,7 @@
 
                         <div style="margin-bottom: 20px;">
                             <label style="display: block; font-size: 14px; font-weight: bold; margin-bottom: 5px; color: #374151;">Umumiy Izoh</label>
-                            <input type="text" t-model="state.requestNote" placeholder="Aloxida talab bo'lsa..." style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; box-sizing: border-box; outline: none;"/>
+                            <textarea t-model="state.requestNote" placeholder="Aloxida talab bo'lsa..." style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; box-sizing: border-box; outline: none; min-height: 100px; resize: vertical;"></textarea>
                         </div>
 
                         <!-- Spacer so the last item isn't hidden by the bottom bar -->
