@@ -2,6 +2,7 @@ from odoo import http
 from odoo.http import request
 from odoo.exceptions import UserError
 import logging
+import datetime
 
 _logger = logging.getLogger(__name__)
 
@@ -75,6 +76,102 @@ class VanPosController(http.Controller):
         if agent_id:
             request.session['acting_as_agent_id'] = int(agent_id)
         return {'success': True}
+
+    @http.route('/van/pos/get_client_report', type='jsonrpc', auth='user')
+    def get_client_report(self, client_id, date_from=None, date_to=None):
+        """Returns client transaction history with running balance for Mobile POS Hisob-kitob."""
+        try:
+            import pytz
+            user_tz = pytz.timezone(request.env.user.tz or 'Asia/Tashkent')
+
+            partner = request.env['res.partner'].sudo().browse(int(client_id))
+            if not partner.exists():
+                return {'success': False, 'error': 'Mijoz topilmadi'}
+
+            transactions = []
+
+            # 1. Boshlang'ich qarz (Ostatka Qarzi)
+            for ostatka in partner.x_van_ostatka_ids:
+                if ostatka.amount > 0:
+                    transactions.append({
+                        'date': str(ostatka.date or datetime.date.today()),
+                        'turi': "boshlangich_qarz",
+                        'turi_label': "Boshlang'ich qarz",
+                        'summa': ostatka.amount,
+                        'is_debt': True,
+                        'lines': [],
+                    })
+
+            # 2. Sotuvlar (POS Orders)
+            order_domain = [('partner_id', '=', partner.id), ('state', '=', 'done')]
+            if date_from:
+                order_domain.append(('date', '>=', date_from + ' 00:00:00'))
+            if date_to:
+                order_domain.append(('date', '<=', date_to + ' 23:59:59'))
+            orders = request.env['van.pos.order'].sudo().search(order_domain, order='date asc')
+            for order in orders:
+                if order.amount_total > 0:
+                    local_dt = pytz.utc.localize(order.date).astimezone(user_tz)
+                    lines = []
+                    for l in order.line_ids:
+                        lines.append({
+                            'name': l.product_id.name or '',
+                            'qty': l.qty,
+                            'price': l.price_unit,
+                            'subtotal': l.qty * l.price_unit,
+                        })
+                    transactions.append({
+                        'date': local_dt.strftime('%Y-%m-%d'),
+                        'date_label': local_dt.strftime('%d.%m.%Y'),
+                        'turi': 'sotuv',
+                        'turi_label': '🛒 Sotuv',
+                        'summa': order.amount_total,
+                        'is_debt': True,
+                        'lines': lines,
+                    })
+
+            # 3. Kirimlar (Payments)
+            pay_domain = [('partner_id', '=', partner.id), ('payment_type', '=', 'in')]
+            if date_from:
+                pay_domain.append(('date', '>=', date_from + ' 00:00:00'))
+            if date_to:
+                pay_domain.append(('date', '<=', date_to + ' 23:59:59'))
+            payments = request.env['van.payment'].sudo().search(pay_domain, order='date asc')
+            for payment in payments:
+                if payment.amount > 0:
+                    local_dt = pytz.utc.localize(payment.date).astimezone(user_tz)
+                    transactions.append({
+                        'date': local_dt.strftime('%Y-%m-%d'),
+                        'date_label': local_dt.strftime('%d.%m.%Y'),
+                        'turi': 'kirim',
+                        'turi_label': '💵 Kirim',
+                        'summa': payment.amount,
+                        'is_debt': False,
+                        'lines': [],
+                    })
+
+            # Sort chronologically to compute running balance
+            transactions.sort(key=lambda x: x['date'])
+            running_balance = 0.0
+            for tx in transactions:
+                if tx['is_debt']:
+                    running_balance += tx['summa']
+                else:
+                    running_balance -= tx['summa']
+                tx['balance'] = running_balance
+
+            # Reverse for display (newest first)
+            transactions.reverse()
+
+            return {
+                'success': True,
+                'client_name': partner.name,
+                'total_due': partner.x_van_total_due or 0.0,
+                'transactions': transactions,
+            }
+        except Exception as e:
+            _logger.error(f"get_client_report error: {e}")
+            return {'success': False, 'error': str(e)}
 
     @http.route('/van/pos/get_clients', type='jsonrpc', auth='user')
     def get_clients(self):

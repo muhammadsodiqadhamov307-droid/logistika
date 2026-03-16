@@ -79,6 +79,14 @@ export class VanMobilePos extends Component {
             isOnline: navigator.onLine,
             syncQueue: [],
             isSyncing: false,
+
+            // Client Hisob-kitob (Report)
+            clientReport: null,          // { client_name, total_due, transactions }
+            clientReportLoading: false,
+            clientReportDateFrom: '',
+            clientReportDateTo: '',
+            clientReportClientId: null,
+            clientReportExpandedRows: {}, // order_index: true/false
         });
 
         // Initialize connection listeners
@@ -1058,6 +1066,10 @@ export class VanMobilePos extends Component {
     goBack() {
         if (this.state.screen === 'clients') {
             this.state.screen = 'products';
+        } else if (this.state.screen === 'client_report') {
+            this.state.clientReport = null;
+            this.state.clientReportExpandedRows = {};
+            this.state.screen = 'clients';
         } else if (this.state.screen === 'checkout') {
             this.state.screen = 'products';
         } else if (this.state.screen === 'requests_list') {
@@ -1075,6 +1087,53 @@ export class VanMobilePos extends Component {
             this.state.activeTrip = null;
             this.state.screen = 'trips_list';
         }
+    }
+
+    // --- CLIENT HISOB-KITOB (REPORT) ---
+    async openClientReport(client, event) {
+        if (event) event.stopPropagation();
+        this.state.clientReportClientId = client.id;
+        this.state.clientReportDateFrom = '';
+        this.state.clientReportDateTo = '';
+        this.state.clientReportExpandedRows = {};
+        this.state.clientReport = null;
+        this.state.screen = 'client_report';
+        await this._fetchClientReport(client.id);
+    }
+
+    async _fetchClientReport(clientId) {
+        this.state.clientReportLoading = true;
+        try {
+            const result = await rpc('/van/pos/get_client_report', {
+                client_id: clientId,
+                date_from: this.state.clientReportDateFrom || null,
+                date_to: this.state.clientReportDateTo || null,
+            });
+            if (result.success) {
+                this.state.clientReport = result;
+            } else {
+                this.showToast(result.error || "Hisobot yuklanmadi", "error");
+            }
+        } catch (e) {
+            this.showToast("Tarmoqda xatolik: Hisobot yuklanmadi", "error");
+        }
+        this.state.clientReportLoading = false;
+    }
+
+    async filterClientReport() {
+        if (this.state.clientReportClientId) {
+            await this._fetchClientReport(this.state.clientReportClientId);
+        }
+    }
+
+    clearClientReportFilter() {
+        this.state.clientReportDateFrom = '';
+        this.state.clientReportDateTo = '';
+        this.filterClientReport();
+    }
+
+    toggleReportRow(index) {
+        this.state.clientReportExpandedRows[index] = !this.state.clientReportExpandedRows[index];
     }
 
     openAgentSummary() {

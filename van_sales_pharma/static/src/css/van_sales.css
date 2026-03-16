@@ -71,3 +71,37 @@
     margin: 0 auto;
     display: block;
 }
+
+/* Client Report Styles */
+.van-report-container {
+    margin-bottom: 20px;
+}
+
+.van-report-container table th {
+    background: #f1f5f9;
+    color: #475569;
+    font-weight: 600 !important;
+    text-transform: uppercase;
+    font-size: 11px;
+    letter-spacing: 0.05em;
+}
+
+.van-report-container table td {
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.van-report-container input[type="date"] {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    background: white;
+}
+
+.van-hisobot-btn:active {
+    background: #e2e8f0;
+    transform: scale(0.98);
+}
+
+.van-report-container tr:active {
+    background: #f8fafc !important;
+}

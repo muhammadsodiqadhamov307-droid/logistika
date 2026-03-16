@@ -66,30 +66,28 @@ class ResUsers(models.Model):
         user_ids = real_users.ids
 
         # --- 1. Batch fetch Naqt Savdo Totals ---
-        naqt_rg = self.env['van.pos.order'].read_group(
+        naqt_dict = {}
+        for agent, amount_total in self.env['van.pos.order']._read_group(
             domain=[('agent_id', 'in', user_ids), ('state', '=', 'done'), ('partner_id', '=', False)],
-            fields=['agent_id', 'amount_total'],
-            groupby=['agent_id']
-        )
-        naqt_dict = {rg['agent_id'][0]: rg['amount_total'] for rg in naqt_rg}
+            groupby=['agent_id'],
+            aggregates=['amount_total:sum'],
+        ):
+            naqt_dict[agent.id] = amount_total
 
         # --- 2. Batch fetch Payments ---
-        pay_rg = self.env['van.payment'].read_group(
-            domain=[('agent_id', 'in', user_ids)],
-            fields=['agent_id', 'payment_type', 'expense_type', 'amount'],
-            groupby=['agent_id', 'payment_type', 'expense_type'],
-            lazy=False
-        )
-
         kirim_dict = {}
         chiqim_dict = {}
         salary_paid_dict = {}
 
-        for rg in pay_rg:
-            ag_id = rg['agent_id'][0]
-            p_type = rg['payment_type']
-            e_type = rg.get('expense_type')
-            amt = rg['amount']
+        for agent, payment_type, expense_type, amount in self.env['van.payment']._read_group(
+            domain=[('agent_id', 'in', user_ids)],
+            groupby=['agent_id', 'payment_type', 'expense_type'],
+            aggregates=['amount:sum'],
+        ):
+            ag_id = agent.id
+            p_type = payment_type
+            e_type = expense_type
+            amt = amount
 
             if p_type == 'in':
                 kirim_dict[ag_id] = kirim_dict.get(ag_id, 0.0) + amt

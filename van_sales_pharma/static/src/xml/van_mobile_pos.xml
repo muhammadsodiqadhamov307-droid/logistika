@@ -10,6 +10,7 @@
                     </button>
                     <span style="font-size: 18px; font-weight: bold; display: flex; align-items: center; gap: 10px;">
                         <t t-if="state.screen === 'clients'">Mijoz Tanlash</t>
+                        <t t-if="state.screen === 'client_report'">Mijoz Hisoboti</t>
                         <t t-if="state.screen === 'products'">
                             <span style="margin-right: 5px;">POS</span>
                             <!-- Agent button - only for admins -->
@@ -204,30 +205,105 @@
                 
 
 
-                <!-- CLIENTS SCREEN -->
-                <t t-if="state.screen === 'clients'">
-                    <div style="margin-bottom: 15px;">
-                        <input type="text" placeholder="Mijozni qidirish..." t-model="state.searchQuery" style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #d1d5db; font-size: 16px; box-sizing: border-box;"/>
-                    </div>
-                    
-                    <div class="client-list">
-                        <t t-foreach="filteredClients" t-as="client" t-key="client.id || 'cash'">
-                            <div class="client-card" 
-                                 t-on-click="() => this.selectClient(client)" 
-                                 t-attf-style="padding: 15px; border-radius: 10px; margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; cursor: pointer; {{ client.id === false ? 'background: #e5e7eb; border: 2px solid #9ca3af;' : 'background: white;' }}">
-                                <div>
-                                    <div t-attf-style="font-weight: bold; font-size: 16px; {{ client.id !== false ? 'margin-bottom: 5px;' : '' }}">
-                                        <i t-if="client.id === false" class="fa fa-user-secret"></i>
-                                        <t t-esc="client.name"/>
-                                    </div>
-                                    <div t-if="client.id !== false" style="font-size: 14px; color: #4b5563;">Hozirgi qarz: <span style="color: #dc2626; font-weight: bold;"><t t-esc="client.total_due.toLocaleString()"/></span></div>
-                                </div>
-                                <i class="fa fa-chevron-right" t-attf-style="color: {{ client.id === false ? '#6b7280' : '#9ca3af' }};"></i>
+                </t>
+                
+                <!-- CLIENT REPORT SCREEN (Hisob-kitob) -->
+                <t t-if="state.screen === 'client_report'">
+                    <div class="van-report-container" style="background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); display: flex; flex-direction: column;">
+                        
+                        <!-- Header with Client Name -->
+                        <div style="background: #f8fafc; padding: 15px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
+                            <div style="font-weight: bold; font-size: 16px; color: #1e293b;"><t t-esc="state.clientReport?.client_name"/></div>
+                            <div style="font-size: 14px; color: #64748b;">Hisob-kitob</div>
+                        </div>
+
+                        <!-- Date Filters -->
+                        <div style="padding: 15px; background: #fffbe6; border-bottom: 1px solid #ffe58f; display: flex; gap: 8px; flex-wrap: wrap;">
+                            <div style="flex: 1; min-width: 120px;">
+                                <label style="display: block; font-size: 11px; color: #856404; margin-bottom: 4px;">Dan:</label>
+                                <input type="date" t-model="state.clientReportDateFrom" t-on-change="filterClientReport" style="width: 100%; padding: 8px; border: 1px solid #ffe58f; border-radius: 4px; font-size: 13px; outline: none;"/>
                             </div>
-                        </t>
-                        <t t-if="filteredClients.length === 0">
-                            <div style="text-align: center; color: #6b7280; padding: 20px;">Mijoz topilmadi.</div>
-                        </t>
+                            <div style="flex: 1; min-width: 120px;">
+                                <label style="display: block; font-size: 11px; color: #856404; margin-bottom: 4px;">Gacha:</label>
+                                <input type="date" t-model="state.clientReportDateTo" t-on-change="filterClientReport" style="width: 100%; padding: 8px; border: 1px solid #ffe58f; border-radius: 4px; font-size: 13px; outline: none;"/>
+                            </div>
+                            <div style="display: flex; align-items: flex-end; gap: 5px;">
+                                <button t-on-click="clearClientReportFilter" style="padding: 8px 12px; background: #e2e8f0; color: #475569; border: none; border-radius: 4px; font-weight: bold; font-size: 12px;">Tozalash</button>
+                            </div>
+                        </div>
+
+                        <!-- Summary Cards -->
+                        <div style="padding: 15px; display: grid; grid-template-columns: 1fr; gap: 10px;">
+                            <div style="background: #fff9db; border: 1px solid #ffec99; border-radius: 8px; padding: 15px; text-align: center;">
+                                <div style="font-size: 14px; color: #856404; margin-bottom: 5px;">Jami Qarz:</div>
+                                <div style="font-size: 22px; font-weight: bold; color: #e67700;">
+                                    <t t-esc="state.clientReport?.total_due?.toLocaleString()"/> so'm
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Transactions Table -->
+                        <div style="overflow-x: auto;">
+                            <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                                <thead style="background: #f1f5f9; color: #475569;">
+                                    <tr>
+                                        <th style="padding: 10px; text-align: left; border-bottom: 1px solid #e2e8f0;">Sana</th>
+                                        <th style="padding: 10px; text-align: left; border-bottom: 1px solid #e2e8f0;">Turi</th>
+                                        <th style="padding: 10px; text-align: right; border-bottom: 1px solid #e2e8f0;">Summa</th>
+                                        <th style="padding: 10px; text-align: right; border-bottom: 1px solid #e2e8f0;">Balans</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <t t-if="state.clientReportLoading">
+                                        <tr>
+                                            <td colspan="4" style="padding: 30px; text-align: center; color: #64748b;">
+                                                <i class="fa fa-spinner fa-spin"></i> Yuklanmoqda...
+                                            </td>
+                                        </tr>
+                                    </t>
+                                    <t t-elif="state.clientReport?.transactions?.length === 0">
+                                        <tr>
+                                            <td colspan="4" style="padding: 30px; text-align: center; color: #64748b;">
+                                                Ma'lumot topilmadi.
+                                            </td>
+                                        </tr>
+                                    </t>
+                                    <t t-else="">
+                                        <t t-foreach="state.clientReport.transactions" t-as="tx" t-key="tx_index">
+                                            <tr t-on-click="() => tx.lines?.length > 0 ? toggleReportRow(tx_index) : null" 
+                                                t-attf-style="border-bottom: 1px solid #f1f5f9; cursor: {{ tx.lines?.length > 0 ? 'pointer' : 'default' }}; background: {{ tx.is_debt ? 'transparent' : '#f0fdf4' }};">
+                                                <td style="padding: 10px;"><t t-esc="tx.date_label || tx.date"/></td>
+                                                <td style="padding: 10px;">
+                                                    <div style="display: flex; align-items: center; gap: 4px;">
+                                                        <t t-esc="tx.turi_label"/>
+                                                        <i t-if="tx.lines?.length > 0" t-attf-class="fa {{ state.clientReportExpandedRows[tx_index] ? 'fa-caret-down' : 'fa-caret-right' }}" style="color: #94a3b8; font-size: 10px;"></i>
+                                                    </div>
+                                                </td>
+                                                <td style="padding: 10px; text-align: right; font-weight: bold; color: {{ tx.is_debt ? '#e11d48' : '#059669' }};">
+                                                    <t t-if="!tx.is_debt">-</t><t t-esc="tx.summa.toLocaleString()"/>
+                                                </td>
+                                                <td style="padding: 10px; text-align: right; font-weight: bold; color: #1e293b;">
+                                                    <t t-esc="tx.balance.toLocaleString()"/>
+                                                </td>
+                                            </tr>
+                                            <!-- Expandable rows for product details -->
+                                            <tr t-if="state.clientReportExpandedRows[tx_index]">
+                                                <td colspan="4" style="padding: 0; background: #f8fafc;">
+                                                    <div style="padding: 10px 15px; border-left: 3px solid #cbd5e1; margin: 5px 10px; background: white; border-radius: 4px; box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);">
+                                                        <t t-foreach="tx.lines" t-as="line" t-key="line_index">
+                                                            <div style="display: flex; justify-content: space-between; font-size: 12px; padding: 4px 0; border-bottom: 1px dashed #f1f5f9;">
+                                                                <span style="color: #475569;"><t t-esc="line.name"/></span>
+                                                                <span style="font-weight: bold; color: #1e293b;"><t t-esc="line.qty"/> x <t t-esc="line.price.toLocaleString()"/> = <t t-esc="line.subtotal.toLocaleString()"/></span>
+                                                            </div>
+                                                        </t>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        </t>
+                                    </t>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </t>
 
