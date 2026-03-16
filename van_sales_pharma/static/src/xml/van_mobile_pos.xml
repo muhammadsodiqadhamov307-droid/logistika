@@ -205,7 +205,6 @@
                 
 
 
-                </t>
                 
                 <!-- CLIENT REPORT SCREEN (Hisob-kitob) -->
                 <t t-if="state.screen === 'client_report'">
