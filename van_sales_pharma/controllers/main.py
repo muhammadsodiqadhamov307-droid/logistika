@@ -207,7 +207,7 @@ class VanPosController(http.Controller):
             new_client = request.env['res.partner'].sudo().create({
                 'name': name,
                 'phone': phone,
-                'x_van_telegram_chat_id': telegram_chat_id,  # Assume custom field name is typical
+                'telegram_chat_id': telegram_chat_id or '',  # This is the correct field name found in res_partner.py
                 'x_is_van_customer': True, # Ensure it gets picked up
                 'user_id': agent_id, # Optional standard assignment
             })
