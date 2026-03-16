@@ -280,6 +280,40 @@ class VanAgentSummary(models.Model):
             rec.date_to = today
         return True
         
+    @api.model
+    def action_setup_summary(self):
+        """
+        Initializes agent summary records:
+        1. Resets dates to today (timezone aware)
+        2. Creates missing summary records for internal users
+        Returns the action definition for opening the view.
+        """
+        today = fields.Date.context_today(self)
+        self.search([]).write({
+            'date_from': today,
+            'date_to': today
+        })
+        
+        # Auto-create missing summary records
+        existing_agent_ids = self.search([]).mapped('agent_id.id')
+        all_users = self.env['res.users'].search([('share', '=', False)])
+        for user in all_users:
+            if user.id not in existing_agent_ids:
+                self.create({'agent_id': user.id})
+                
+        return {
+            'name': _('Agentlar Hisoboti'),
+            'type': 'ir.actions.act_window',
+            'res_model': 'van.agent.summary',
+            'view_mode': 'kanban,list,form',
+            'view_ids': [
+                (0, 0, {'view_mode': 'kanban', 'view_id': self.env.ref('van_sales_pharma.view_van_agent_summary_kanban').id}),
+                (0, 0, {'view_mode': 'list', 'view_id': self.env.ref('van_sales_pharma.view_van_agent_summary_list').id}),
+                (0, 0, {'view_mode': 'form', 'view_id': self.env.ref('van_sales_pharma.view_van_agent_summary_form').id})
+            ],
+            'context': {}
+        }
+
     def action_refresh_data(self):
         """
         Acts exactly like a hard page reload for the compute fields.
