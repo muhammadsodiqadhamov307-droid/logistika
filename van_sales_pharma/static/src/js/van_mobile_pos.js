@@ -984,8 +984,8 @@ export class VanMobilePos extends Component {
 
         const validLines = Object.values(this.state.requestCart).filter(l => l.qty > 0);
 
-        if (validLines.length === 0) {
-            this.state.error = "Iltimos kamida bitta mahsulot va uning sonini kiriting.";
+        if (validLines.length === 0 && !this.state.requestNote) {
+            this.state.error = "Iltimos mahsulot tanlang yoki izoh kiriting.";
             return;
         }
 
