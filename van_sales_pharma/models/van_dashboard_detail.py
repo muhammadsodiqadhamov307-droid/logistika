@@ -69,7 +69,7 @@ class VanDashboardDetail(models.Model):
                     po.partner_id AS partner_id,
                     COALESCE((SELECT name FROM res_partner WHERE id = po.partner_id), 'Naqt savdo') AS partner_name,
                     po.amount_total AS amount,
-                    'cash' AS payment_method, -- All sales are considered cash initially unless partially nasiya'd, but we track that separately
+                    po.payment_type AS payment_method,
                     'sale' AS transaction_type,
                     po.note AS note,
                     rc.id AS company_id,
@@ -77,7 +77,6 @@ class VanDashboardDetail(models.Model):
                     po.id AS res_id,
                     'van.pos.order' AS res_model
                 FROM van_pos_order po
-                JOIN res_partner rp ON po.agent_id = rp.id
                 JOIN res_users ru ON po.agent_id = ru.id
                 JOIN res_company rc ON ru.company_id = rc.id
                 WHERE po.state = 'done'

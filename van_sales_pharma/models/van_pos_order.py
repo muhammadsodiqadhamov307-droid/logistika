@@ -33,7 +33,17 @@ class VanPosOrder(models.Model):
     
     offline_id = fields.Char(string='Offline ID (App)', help="Mobil ilova yaratgan noyob ID (takroriylikni oldini olish uchun)")
     
+    payment_type = fields.Selection([
+        ('naqt', 'Naqt'),
+        ('nasiya', 'Nasiya')
+    ], string='To\'lov Turi', compute='_compute_payment_type', store=True)
+    
     note = fields.Text(string='Eslatmalar')
+
+    @api.depends('partner_id')
+    def _compute_payment_type(self):
+        for order in self:
+            order.payment_type = 'nasiya' if order.partner_id else 'naqt'
 
     @api.model_create_multi
     def create(self, vals_list):
