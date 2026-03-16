@@ -64,6 +64,7 @@ class VanTaminotchiLedgerWizard(models.TransientModel):
             lines.append({
                 'date': datetime.datetime.combine(trip.date, datetime.datetime.min.time()),
                 'ref': trip.name,
+                'agent': trip.agent_id.name,
                 'type': 'Mahsulot yuklash',
                 'debit': trip.amount_cost_total,  # We owe them this much
                 'credit': 0.0,
@@ -136,11 +137,12 @@ class VanTaminotchiLedgerWizard(models.TransientModel):
                 <thead>
                     <tr>
                         <th class="col-date" style="width: 15%;">Sana</th>
-                        <th style="width: 25%;">Hujjat</th>
-                        <th style="width: 15%; text-align: center;">Turi</th>
-                        <th class="col-num" style="width: 15%;">Qarz / Yuklash (+)</th>
-                        <th class="col-num" style="width: 15%;">To'lov (-)</th>
-                        <th class="col-num" style="width: 15%;">Qoldiq Balans</th>
+                        <th style="width: 20%;">Hujjat</th>
+                        <th style="width: 15%;">Agent (Kimga)</th>
+                        <th style="width: 12%; text-align: center;">Turi</th>
+                        <th class="col-num" style="width: 12%;">Qarz / Yuk(+)</th>
+                        <th class="col-num" style="width: 12%;">To'lov (-)</th>
+                        <th class="col-num" style="width: 14%;">Qoldiq Balans</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -148,6 +150,7 @@ class VanTaminotchiLedgerWizard(models.TransientModel):
                     <tr style="background-color: #f8fafc; font-weight: bold; border-bottom: 2px solid #cbd5e1;">
                         <td class="col-date">{date_from.strftime('%d.%m.%Y')}</td>
                         <td style="word-wrap: break-word;">Davr Boshidagi Qoldiq</td>
+                        <td>-</td>
                         <td style="text-align: center;">-</td>
                         <td class="col-num">-</td>
                         <td class="col-num">-</td>
@@ -180,11 +183,12 @@ class VanTaminotchiLedgerWizard(models.TransientModel):
                                 <summary style="padding: 10px 8px;">
                                     <div class="summary-content">
                                         <div style="width: 15%; white-space: nowrap;"><span class="summary-icon">▶</span> {date_str}</div>
-                                        <div style="width: 25%; word-wrap: break-word; padding: 0 8px;">{line['ref']}</div>
-                                        <div style="width: 15%; text-align: center;"><span class="badge" style="background:#fee2e2; color:#b91c1c;">{line['type']}</span></div>
-                                        <div style="width: 15%; padding: 0 8px;" class="col-num text-danger">{debit_str}</div>
-                                        <div style="width: 15%; padding: 0 8px;" class="col-num text-success">{credit_str}</div>
-                                        <div style="width: 15%; padding: 0 8px;" class="col-num {balance_class}">{balance_str}</div>
+                                        <div style="width: 20%; word-wrap: break-word; padding: 0 8px;">{line['ref']}</div>
+                                        <div style="width: 15%; padding: 0 8px;">{line.get('agent', '-')}</div>
+                                        <div style="width: 12%; text-align: center;"><span class="badge" style="background:#fee2e2; color:#b91c1c;">{line['type']}</span></div>
+                                        <div style="width: 12%; padding: 0 8px;" class="col-num text-danger">{debit_str}</div>
+                                        <div style="width: 12%; padding: 0 8px;" class="col-num text-success">{credit_str}</div>
+                                        <div style="width: 14%; padding: 0 8px;" class="col-num {balance_class}">{balance_str}</div>
                                     </div>
                                 </summary>
                                 <div style="padding: 0 10px 10px 10px;">
@@ -221,6 +225,7 @@ class VanTaminotchiLedgerWizard(models.TransientModel):
                     <tr class="ledger-row">
                         <td class="col-date">{date_str}</td>
                         <td style="word-wrap: break-word;">{line['ref']}</td>
+                        <td>{line.get('agent', '-')}</td>
                         <td style="text-align: center;"><span class="badge" style="background:#dcfce7; color:#166534;">{line['type']}</span></td>
                         <td class="col-num text-danger">{debit_str}</td>
                         <td class="col-num text-success">{credit_str}</td>
@@ -233,6 +238,7 @@ class VanTaminotchiLedgerWizard(models.TransientModel):
                     <tr style="background-color: #f8fafc; border-top: 2px solid #cbd5e1; font-weight: bold;">
                         <td class="col-date">{date_to.strftime('%d.%m.%Y')}</td>
                         <td style="word-wrap: break-word;">Davr Oxiridagi Qoldiq</td>
+                        <td>-</td>
                         <td style="text-align: center;">-</td>
                         <td class="col-num">-</td>
                         <td class="col-num">-</td>

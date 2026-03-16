@@ -70,6 +70,7 @@ class VanTaminotchi(models.Model):
                     'is_debt': True,
                     'trip_id': trip.id,
                     'lines': trip.trip_line_ids,
+                    'agent_name': trip.agent_id.name,
                 })
 
             # 3. Chiqimlar (van.payment out to this taminotchi)
@@ -118,6 +119,7 @@ class VanTaminotchi(models.Model):
                     <thead class="table-light">
                         <tr>
                             <th>Sana</th>
+                            <th>Agent</th>
                             <th>Turi</th>
                             <th class="text-end">Summa</th>
                             <th class="text-end">Balans</th>
@@ -129,7 +131,7 @@ class VanTaminotchi(models.Model):
                 html += """
                     <tbody>
                         <tr>
-                            <td colspan="4" class="text-center text-muted py-3">Ma'lumot topilmadi</td>
+                            <td colspan="5" class="text-center text-muted py-3">Ma'lumot topilmadi</td>
                         </tr>
                     </tbody>
                 """
@@ -153,6 +155,7 @@ class VanTaminotchi(models.Model):
                     <tbody>
                         <tr class="yuklash-row" onclick="var d=document.getElementById('trip-{rx['trip_id']}');if(d){{var h=(d.style.display===''||d.style.display==='none');d.style.display=h?'table-row-group':'none';var a=this.querySelector('.fold-arrow');if(a)a.textContent=h?'▼':'▶';}}" style="cursor:pointer;">
                             <td><span class="fold-arrow text-primary me-2" style="display:inline-block;width:15px;text-align:center;">▶</span>{d_str}</td>
+                            <td>{rx.get('agent_name', '-')}</td>
                             <td>{turi_badge}</td>
                             <td class="text-end">{sum_html}</td>
                             <td class="text-end {bal_color}">{rx['computed_balance']:,.0f}</td>
@@ -179,6 +182,7 @@ class VanTaminotchi(models.Model):
                     <tbody>
                         <tr>
                             <td class="ps-4">{d_str}</td>
+                            <td>{rx.get('agent_name', '-')}</td>
                             <td>{turi_badge}</td>
                             <td class="text-end">{sum_html}</td>
                             <td class="text-end {bal_color}">{rx['computed_balance']:,.0f}</td>
