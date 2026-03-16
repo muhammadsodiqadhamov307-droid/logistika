@@ -55,12 +55,15 @@ class VanAgentOstatka(models.Model):
                     'summary_id': summary.id,
                     'product_id': rec.product_id.id,
                     'price_unit': rec.sotish_narxi,
+                    'cost_price': rec.kelish_narxi,
                     'loaded_qty': 0.0, # Loaded qty is from trips, ostatka is computed on top
                 })
             else:
                 # Update price if it was 0 or just ensure it exists
                 if not inv_line.price_unit and rec.sotish_narxi:
                     inv_line.price_unit = rec.sotish_narxi
+                if not inv_line.cost_price and rec.kelish_narxi:
+                    inv_line.cost_price = rec.kelish_narxi
 
     @api.model_create_multi
     def create(self, vals_list):
