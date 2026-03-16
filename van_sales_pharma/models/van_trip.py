@@ -119,17 +119,12 @@ class VanTrip(models.Model):
 
                 if existing_inv_line:
                     existing_inv_line.loaded_qty += data['qty']
-                    # Don't overwrite existing price_unit/cost_price if they are already set 
-                    # unless they are 0.0 (initial load)
-                    if not existing_inv_line.price_unit:
-                        existing_inv_line.price_unit = data['price']
-                    if not existing_inv_line.cost_price:
-                        existing_inv_line.cost_price = self.env['van.product'].browse(p_id).cost_price
+                    existing_inv_line.price_unit = data['price']
                 else:
                     self.env['van.agent.inventory.line'].create({
                         'summary_id': summary.id,
                         'product_id': p_id,
-                        'price_unit': data['price'] or self.env['van.product'].browse(p_id).list_price,
+                        'price_unit': data['price'],
                         'cost_price': self.env['van.product'].browse(p_id).cost_price,
                         'loaded_qty': data['qty'],
                     })
