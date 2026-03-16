@@ -71,12 +71,8 @@ class VanPosOrder(models.Model):
                 if not inv_line:
                     raise UserError(_("'%s' mahsuloti agent omborida yo'q.") % line.product_id.display_name)
                 
-                # Check remaining stock (loaded - sold + returned)
-                # Since 'sold_qty' in van_agent_summary is dynamically computed based on pos.order/van.pos.order, 
-                # we just need to ensure the new total sold doesn't exceed loaded.
-                # Actually, in this custom model approach, we should define how inventory tracks van.pos.order sales.
-                # We will update `_compute_remaining` in van.agent.summary later to include `van.pos.order.line`.
-                rem_qty = inv_line.loaded_qty - inv_line.sold_qty + inv_line.returned_qty
+                # Check remaining stock (includes Ostatka, Loaded, Sold, Returned)
+                rem_qty = inv_line.remaining_qty
                 if rem_qty < line.qty:
                    raise UserError(_("'%s' uchun yetarli zaxira yo'q. Qoldiq: %s, So'ralgan: %s") % 
                                    (line.product_id.display_name, rem_qty, line.qty))
