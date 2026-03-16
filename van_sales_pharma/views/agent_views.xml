@@ -492,8 +492,8 @@
         <field name="model_id" ref="model_van_agent_summary"/>
         <field name="state">code</field>
         <field name="code">
-# 1. Reset dates to today
-today = datetime.date.today()
+# 1. Reset dates to today (Context Aware)
+today = context_today()
 env['van.agent.summary'].search([]).write({
     'date_from': today,
     'date_to': today
