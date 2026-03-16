@@ -273,7 +273,7 @@
         <field name="name">van.agent.summary.inventory.dashboard</field>
         <field name="model">van.agent.summary</field>
         <field name="arch" type="xml">
-            <form string="Agent Inventari" create="0" edit="0">
+            <form string="Agent Inventari" create="0">
                 <sheet>
                     <div class="row mb-4">
                         <div class="col-12 col-md-4">
