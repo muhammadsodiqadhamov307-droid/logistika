@@ -105,3 +105,71 @@
 .van-report-container tr:active {
     background: #f8fafc !important;
 }
+/* Trip Details Table */
+.van-trip-table {
+    width: 100%;
+}
+
+.van-trip-header {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr 1fr 1.2fr;
+    gap: 4px;
+    padding: 10px 5px;
+    background: #f1f5f9;
+    border-bottom: 2px solid #e2e8f0;
+    font-weight: bold;
+    font-size: 11px;
+    color: #475569;
+    text-transform: uppercase;
+}
+
+.van-trip-row {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr 1fr 1.2fr;
+    gap: 4px;
+    padding: 12px 5px;
+    border-bottom: 1px solid #f1f5f9;
+    align-items: center;
+    background: white;
+}
+
+.van-trip-row:nth-last-child(2) {
+    border-bottom: none;
+}
+
+.van-trip-footer {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr 1fr 1.2fr;
+    gap: 4px;
+    padding: 15px 5px;
+    background: #ecfdf5;
+    border-top: 2px solid #10b981;
+    font-weight: bold;
+    font-size: 13px;
+    margin-top: 5px;
+}
+
+.van-trip-col {
+    font-size: 13px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.van-trip-col-right {
+    text-align: right;
+}
+
+.van-trip-prod-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.van-trip-thumb {
+    width: 32px;
+    height: 32px;
+    object-fit: contain;
+    background: #f8fafc;
+    border-radius: 4px;
+    border: 1px solid #e2e8f0;
+}
