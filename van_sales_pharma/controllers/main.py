@@ -89,16 +89,35 @@ class VanPosController(http.Controller):
         # recompute balances based on new nasiya
         partners.sudo()._compute_van_nasiya_stats()
         
-        # Build client list
-        client_list = [{
-            'id': p.id,
-            'name': p.name,
-            'balance': p.x_van_balance,
-            'total_due': p.x_van_total_due
-        } for p in partners]
-        
-        # Sort by name for better UX
-        client_list.sort(key=lambda x: x['name'])
+        # Get partner IDs for SQL query
+        partner_ids = partners.ids
+        if partner_ids:
+            # Use SQL for efficient sorting by last sale date
+            query = """
+                SELECT p.id, MAX(o.date) as last_sale_date
+                FROM res_partner p
+                LEFT JOIN van_pos_order o ON o.partner_id = p.id AND o.agent_id = %s AND o.state = 'done'
+                WHERE p.id IN %s
+                GROUP BY p.id
+                ORDER BY last_sale_date DESC NULLS LAST, p.name ASC
+            """
+            request.env.cr.execute(query, (agent_id, tuple(partner_ids)))
+            sorted_partner_ids = [row[0] for row in request.env.cr.fetchall()]
+            
+            # Map partners to ensure we keep the ones we found
+            partner_map = {p.id: p for p in partners}
+            client_list = []
+            for pid in sorted_partner_ids:
+                p = partner_map.get(pid)
+                if p:
+                    client_list.append({
+                        'id': p.id,
+                        'name': p.name,
+                        'balance': p.x_van_balance,
+                        'total_due': p.x_van_total_due
+                    })
+        else:
+            client_list = []
         
         # Always Prepend "Naqt savdo (Mijozisiz)"
         client_list.insert(0, {
@@ -109,6 +128,10 @@ class VanPosController(http.Controller):
             'is_cash_sale': True
         })
         
+        # Add explicit sort_order for frontend persistence
+        for idx, client in enumerate(client_list):
+            client['sort_order'] = idx
+            
         return client_list
 
     @http.route('/van/pos/get_inventory', type='jsonrpc', auth='user')

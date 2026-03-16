@@ -325,7 +325,8 @@ export class VanMobilePos extends Component {
             // Always load from IDB cache first so offline reloads work immediately
             const cached = await this.getFromIDB('clients');
             if (cached && cached.length > 0) {
-                this.state.clients = cached;
+                // Preserve server-side sort order (sort_order field)
+                this.state.clients = cached.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
             }
             // Then refresh from server if online
             if (this.state.isOnline) {
