@@ -92,16 +92,17 @@ class VanPosController(http.Controller):
         # Get partner IDs for SQL query
         partner_ids = partners.ids
         if partner_ids:
-            # Use SQL for efficient sorting by last sale date
+            # Use SQL for efficient sorting by last transaction date (Sale OR Kirim)
             query = """
-                SELECT p.id, MAX(o.date) as last_sale_date
+                SELECT p.id, GREATEST(MAX(o.date), MAX(pay.date)) as last_transaction_date
                 FROM res_partner p
                 LEFT JOIN van_pos_order o ON o.partner_id = p.id AND o.agent_id = %s AND o.state = 'done'
+                LEFT JOIN van_payment pay ON pay.partner_id = p.id AND pay.agent_id = %s AND pay.payment_type = 'in'
                 WHERE p.id IN %s
                 GROUP BY p.id
-                ORDER BY last_sale_date DESC NULLS LAST, p.name ASC
+                ORDER BY last_transaction_date DESC NULLS LAST, p.name ASC
             """
-            request.env.cr.execute(query, (agent_id, tuple(partner_ids)))
+            request.env.cr.execute(query, (agent_id, agent_id, tuple(partner_ids)))
             sorted_partner_ids = [row[0] for row in request.env.cr.fetchall()]
             
             # Map partners to ensure we keep the ones we found
