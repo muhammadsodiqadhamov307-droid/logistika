@@ -621,33 +621,21 @@ class VanPosController(http.Controller):
             res = []
             
             for trip in trips:
-                lines = []
-                total_amount = 0.0
-                total_qty = 0.0
-                
-                for l in trip.trip_line_ids:
-                    price = l.price_unit or 0.0
-                    subtotal = price * l.loaded_qty
-                    total_amount += subtotal
-                    total_qty += l.loaded_qty
-                    
-                    lines.append({
-                        'product_name': l.product_id.name,
-                        'qty': l.loaded_qty,
-                        'price': price,
-                        'subtotal': subtotal,
-                        'image_url': f'/web/image?model=van.product&id={l.product_id.id}&field=image_1920'
-                    })
-                
                 res.append({
                     'id': trip.id,
                     'name': trip.name,
                     'date': str(trip.date) if trip.date else '',
                     'agent_name': trip.agent_id.name if trip.agent_id else '',
                     'state': trip.state,
-                    'total_amount': total_amount,
-                    'total_qty': total_qty,
-                    'lines': lines,
+                    'total_cost': trip.amount_cost_total,
+                    'total_qty': trip.x_loaded_qty,
+                    'lines': [{
+                        'product_name': l.product_id.name,
+                        'qty': l.loaded_qty,
+                        'price': l.price_unit,
+                        'subtotal': l.loaded_qty * l.product_id.cost_price, # Cost subtotal
+                        'image_url': f'/web/image?model=van.product&id={l.product_id.id}&field=image_1920'
+                    } for l in trip.trip_line_ids],
                     'note': trip.note or ''
                 })
             return {'success': True, 'trips': res}
