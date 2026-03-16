@@ -738,33 +738,39 @@
                     </div>
 
                     <div style="background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 25px;">
-                        <div style="background: #f1f5f9; padding: 12px 15px; font-weight: bold; color: #475569; font-size: 14px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
-                            <span>Yuklangan mahsulotlar (<t t-esc="state.activeTrip.lines.length"/>)</span>
-                            <span style="color: #059669; font-weight: bold; font-size: 16px;">JAMI: <t t-esc="(state.activeTrip.total_cost || 0).toLocaleString()"/> so'm</span>
+                        <!-- Table Header -->
+                        <div class="van-trip-header">
+                            <div>Mahsulot</div>
+                            <div class="van-trip-col-right">Miqdor</div>
+                            <div class="van-trip-col-right">Narxi</div>
+                            <div class="van-trip-col-right">Summasi</div>
                         </div>
                         
+                        <!-- Table Rows -->
                         <t t-foreach="state.activeTrip.lines" t-as="line" t-key="'tripdet-'+line_index">
-                            <div style="padding: 12px 15px; border-bottom: 1px solid #f3f4f6; display: flex; align-items: flex-start; gap: 12px;">
-                                <div style="width: 48px; height: 48px; flex-shrink: 0; background-color: #f8fafc; border-radius: 6px; border: 1px solid #e2e8f0; overflow: hidden;">
-                                    <t t-if="line.image_url">
-                                        <img t-att-src="line.image_url" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.src='/van_sales_pharma/static/description/icon.png';"/>
-                                    </t>
+                            <div class="van-trip-row">
+                                <div class="van-trip-col van-trip-prod-info">
+                                    <img t-att-src="line.image_url" class="van-trip-thumb" onerror="this.src='/van_sales_pharma/static/description/icon.png';"/>
+                                    <span t-esc="line.product_name" style="line-height: 1.2;"/>
                                 </div>
-                                
-                                <div style="flex-grow: 1; display: flex; flex-direction: column; justify-content: center;">
-                                    <div style="font-weight: bold; font-size: 14px; color: #1e293b; margin-bottom: 4px; line-height: 1.3;">
-                                        <t t-esc="line.product_name"/>
-                                    </div>
-                                    <div style="font-size: 15px; color: #059669; font-weight: bold;">
-                                        <t t-esc="line.qty"/> ta yuklandi
-                                    </div>
+                                <div class="van-trip-col van-trip-col-right">
+                                    <span style="font-weight: bold; color: #1e3a8a;"><t t-esc="line.qty"/></span>
+                                </div>
+                                <div class="van-trip-col van-trip-col-right" style="color: #64748b; font-size: 11px;">
+                                    <t t-esc="(line.price || 0).toLocaleString()"/>
+                                </div>
+                                <div class="van-trip-col van-trip-col-right" style="font-weight: bold; color: #059669;">
+                                    <t t-esc="(line.subtotal || 0).toLocaleString()"/>
                                 </div>
                             </div>
                         </t>
-                        
-                        <div style="background: #ecfdf5; padding: 15px; border-top: 2px solid #a7f3d0; display: flex; justify-content: space-between; align-items: center;">
-                            <span style="font-weight: bold; font-size: 16px; color: #065f46;">JAMI MIQDOR:</span>
-                            <span style="font-weight: bold; font-size: 20px; color: #059669;"><t t-esc="state.activeTrip.total_qty"/> ta</span>
+
+                        <!-- Grand Total Footer -->
+                        <div class="van-trip-footer">
+                            <div style="grid-column: 1 / 4; text-align: right; color: #065f46;">JAMI:</div>
+                            <div class="van-trip-col-right" style="color: #047857; font-size: 15px;">
+                                <t t-esc="(state.activeTrip.total_cost || 0).toLocaleString()"/> so'm
+                            </div>
                         </div>
                     </div>
                 </t>
