@@ -447,14 +447,14 @@
                             </div>
                         </t>
                         <div style="padding: 15px; background-color: #f9fafb; display: flex; justify-content: space-between; font-size: 18px; font-weight: bold;">
-                            <span>Jami (<t t-esc="state.selectedClient.id === false ? 'Naqt' : 'Nasiya'"/>):</span>
-                            <span t-attf-style="color: {{ state.selectedClient.id === false ? '#10b981' : '#dc2626' }};"><t t-esc="cartTotal.toLocaleString()"/></span>
+                            <span>Jami (<t t-esc="!state.selectedClient.id ? 'Naqt' : 'Nasiya'"/>):</span>
+                            <span t-attf-style="color: {{ !state.selectedClient.id ? '#10b981' : '#dc2626' }};"><t t-esc="cartTotal.toLocaleString()"/></span>
                         </div>
                     </div>
 
                     <div style="margin-top: 25px;">
-                        <button t-on-click="submitOrder" t-attf-style="width: 100%; padding: 15px; color: white; font-size: 18px; font-weight: bold; border: none; border-radius: 8px; background-color: {{ state.selectedClient.id === false ? '#10b981' : '#dc2626' }}; box-shadow: 0 4px 6px -1px rgba({{ state.selectedClient.id === false ? '16, 185, 129' : '220, 38, 38' }}, 0.4);">
-                            <t t-if="state.selectedClient.id === false">NAQT SOTISH</t>
+                        <button t-on-click="submitOrder" t-attf-style="width: 100%; padding: 15px; color: white; font-size: 18px; font-weight: bold; border: none; border-radius: 8px; background-color: {{ !state.selectedClient.id ? '#10b981' : '#dc2626' }}; box-shadow: 0 4px 6px -1px rgba({{ !state.selectedClient.id ? '16, 185, 129' : '220, 38, 38' }}, 0.4);">
+                            <t t-if="!state.selectedClient.id">NAQT SOTISH</t>
                             <t t-else="">NASIYA BILAN SOTISH</t>
                         </button>
                     </div>

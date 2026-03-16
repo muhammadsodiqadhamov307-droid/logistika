@@ -693,9 +693,9 @@ export class VanMobilePos extends Component {
             price: item.custom_price
         }));
 
-        const isNasiya = (this.state.selectedClient.id && this.state.selectedClient.id !== 0);
+        const isNasiya = !!(this.state.selectedClient.id && this.state.selectedClient.id !== 0);
         const data = {
-            partner_id: this.state.selectedClient.id,
+            partner_id: this.state.selectedClient.id || false,
             lines: lines,
             isNasiya: isNasiya
         };
