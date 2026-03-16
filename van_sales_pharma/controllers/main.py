@@ -102,7 +102,7 @@ class VanPosController(http.Controller):
         
         # Always Prepend "Naqt savdo (Mijozisiz)"
         client_list.insert(0, {
-            'id': False,
+            'id': 0,
             'name': "Naqt savdo (Mijozisiz)",
             'balance': 0.0,
             'total_due': 0.0,

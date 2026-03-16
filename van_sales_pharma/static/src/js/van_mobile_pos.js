@@ -24,7 +24,7 @@ export class VanMobilePos extends Component {
             allProducts: [],
 
             // Active selection
-            selectedClient: { id: false, name: 'Naqt savdo', total_due: 0 },
+            selectedClient: { id: 0, name: 'Naqt savdo', total_due: 0 },
             cart: {}, // productId: {qty, product}
 
             // Post-checkout
@@ -208,7 +208,15 @@ export class VanMobilePos extends Component {
             const cleanData = JSON.parse(JSON.stringify(data));
 
             if (isArray) {
-                cleanData.forEach(item => store.put(item));
+                cleanData.forEach(item => {
+                    // Safety guard: Ensure the item has the required key for the store
+                    const keyPath = store.keyPath;
+                    if (item[keyPath] !== undefined && item[keyPath] !== null && item[keyPath] !== false) {
+                        store.put(item);
+                    } else {
+                        console.warn(`Skipping save to IDB store ${storeName}: Missing or invalid key`, item);
+                    }
+                });
             } else {
                 store.put(cleanData);
             }
@@ -676,7 +684,7 @@ export class VanMobilePos extends Component {
             price: item.custom_price
         }));
 
-        const isNasiya = (this.state.selectedClient.id !== false);
+        const isNasiya = (this.state.selectedClient.id && this.state.selectedClient.id !== 0);
         const data = {
             partner_id: this.state.selectedClient.id,
             lines: lines,
@@ -777,7 +785,7 @@ export class VanMobilePos extends Component {
 
     resetToStart() {
         this.state.screen = 'products';
-        this.state.selectedClient = { id: false, name: 'Naqt savdo', total_due: 0 };
+        this.state.selectedClient = { id: 0, name: 'Naqt savdo', total_due: 0 };
         this.state.cart = {};
         this.state.newNasiyaId = null;
         this.state.searchQuery = '';
