@@ -493,7 +493,7 @@
         <field name="state">code</field>
         <field name="code">
 # 1. Reset dates to today (Context Aware)
-today = context_today()
+today = env['van.agent.summary']._context_today()
 env['van.agent.summary'].search([]).write({
     'date_from': today,
     'date_to': today
