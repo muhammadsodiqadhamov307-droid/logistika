@@ -553,10 +553,7 @@ export class VanMobilePos extends Component {
                 return;
             }
 
-            const response = await rpc.query({
-                route: '/van/pos/create_client',
-                params: data,
-            });
+            const response = await rpc('/van/pos/create_client', data);
 
             if (response && response.success) {
                 this.showToast(response.message || "Mijoz yaratildi", "success");
