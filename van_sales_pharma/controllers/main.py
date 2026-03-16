@@ -103,7 +103,7 @@ class VanPosController(http.Controller):
                 for ostatka in partner.x_van_ostatka_ids:
                     if ostatka.amount > 0:
                         transactions.append({
-                            'date_obj': datetime.datetime.combine(ostatka.date or datetime.date.today(), datetime.time.min),
+                            'date_obj': user_tz.localize(datetime.datetime.combine(ostatka.date or datetime.date.today(), datetime.time.min)),
                             'date_label': (ostatka.date or datetime.date.today()).strftime('%d.%m.%Y'),
                             'turi': "boshlangich_qarz",
                             'turi_label': "Boshlang'ich qarz",
