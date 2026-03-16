@@ -540,7 +540,7 @@ export class VanMobilePos extends Component {
     }
 
     get requestCartTotal() {
-        return Object.values(this.state.requestCart).reduce((sum, item) => sum + (item.qty * item.price), 0);
+        return Object.values(this.state.requestCart).reduce((sum, item) => sum + ((parseFloat(item.qty) || 0) * item.price), 0);
     }
 
     changeRequestLineQty(product, delta) {
@@ -561,7 +561,19 @@ export class VanMobilePos extends Component {
     setRequestLineQty(product, ev) {
         if (!this.state.requestCart) this.state.requestCart = {};
         const pId = product.product_id;
-        let newQty = parseInt(ev.target.value);
+
+        let val = ev.target.value;
+        if (val === '') {
+            // Allow empty string while typing, but initialize object if missing
+            if (!this.state.requestCart[pId]) {
+                this.state.requestCart[pId] = { product_id: pId, qty: '', price: product.price };
+            } else {
+                this.state.requestCart[pId].qty = '';
+            }
+            return;
+        }
+
+        let newQty = parseInt(val);
         if (isNaN(newQty) || newQty <= 0) {
             delete this.state.requestCart[pId];
             ev.target.value = 0;
@@ -571,12 +583,12 @@ export class VanMobilePos extends Component {
             } else {
                 this.state.requestCart[pId].qty = newQty;
             }
-            ev.target.value = newQty;
+            // Optional: ev.target.value = newQty; // Not necessary if bound cleanly
         }
     }
 
     get tripCartTotal() {
-        return Object.values(this.state.tripCart).reduce((sum, item) => sum + (item.qty * item.price), 0);
+        return Object.values(this.state.tripCart).reduce((sum, item) => sum + ((parseFloat(item.qty) || 0) * item.price), 0);
     }
 
     changeTripLineQty(product, delta) {
@@ -597,7 +609,18 @@ export class VanMobilePos extends Component {
     setTripLineQty(product, ev) {
         if (!this.state.tripCart) this.state.tripCart = {};
         const pId = product.product_id;
-        let newQty = parseInt(ev.target.value);
+
+        let val = ev.target.value;
+        if (val === '') {
+            if (!this.state.tripCart[pId]) {
+                this.state.tripCart[pId] = { product_id: pId, qty: '', price: product.price };
+            } else {
+                this.state.tripCart[pId].qty = '';
+            }
+            return;
+        }
+
+        let newQty = parseInt(val);
         if (isNaN(newQty) || newQty <= 0) {
             delete this.state.tripCart[pId];
             ev.target.value = 0;
@@ -607,7 +630,6 @@ export class VanMobilePos extends Component {
             } else {
                 this.state.tripCart[pId].qty = newQty;
             }
-            ev.target.value = newQty;
         }
     }
 
@@ -616,7 +638,7 @@ export class VanMobilePos extends Component {
     }
 
     get cartTotal() {
-        return this.cartItems.reduce((sum, item) => sum + (item.qty * item.custom_price), 0);
+        return this.cartItems.reduce((sum, item) => sum + ((parseFloat(item.qty) || 0) * item.custom_price), 0);
     }
 
     addToCart(product) {
@@ -652,7 +674,17 @@ export class VanMobilePos extends Component {
     }
 
     setCartQuantity(product, ev) {
-        let newQty = parseFloat(ev.target.value);
+        let val = ev.target.value;
+        if (val === '') {
+            if (this.state.cart[product.product_id]) {
+                this.state.cart[product.product_id].qty = '';
+            } else {
+                this.state.cart[product.product_id] = { qty: '', product: product, custom_price: product.price };
+            }
+            return;
+        }
+
+        let newQty = parseFloat(val);
         if (isNaN(newQty) || newQty <= 0) {
             delete this.state.cart[product.product_id];
             return;
@@ -687,9 +719,16 @@ export class VanMobilePos extends Component {
 
     async submitOrder() {
         this.state.loading = true;
-        const lines = this.cartItems.map(item => ({
+        const validCartItems = this.cartItems.filter(item => item.qty && parseFloat(item.qty) > 0);
+        if (validCartItems.length === 0) {
+            this.showToast("Hech qanday mahsulot kiritilmadi.", "warning");
+            this.state.loading = false;
+            return;
+        }
+
+        const lines = validCartItems.map(item => ({
             product_id: item.product.product_id,
-            qty: item.qty,
+            qty: parseFloat(item.qty),
             price: item.custom_price
         }));
 
