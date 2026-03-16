@@ -18,7 +18,14 @@ class VanTripLine(models.Model):
     loaded_qty = fields.Float(string='Yuklangan Miqdor', default=0.0, required=True)
     uom_id = fields.Many2one('uom.uom', string='O‘lchov Birligi')
 
+    price_subtotal = fields.Monetary(string='Summasi', compute='_compute_subtotal', currency_field='currency_id', store=True)
+
+    @api.depends('loaded_qty', 'price_unit')
+    def _compute_subtotal(self):
+        for line in self:
+            line.price_subtotal = line.loaded_qty * line.price_unit
+
     @api.onchange('product_id')
     def _onchange_product_id(self):
         if self.product_id:
-            self.price_unit = self.product_id.list_price
+            self.price_unit = self.product_id.cost_price

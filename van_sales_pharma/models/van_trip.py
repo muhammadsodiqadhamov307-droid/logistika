@@ -72,11 +72,11 @@ class VanTrip(models.Model):
 
         return super().unlink()
 
-    @api.depends('trip_line_ids.loaded_qty', 'trip_line_ids.product_id.cost_price')
+    @api.depends('trip_line_ids.loaded_qty', 'trip_line_ids.price_unit')
     def _compute_quantities(self):
         for trip in self:
             trip.x_loaded_qty = sum(trip.trip_line_ids.mapped('loaded_qty'))
-            trip.amount_cost_total = sum((line.loaded_qty * line.product_id.cost_price) for line in trip.trip_line_ids)
+            trip.amount_cost_total = sum(trip.trip_line_ids.mapped('price_subtotal'))
 
     def action_validate(self):
         for trip in self:
