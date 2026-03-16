@@ -70,9 +70,16 @@ def get_web_app_button(chat_id):
     if not models:
         return None
         
-    base_url = models.execute_kw(ODOO_DB, uid, ODOO_PASSWORD, 'ir.config_parameter', 'get_param', ['van_telegram_odoo_url', ''])
+    def get_param(key):
+        res = models.execute_kw(ODOO_DB, uid, ODOO_PASSWORD, 'ir.config_parameter', 'search_read',
+            [[('key', '=', key)]],
+            {'fields': ['value'], 'limit': 1}
+        )
+        return res[0]['value'] if res else ''
+
+    base_url = get_param('van.telegram.odoo.url')
     if not base_url:
-        base_url = models.execute_kw(ODOO_DB, uid, ODOO_PASSWORD, 'ir.config_parameter', 'get_param', ['web.base.url', ''])
+        base_url = get_param('web.base.url')
         
     if not base_url.startswith('http'):
         base_url = "https://" + base_url.lstrip('/')
