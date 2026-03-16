@@ -84,26 +84,36 @@ class VanPosController(http.Controller):
             import pytz
             user_tz = pytz.timezone(request.env.user.tz or 'Asia/Tashkent')
 
-            partner = request.env['res.partner'].sudo().browse(int(client_id))
-            if not partner.exists():
-                return {'success': False, 'error': 'Mijoz topilmadi'}
+            if int(client_id) == 0:
+                # Support "Naqt Savdo" (virtual client)
+                partner = None
+                client_name = "Naqt savdo (Mijozisiz)"
+                total_due = 0.0
+            else:
+                partner = request.env['res.partner'].sudo().browse(int(client_id))
+                if not partner.exists():
+                    return {'success': False, 'error': 'Mijoz topilmadi'}
+                client_name = partner.name
+                total_due = partner.x_van_total_due or 0.0
 
             transactions = []
 
-            # 1. Boshlang'ich qarz (Ostatka Qarzi)
-            for ostatka in partner.x_van_ostatka_ids:
-                if ostatka.amount > 0:
-                    transactions.append({
-                        'date': str(ostatka.date or datetime.date.today()),
-                        'turi': "boshlangich_qarz",
-                        'turi_label': "Boshlang'ich qarz",
-                        'summa': ostatka.amount,
-                        'is_debt': True,
-                        'lines': [],
-                    })
+            # 1. Boshlang'ich qarz (Ostatka Qarzi) - only for real partners
+            if partner:
+                for ostatka in partner.x_van_ostatka_ids:
+                    if ostatka.amount > 0:
+                        transactions.append({
+                            'date_obj': datetime.datetime.combine(ostatka.date or datetime.date.today(), datetime.time.min),
+                            'date_label': (ostatka.date or datetime.date.today()).strftime('%d.%m.%Y'),
+                            'turi': "boshlangich_qarz",
+                            'turi_label': "Boshlang'ich qarz",
+                            'summa': ostatka.amount,
+                            'is_debt': True,
+                            'lines': [],
+                        })
 
             # 2. Sotuvlar (POS Orders)
-            order_domain = [('partner_id', '=', partner.id), ('state', '=', 'done')]
+            order_domain = [('partner_id', '=', partner.id if partner else False), ('state', '=', 'done')]
             if date_from:
                 order_domain.append(('date', '>=', date_from + ' 00:00:00'))
             if date_to:
@@ -121,8 +131,8 @@ class VanPosController(http.Controller):
                             'subtotal': l.qty * l.price_unit,
                         })
                     transactions.append({
-                        'date': local_dt.strftime('%Y-%m-%d'),
-                        'date_label': local_dt.strftime('%d.%m.%Y'),
+                        'date_obj': local_dt,
+                        'date_label': local_dt.strftime('%d.%m.%Y %H:%M:%S'),
                         'turi': 'sotuv',
                         'turi_label': '🛒 Sotuv',
                         'summa': order.amount_total,
@@ -131,7 +141,7 @@ class VanPosController(http.Controller):
                     })
 
             # 3. Kirimlar (Payments)
-            pay_domain = [('partner_id', '=', partner.id), ('payment_type', '=', 'in')]
+            pay_domain = [('partner_id', '=', partner.id if partner else False), ('payment_type', '=', 'in')]
             if date_from:
                 pay_domain.append(('date', '>=', date_from + ' 00:00:00'))
             if date_to:
@@ -141,8 +151,8 @@ class VanPosController(http.Controller):
                 if payment.amount > 0:
                     local_dt = pytz.utc.localize(payment.date).astimezone(user_tz)
                     transactions.append({
-                        'date': local_dt.strftime('%Y-%m-%d'),
-                        'date_label': local_dt.strftime('%d.%m.%Y'),
+                        'date_obj': local_dt,
+                        'date_label': local_dt.strftime('%d.%m.%Y %H:%M:%S'),
                         'turi': 'kirim',
                         'turi_label': '💵 Kirim',
                         'summa': payment.amount,
@@ -150,8 +160,8 @@ class VanPosController(http.Controller):
                         'lines': [],
                     })
 
-            # Sort chronologically to compute running balance
-            transactions.sort(key=lambda x: x['date'])
+            # Sort chronologically by date_obj to compute running balance
+            transactions.sort(key=lambda x: x['date_obj'] if isinstance(x['date_obj'], (datetime.datetime, datetime.date)) else datetime.datetime.min)
             running_balance = 0.0
             for tx in transactions:
                 if tx['is_debt']:
@@ -159,14 +169,16 @@ class VanPosController(http.Controller):
                 else:
                     running_balance -= tx['summa']
                 tx['balance'] = running_balance
+                # clean up date_obj for JSON serialization
+                if 'date_obj' in tx: del tx['date_obj']
 
             # Reverse for display (newest first)
             transactions.reverse()
 
             return {
                 'success': True,
-                'client_name': partner.name,
-                'total_due': partner.x_van_total_due or 0.0,
+                'client_name': client_name,
+                'total_due': total_due,
                 'transactions': transactions,
             }
         except Exception as e:
