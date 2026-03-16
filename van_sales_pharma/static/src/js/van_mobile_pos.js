@@ -63,6 +63,14 @@ export class VanMobilePos extends Component {
             showClientPickerModal: false,
             clientSearchModal: '',
 
+            // New Client Modal
+            showNewClientModal: false,
+            newClientData: {
+                name: '',
+                phone: '',
+                telegram_chat_id: '',
+            },
+
             // Mahsulot Yuklash (Trip Load) features
             currentAgent: null,
             taminotchis: [],
@@ -502,6 +510,77 @@ export class VanMobilePos extends Component {
         this.state.selectedClient = client;
         this.state.screen = 'products';
     }
+
+    // --- New Client Methods ---
+    openNewClientForm() {
+        this.state.newClientData = { name: '', phone: '', telegram_chat_id: '' };
+        this.state.error = null;
+        this.state.showNewClientModal = true;
+    }
+
+    closeNewClientForm() {
+        this.state.showNewClientModal = false;
+    }
+
+    formatPhoneNumber(ev) {
+        let value = ev.target.value.replace(/\D/g, ''); // Remove non-digits
+        if (value.length > 0) {
+            if (!value.startsWith('998') && value.length <= 9) {
+                value = '998' + value; // Auto-prefix with 998 if reasonable
+            }
+        }
+
+        let formatted = '+';
+        if (value.length > 0) formatted += value.substring(0, 3);
+        if (value.length > 3) formatted += ' ' + value.substring(3, 5);
+        if (value.length > 5) formatted += ' ' + value.substring(5, 8);
+        if (value.length > 8) formatted += ' ' + value.substring(8, 10);
+        if (value.length > 10) formatted += ' ' + value.substring(10, 12);
+
+        ev.target.value = formatted;
+        this.state.newClientData.phone = formatted;
+    }
+
+    async submitNewClient() {
+        try {
+            this.state.loading = true;
+            this.state.error = null;
+
+            const data = this.state.newClientData;
+            if (!data.name.trim() || !data.phone.trim()) {
+                this.state.error = 'Iltimos, ism va telefon raqamini kiriting.';
+                this.state.loading = false;
+                return;
+            }
+
+            const response = await rpc.query({
+                route: '/van/pos/create_client',
+                params: data,
+            });
+
+            if (response && response.success) {
+                this.showToast(response.message || "Mijoz yaratildi", "success");
+                this.closeNewClientForm();
+
+                // Refresh clients remotely and locally
+                await this.loadClients();
+
+                // Select the newly created client
+                const newClient = this.state.clients.find(c => c.id === response.client_id);
+                if (newClient) {
+                    this.selectClient(newClient);
+                }
+            } else {
+                this.state.error = response?.error || 'Xatolik yuz berdi';
+            }
+        } catch (e) {
+            console.error("Error creating client", e);
+            this.state.error = 'Tarmoq xatosi yoki server ishlamayapti.';
+        } finally {
+            this.state.loading = false;
+        }
+    }
+
 
     get filteredClients() {
         if (!this.state.searchQuery) return this.state.clients;

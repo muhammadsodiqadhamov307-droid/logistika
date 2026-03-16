@@ -189,6 +189,37 @@
                 </div>
             </div>
 
+            <!-- New Client Modal -->
+            <div t-if="state.showNewClientModal" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 1000; padding: 20px;">
+                <div style="background: white; border-radius: 12px; width: 100%; max-width: 400px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h3 style="margin: 0; font-size: 18px; color: #1e3a8a;">Yangi Mijoz Qo'shish</h3>
+                        <button t-on-click="closeNewClientForm" style="background: none; border: none; font-size: 20px; font-weight: bold; color: #6b7280; cursor: pointer;">✕</button>
+                    </div>
+
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; font-size: 14px; font-weight: bold; margin-bottom: 5px; color: #374151;">Mijoz Nomi *</label>
+                        <input type="text" t-model="state.newClientData.name" placeholder="Apteka / Mijoz nomi" style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; box-sizing: border-box; outline: none;"/>
+                    </div>
+
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; font-size: 14px; font-weight: bold; margin-bottom: 5px; color: #374151;">Telefon Raqami *</label>
+                        <input type="tel" t-model="state.newClientData.phone" t-on-input="formatPhoneNumber" placeholder="+998 xx xxx xx xx" style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; box-sizing: border-box; outline: none;"/>
+                    </div>
+
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: block; font-size: 14px; font-weight: bold; margin-bottom: 5px; color: #374151;">Telegram Chat ID (Ixtiyoriy)</label>
+                        <input type="text" t-model="state.newClientData.telegram_chat_id" placeholder="Masalan: 123456789" style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; box-sizing: border-box; outline: none;"/>
+                        <small style="display: block; color: #6b7280; margin-top: 4px; font-size: 12px;">Bot orqali xabar yuborish uchun ID</small>
+                    </div>
+
+                    <div style="display: flex; gap: 10px;">
+                        <button t-on-click="closeNewClientForm" style="flex: 1; padding: 14px; background: #f3f4f6; color: #374151; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer;">Bekor qilish</button>
+                        <button t-on-click="submitNewClient" style="flex: 1; padding: 14px; background: #2563eb; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer;">Saqlash</button>
+                    </div>
+                </div>
+            </div>
+
             <!-- Error Banner -->
             <div t-if="state.error" style="background-color: #fee2e2; color: #b91c1c; padding: 10px; margin: 10px; border-radius: 5px; text-align: center;">
                 <t t-esc="state.error"/>
@@ -205,8 +236,11 @@
                 
                 <!-- CLIENTS SCREEN -->
                 <t t-if="state.screen === 'clients'">
-                    <div style="margin-bottom: 15px;">
-                        <input type="text" placeholder="Mijozni qidirish..." t-model="state.searchQuery" style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #d1d5db; font-size: 16px; box-sizing: border-box;"/>
+                    <div style="margin-bottom: 15px; display: flex; gap: 10px; align-items: center;">
+                        <input type="text" placeholder="Mijozni qidirish..." t-model="state.searchQuery" style="flex: 1; padding: 12px; border-radius: 8px; border: 1px solid #d1d5db; font-size: 16px; box-sizing: border-box;"/>
+                        <button t-on-click="openNewClientForm" style="flex: 0 0 auto; width: 44px; height: 44px; background: #10b981; color: white; border: none; border-radius: 8px; font-size: 24px; font-weight: bold; display: flex; justify-content: center; align-items: center; cursor: pointer; box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);">
+                            ➕
+                        </button>
                     </div>
                     
                     <div class="client-list">

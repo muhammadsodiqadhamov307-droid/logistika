@@ -185,6 +185,50 @@ class VanPosController(http.Controller):
             _logger.error(f"get_client_report error: {e}")
             return {'success': False, 'error': str(e)}
 
+    @http.route('/van/pos/create_client', type='jsonrpc', auth='user')
+    def create_client(self, name, phone, telegram_chat_id=''):
+        """Creates a new client directly from Mobile POS and assigns it to current agent."""
+        try:
+            name = (name or '').strip()
+            phone = (phone or '').strip()
+            
+            if not name:
+                return {'success': False, 'error': 'Mijoz nomi kiritilmagan'}
+            if not phone:
+                return {'success': False, 'error': 'Telefon raqami kiritilmagan'}
+
+            # Validate duplicate phone
+            existing = request.env['res.partner'].sudo().search([('phone', '=', phone)], limit=1)
+            if existing:
+                return {'success': False, 'error': 'Bu telefon raqami bilan mijoz allaqachon mavjud'}
+
+            agent_id = self._get_agent_id()
+            
+            new_client = request.env['res.partner'].sudo().create({
+                'name': name,
+                'phone': phone,
+                'x_van_telegram_chat_id': telegram_chat_id,  # Assume custom field name is typical
+                'x_is_van_customer': True, # Ensure it gets picked up
+                'user_id': agent_id, # Optional standard assignment
+            })
+            
+            # Make sure it's linked in the custom logic if necessary (mijoz_ids)
+            # The get_clients logic looks for x_is_van_customer=True, or agent.mijoz_ids.
+            agent = request.env['res.users'].sudo().browse(agent_id)
+            if hasattr(agent, 'mijoz_ids'):
+                # Many2many relation
+                agent.write({'mijoz_ids': [(4, new_client.id)]})
+
+            return {
+                'success': True,
+                'client_id': new_client.id,
+                'client_name': new_client.name,
+                'message': 'Mijoz muvaffaqiyatli qo\'shildi'
+            }
+        except Exception as e:
+            _logger.error(f"Error creating client: {e}")
+            return {'success': False, 'error': str(e)}
+
     @http.route('/van/pos/get_clients', type='jsonrpc', auth='user')
     def get_clients(self):
         agent_id = self._get_agent_id()
