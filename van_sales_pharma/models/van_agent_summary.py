@@ -110,23 +110,12 @@ class VanAgentSummary(models.Model):
     )
 
                     
-    @api.depends('agent_id')
+    @api.depends('agent_id.mijoz_ids.x_van_total_due')
     def _compute_jami_nasiya(self):
         for rec in self:
-            credit_sales = self.env['van.pos.order'].search([
-                ('agent_id', '=', rec.agent_id.id),
-                ('partner_id', '!=', False),
-                ('state', '=', 'done')
-            ])
-            total_credit = sum(credit_sales.mapped('amount_total'))
-
-            kirimlar = self.env['van.payment'].search([
-                ('agent_id', '=', rec.agent_id.id),
-                ('payment_type', '=', 'in'),
-            ])
-            total_kirim = sum(kirimlar.mapped('amount'))
-
-            rec.jami_nasiya = total_credit - total_kirim
+            # Sum of all assigned clients' current debts (includes Sales, Payments, and Ostatka Qarzi)
+            partners = rec.agent_id.mijoz_ids
+            rec.jami_nasiya = sum(partners.mapped('x_van_total_due'))
 
     @api.depends('yalpi_balans', 'agent_id', 'date_from', 'date_to')
     def _compute_oylik_balansi(self):
