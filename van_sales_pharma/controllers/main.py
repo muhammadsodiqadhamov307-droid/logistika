@@ -637,6 +637,10 @@ class VanPosController(http.Controller):
             if not taminotchi or not taminotchi.exists():
                 return {'success': False, 'error': "Sizga taminotchi biriktirilmagan. Iltimos, taminotchini tanlang yoki administratorga murojaat qiling."}
 
+            if date and len(date) == 10:
+                current_time = datetime.datetime.now(datetime.timezone.utc).strftime('%H:%M:%S')
+                date = f"{date} {current_time}"
+
             trip_vals = {
                 'taminotchi_id': taminotchi.id,
                 'agent_id': int(agent_id),
@@ -673,10 +677,18 @@ class VanPosController(http.Controller):
             res = []
             
             for trip in trips:
+                local_date_str = ''
+                if trip.date:
+                    if isinstance(trip.date, datetime.datetime):
+                        local_dt = pytz.utc.localize(trip.date).astimezone(user_tz)
+                        local_date_str = local_dt.strftime('%Y-%m-%d %H:%M')
+                    else:
+                        local_date_str = trip.date.strftime('%Y-%m-%d %H:%M')
+                        
                 res.append({
                     'id': trip.id,
                     'name': trip.name,
-                    'date': trip.date.strftime('%Y-%m-%d %H:%M') if trip.date else '',
+                    'date': local_date_str,
                     'agent_name': trip.agent_id.name if trip.agent_id else '',
                     'state': trip.state,
                     'total_cost': trip.amount_cost_total,
