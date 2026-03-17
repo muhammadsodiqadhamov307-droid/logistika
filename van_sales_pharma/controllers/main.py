@@ -245,6 +245,8 @@ class VanPosController(http.Controller):
         # Get partner IDs for SQL query
         partner_ids = partners.ids
         if partner_ids:
+            import pytz
+            user_tz = pytz.timezone(request.env.user.tz or 'Asia/Tashkent')
             # Use SQL for efficient sorting by last transaction date (Sale OR Kirim)
             query = """
                 SELECT p.id, GREATEST(MAX(o.date), MAX(pay.date)) as last_transaction_date
@@ -256,19 +258,24 @@ class VanPosController(http.Controller):
                 ORDER BY last_transaction_date DESC NULLS LAST, p.name ASC
             """
             request.env.cr.execute(query, (agent_id, agent_id, tuple(partner_ids)))
-            sorted_partner_ids = [row[0] for row in request.env.cr.fetchall()]
+            sorted_partner_data = request.env.cr.fetchall()
             
             # Map partners to ensure we keep the ones we found
             partner_map = {p.id: p for p in partners}
             client_list = []
-            for pid in sorted_partner_ids:
+            for pid, last_tx in sorted_partner_data:
                 p = partner_map.get(pid)
                 if p:
+                    last_tx_str = ''
+                    if last_tx:
+                        if hasattr(last_tx, 'strftime'):
+                            last_tx_str = pytz.utc.localize(last_tx).astimezone(user_tz).strftime('%Y-%m-%d %H:%M')
                     client_list.append({
                         'id': p.id,
                         'name': p.name,
                         'balance': p.x_van_balance,
-                        'total_due': p.x_van_total_due
+                        'total_due': p.x_van_total_due,
+                        'last_transaction_date': last_tx_str
                     })
         else:
             client_list = []
@@ -279,7 +286,8 @@ class VanPosController(http.Controller):
             'name': "Naqt savdo (Mijozisiz)",
             'balance': 0.0,
             'total_due': 0.0,
-            'is_cash_sale': True
+            'is_cash_sale': True,
+            'last_transaction_date': ''
         })
         
         # Add explicit sort_order for frontend persistence
@@ -668,7 +676,7 @@ class VanPosController(http.Controller):
                 res.append({
                     'id': trip.id,
                     'name': trip.name,
-                    'date': str(trip.date) if trip.date else '',
+                    'date': trip.date.strftime('%Y-%m-%d %H:%M') if trip.date else '',
                     'agent_name': trip.agent_id.name if trip.agent_id else '',
                     'state': trip.state,
                     'total_cost': trip.amount_cost_total,

@@ -254,6 +254,9 @@
                                         <t t-esc="client.name"/>
                                     </div>
                                     <div t-if="client.id !== false" style="font-size: 14px; color: #4b5563;">Hozirgi qarz: <span style="color: #dc2626; font-weight: bold;"><t t-esc="client.total_due.toLocaleString()"/></span></div>
+                                    <div t-if="client.last_transaction_date" class="last-transaction" style="font-size: 12px; color: #757575; font-style: italic; margin-top: 4px;">
+                                        📅 <t t-esc="client.last_transaction_date"/>
+                                    </div>
                                 </div>
                                 <div style="display: flex; align-items: center; gap: 15px;">
                                     <button t-if="client.id !== false" 

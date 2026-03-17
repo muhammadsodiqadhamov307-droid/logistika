@@ -24,7 +24,7 @@ class VanTrip(models.Model):
     )
 
     
-    date = fields.Date(string='Sana', required=True, default=fields.Date.context_today)
+    date = fields.Datetime(string='Sana', required=True, default=fields.Datetime.now)
     
     state = fields.Selection([
         ('draft', 'Qoralama'),
