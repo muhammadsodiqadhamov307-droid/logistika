@@ -130,62 +130,81 @@
 
             <!-- Quick Action Modal -->
 
-            <div t-if="state.showQuickAction" style="position: fixed; inset: 0; background: rgba(15,23,42,0.55); display: flex; justify-content: center; align-items: center; z-index: 2100; padding: 20px;">
-                <div style="background: white; border-radius: 10px; width: 100%; max-width: 400px; padding: 20px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                        <h3 style="margin: 0;">
+            <div t-if="state.showQuickAction" class="kirim-modal-overlay" style="z-index: 2100; padding: 20px;" t-on-click="closeQuickAction">
+                <div class="kirim-modal-content kirim-modal-sheet quick-action-sheet" t-on-click.stop="">
+                    <div class="kirim-modal-header" t-attf-class="kirim-modal-header {{ state.quickActionType === 'chiqim' ? 'quick-action-header-chiqim' : 'quick-action-header-kirim' }}">
+                        <div>
+                            <h3 style="margin: 0; font-size: 22px; font-weight: 800;">
                             <t t-if="state.quickActionType === 'kirim'">Kirim Qabul Qilish</t>
                             <t t-if="state.quickActionType === 'chiqim'">Chiqim Qilish</t>
-                        </h3>
-                        <button t-on-click="closeQuickAction" style="background: none; border: none; font-size: 20px; cursor: pointer;"><i class="fa fa-times text-muted"></i></button>
+                            </h3>
+                            <p class="kirim-modal-subtitle">
+                                <t t-if="state.quickActionType === 'kirim'">To'lov ma'lumotlarini kiriting va saqlang.</t>
+                                <t t-if="state.quickActionType === 'chiqim'">Xarajat turini tanlang va chiqimni tasdiqlang.</t>
+                            </p>
+                        </div>
+                        <button class="kirim-btn-close" t-on-click="closeQuickAction">✕</button>
                     </div>
 
                     <t t-if="state.quickActionType === 'kirim' and state.screen === 'products'">
-                        <div style="margin-bottom: 15px; font-size: 14px; color: #4b5563;">
-                            <strong>Mijoz:</strong> <t t-esc="state.selectedClient.name"/>
+                        <div class="kirim-selected-client" style="margin-bottom: 12px;">
+                            <span class="icon">👤</span>
+                            <span class="name"><t t-esc="state.selectedClient.name"/></span>
                         </div>
                     </t>
                     <t t-if="state.quickActionType === 'kirim' and (state.screen === 'clients' or state.screen === 'payment_history')">
-                        <div style="margin-bottom: 15px;">
-                            <label style="display: block; font-size: 14px; font-weight: bold; margin-bottom: 5px; color: #374151;">Mijoz (Ixtiyoriy, agar qarz to'layotgan bo'lsa)</label>
-                            <select t-model="state.quickActionPartnerId" style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; box-sizing: border-box; outline: none; background-color: white;">
+                        <div class="kirim-modal-body" style="padding-top: 14px;">
+                            <div class="kirim-field">
+                            <label>Mijoz (Ixtiyoriy, agar qarz to'layotgan bo'lsa)</label>
+                            <select t-model="state.quickActionPartnerId" class="quick-action-select">
                                 <option value="">Turli Tushum</option>
                                 <t t-foreach="state.clients" t-as="client" t-key="client.id">
                                     <option t-att-value="client.id"><t t-esc="client.name"/></option>
                                 </t>
                             </select>
-                        </div>
-                    </t>
-
-                    <t t-if="state.quickActionType === 'chiqim'">
-                        <div style="margin-bottom: 15px;">
-                            <label style="display: block; font-size: 14px; font-weight: bold; margin-bottom: 5px; color: #374151;">Chiqim Turi</label>
-                            <div style="display: flex; flex-direction: column; gap: 8px;">
-                                <label style="display: flex; align-items: center; gap: 8px; background: #f9fafb; padding: 10px; border-radius: 6px; border: 1px solid #e5e7eb;">
-                                    <input type="radio" t-model="state.quickActionExpenseType" value="daily" style="width: 18px; height: 18px; accent-color: #ef4444;"/>
-                                    <span style="font-size: 15px; color: #374151;">🟡 Kunlik chiqim (Biznes xarajat)</span>
-                                </label>
-                                <label style="display: flex; align-items: center; gap: 8px; background: #f5f3ff; padding: 10px; border-radius: 6px; border: 1px solid #ddd6fe;">
-                                    <input type="radio" t-model="state.quickActionExpenseType" value="salary" style="width: 18px; height: 18px; accent-color: #8b5cf6;"/>
-                                    <span style="font-size: 15px; color: #4c1d95; font-weight: bold;">🟣 Oylik chiqim (Oylikdan)</span>
-                                </label>
                             </div>
                         </div>
                     </t>
 
-                    <div style="margin-bottom: 15px;">
-                        <label style="display: block; font-size: 14px; font-weight: bold; margin-bottom: 5px; color: #374151;">Summa (So'm)</label>
-                        <input type="text" inputmode="numeric" t-model="state.quickActionAmount" t-on-input="setQuickActionAmountForm" placeholder="0" style="width: 100%; padding: 12px; border: 2px solid #d1d5db; border-radius: 8px; font-size: 18px; box-sizing: border-box; outline: none; transition: border-color 0.2s;" t-attf-style="border-color: {{ state.quickActionType === 'kirim' ? '#10b981' : '#ef4444' }};"/>
+                    <t t-if="state.quickActionType === 'chiqim'">
+                        <div class="kirim-modal-body" style="padding-top: 14px;">
+                            <div class="kirim-field">
+                            <label>Chiqim Turi</label>
+                            <div class="quick-action-choice-list">
+                                <label class="quick-action-choice" t-attf-class="quick-action-choice {{ state.quickActionExpenseType === 'daily' ? 'active-daily' : '' }}">
+                                    <input type="radio" t-model="state.quickActionExpenseType" value="daily"/>
+                                    <span class="quick-action-choice-dot daily"></span>
+                                    <span class="quick-action-choice-text">Kunlik chiqim (Biznes xarajat)</span>
+                                </label>
+                                <label class="quick-action-choice" t-attf-class="quick-action-choice {{ state.quickActionExpenseType === 'salary' ? 'active-salary' : '' }}">
+                                    <input type="radio" t-model="state.quickActionExpenseType" value="salary"/>
+                                    <span class="quick-action-choice-dot salary"></span>
+                                    <span class="quick-action-choice-text">Oylik chiqim (Oylikdan)</span>
+                                </label>
+                            </div>
+                            </div>
+                        </div>
+                    </t>
+
+                    <div class="kirim-modal-body">
+                        <div class="kirim-field">
+                            <label>Summa (So'm)</label>
+                            <input class="kirim-amount-input" type="text" inputmode="numeric" t-model="state.quickActionAmount" t-on-input="setQuickActionAmountForm" placeholder="0" t-attf-style="border-color: {{ state.quickActionType === 'kirim' ? '#10b981' : '#ef4444' }}; box-shadow: {{ state.quickActionType === 'kirim' ? '0 0 0 4px rgba(16,185,129,0.08)' : '0 0 0 4px rgba(239,68,68,0.08)' }};"/>
+                        </div>
+
+                        <div class="kirim-field">
+                            <label>Izoh (Ixtiyoriy)</label>
+                            <textarea class="kirim-note-input" t-model="state.quickActionNote" rows="3" placeholder="Nima uchun..."></textarea>
+                        </div>
                     </div>
 
-                    <div style="margin-bottom: 20px;">
-                        <label style="display: block; font-size: 14px; font-weight: bold; margin-bottom: 5px; color: #374151;">Izoh (Ixtiyoriy)</label>
-                        <input type="text" t-model="state.quickActionNote" placeholder="Nima uchun..." style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; box-sizing: border-box; outline: none;"/>
+                    <div class="kirim-modal-actions">
+                        <button class="kirim-btn-cancel" t-on-click="closeQuickAction">Bekor qilish</button>
+                        <button class="kirim-btn-primary" t-on-click="submitQuickAction" t-attf-style="background: {{ state.quickActionType === 'kirim' ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' : 'linear-gradient(135deg, #ef4444 0%, #be123c 100%)' }};">
+                            <t t-if="state.quickActionType === 'kirim'">Saqlash</t>
+                            <t t-if="state.quickActionType === 'chiqim'">Chiqimni Saqlash</t>
+                        </button>
                     </div>
-
-                    <button t-on-click="submitQuickAction" style="width: 100%; padding: 15px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; color: white; cursor: pointer;" t-attf-style="background-color: {{ state.quickActionType === 'kirim' ? '#10b981' : '#ef4444' }};">
-                        Saqlash
-                    </button>
                 </div>
             </div>
 
