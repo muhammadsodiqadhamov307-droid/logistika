@@ -344,7 +344,7 @@
                                                 <td style="padding: 10px;">
                                                     <t t-esc="tx.date_label || tx.date"/>
                                                     <!-- Action Buttons for Kirim and Sotuv -->
-                                                    <div t-if="tx.turi in ['kirim', 'sotuv'] and !state.editingTxnId" style="margin-top: 4px; display: flex; gap: 8px;">
+                                                    <div t-if="['kirim', 'sotuv'].includes(tx.turi) and !state.editingTxnId" style="margin-top: 4px; display: flex; gap: 8px;">
                                                         <button t-on-click="(ev) => this.enableEdit(tx, ev)" style="background: none; border: none; padding: 2px; color: #3b82f6; font-size: 14px; cursor: pointer;"><i class="fa fa-pencil"></i></button>
                                                         <button t-on-click="(ev) => this.confirmDelete(tx, ev)" style="background: none; border: none; padding: 2px; color: #ef4444; font-size: 14px; cursor: pointer;"><i class="fa fa-trash"></i></button>
                                                     </div>

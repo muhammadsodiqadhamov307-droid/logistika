@@ -18,11 +18,11 @@
                     </div>
                     <group>
                         <group>
-                            <field name="partner_id" readonly="state != 'draft'"/>
-                            <field name="agent_id" readonly="state != 'draft'"/>
+                            <field name="partner_id"/>
+                            <field name="agent_id"/>
                         </group>
                         <group>
-                            <field name="date" readonly="state != 'draft'"/>
+                            <field name="date"/>
                             <field name="nasiya_id"/>
                             <field name="company_id" invisible="1"/>
                             <field name="currency_id" invisible="1"/>
@@ -30,7 +30,7 @@
                     </group>
                     <notebook>
                         <page string="Mahsulotlar" name="products">
-                            <field name="line_ids" readonly="state != 'draft'">
+                            <field name="line_ids">
                                 <list editable="bottom">
                                     <field name="product_id"/>
                                     <field name="qty"/>
