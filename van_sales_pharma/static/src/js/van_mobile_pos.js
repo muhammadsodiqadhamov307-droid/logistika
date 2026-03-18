@@ -127,6 +127,16 @@ export class VanMobilePos extends Component {
             editingTxnId: null,      // tx.id if currently editing
             editKirimAmount: '',     // bound to input
             editSotuvLines: {},      // {line_id: {qty, price, price_formatted}}
+
+            // Custom Kirim Flow
+            showKirimClientModal: false,
+            showKirimAmountModal: false,
+            kirimClientSearch: '',
+            selectedKirimClientId: null,
+            selectedKirimClientName: '',
+            selectedKirimClientDebt: 0,
+            kirimAmountInput: '',
+            kirimNotes: '',
         });
 
         // Expose formatting function to template
@@ -1228,9 +1238,16 @@ export class VanMobilePos extends Component {
         this.state.showClientPickerModal = false;
     }
 
-    openKirimClientModal() {
-        this.state.showKirimClientModal = true;
-        this.state.kirimClientSearch = '';
+    // ===========================================
+    // Custom Kirim Creation Flow (Redesign)
+    // ===========================================
+    get filteredKirimClients() {
+        if (!this.state.kirimClientSearch) return this.state.clients;
+        const q = this.state.kirimClientSearch.toLowerCase();
+        return this.state.clients.filter(c =>
+            (c.name && c.name.toLowerCase().includes(q)) ||
+            (c.phone && c.phone.includes(q))
+        );
     }
 
     onNewPaymentClick() {
@@ -1242,12 +1259,74 @@ export class VanMobilePos extends Component {
         }
     }
 
+    openKirimClientModal() {
+        this.state.showKirimClientModal = true;
+        this.state.kirimClientSearch = '';
+    }
+
+    closeKirimClientModal() {
+        this.state.showKirimClientModal = false;
+    }
+
     selectTurliTushum() {
         this.selectKirimClient(null, 'Turli Tushum', 0);
     }
 
-    closeKirimClientModal() {
-        this.state.showClientPickerModal = false;
+    selectKirimClient(clientId, clientName, clientDebt) {
+        this.state.selectedKirimClientId = clientId;
+        this.state.selectedKirimClientName = clientName;
+        this.state.selectedKirimClientDebt = clientDebt;
+
+        this.state.kirimAmountInput = '';
+        this.state.kirimNotes = '';
+
+        this.closeKirimClientModal();
+        this.state.showKirimAmountModal = true;
+    }
+
+    closeKirimAmountModal() {
+        this.state.showKirimAmountModal = false;
+    }
+
+    setKirimAmountForm(ev) {
+        let val = ev.target.value.replace(/[^0-9]/g, '');
+        if (!val) {
+            this.state.kirimAmountInput = '';
+            return;
+        }
+        let numericValue = parseInt(val, 10);
+        this.state.kirimAmountInput = formatNumberWithCommas(numericValue);
+    }
+
+    async submitKirimFlow() {
+        const rawAmount = parseInt(this.state.kirimAmountInput.replace(/,/g, ''), 10) || 0;
+        if (rawAmount <= 0) {
+            this.showToast("Summani kiriting", "danger");
+            return;
+        }
+
+        this.state.loading = true;
+        try {
+            const params = {
+                payment_type: 'in',
+                amount: rawAmount,
+                note: this.state.kirimNotes,
+                partner_id: this.state.selectedKirimClientId ? this.state.selectedKirimClientId : false,
+                expense_type: 'daily'
+            };
+            const result = await rpc("/van/pos/save_payment", params);
+            if (result.success) {
+                this.showToast("Kirim muvaffaqiyatli saqlandi", "success");
+                this.closeKirimAmountModal();
+                this.openPaymentHistory('kirim');
+                this.loadClients(); // async reload background balances
+            } else {
+                this.showToast(result.error || "Xatolik yuz berdi", "danger");
+            }
+        } catch (e) {
+            this.showToast("Tarmoq xatosi", "danger");
+        }
+        this.state.loading = false;
     }
 
     selectRequestClient(client) {
