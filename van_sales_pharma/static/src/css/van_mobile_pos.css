@@ -319,11 +319,19 @@
 .kirim-search-box input {
     flex: 1;
     min-width: 0;
+    height: 52px;
     border: 0;
     outline: 0;
+    padding: 0;
+    margin: 0;
     background: transparent;
     font-size: 16px;
+    line-height: 52px;
     color: #0f172a;
+    display: block;
+    appearance: none;
+    -webkit-appearance: none;
+    border-radius: 0;
 }
 
 .kirim-client-option {
