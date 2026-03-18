@@ -981,29 +981,26 @@ class VanPosController(http.Controller):
                     qty_diff = new_qty - line.qty
                     
                     if qty_diff != 0:
-                        # Check stock if we are increasing quantity
-                        inv = request.env['van.agent.inventory'].sudo().search([
-                            ('agent_id', '=', order.agent_id.id),
-                            ('product_id', '=', line.product_id.id)
+                        summary = request.env['van.agent.summary'].sudo().search([
+                            ('agent_id', '=', order.agent_id.id)
                         ], limit=1)
+                        inv = request.env['van.agent.inventory.line'].sudo().search([
+                            ('summary_id', '=', summary.id),
+                            ('product_id', '=', line.product_id.id)
+                        ], limit=1) if summary else request.env['van.agent.inventory.line']
                         
                         if qty_diff > 0:
-                            if not inv or inv.qty < qty_diff:
+                            available_qty = inv.remaining_qty if inv else 0.0
+                            if available_qty < qty_diff:
                                 return {'success': False, 'error': f"Agentda {line.product_id.name} uchun yetarli qoldiq yo'q."}
-
-                        # Adjust stock
-                        if inv:
-                            inv.sudo().write({'qty': inv.qty - qty_diff})
                         
                     # Also write cost_price logic to update subtotal cost
-                    if hasattr(line.product_id, 'cost_price'):
-                        cost = line.product_id.cost_price * new_qty
-                        line.sudo().write({'qty': new_qty, 'price_unit': new_price, 'cost_amount': cost})
-                    else:
-                        line.sudo().write({'qty': new_qty, 'price_unit': new_price})
+                    line.sudo().write({'qty': new_qty, 'price_unit': new_price})
 
             # Recompute total amount manually and partner balances
             order.sudo()._compute_amount_total()
+            if order.nasiya_id:
+                order.nasiya_id.sudo().write({'amount_total': order.amount_total})
             if order.partner_id:
                 order.partner_id.sudo()._compute_van_nasiya_stats()
                 
@@ -1029,21 +1026,6 @@ class VanPosController(http.Controller):
             partner = order.partner_id
             
             # Restore inventory for each line
-            for line in order.line_ids:
-                if line.qty > 0:
-                    inv = request.env['van.agent.inventory'].sudo().search([
-                        ('agent_id', '=', order.agent_id.id),
-                        ('product_id', '=', line.product_id.id)
-                    ], limit=1)
-                    if inv:
-                        inv.sudo().write({'qty': inv.qty + line.qty})
-                    else:
-                        request.env['van.agent.inventory'].sudo().create({
-                            'agent_id': order.agent_id.id,
-                            'product_id': line.product_id.id,
-                            'qty': line.qty,
-                        })
-
             order.sudo().unlink()
             
             # Recompute balances since sale was deleted
@@ -1192,7 +1174,7 @@ class VanPosController(http.Controller):
                     'date': fields.Datetime.now(),
                     'note': note,
                     'expense_type': expense_type if payment_type == 'out' else False,
-                    'state': 'done'
+                    'state': 'received'
                 })
                 return {'success': True, 'payment_id': payment.id}
         except Exception as e:

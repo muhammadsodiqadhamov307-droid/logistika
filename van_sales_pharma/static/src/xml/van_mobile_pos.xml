@@ -280,7 +280,7 @@
                     <div style="padding: 16px;">
                         <div style="margin-bottom: 15px;">
                             <label style="display: block; font-size: 14px; font-weight: bold; margin-bottom: 5px; color: #374151;">Summa (so'm)</label>
-                            <input type="text" inputmode="numeric" t-model="state.kirimAmountInput" t-on-input="setKirimAmountForm" style="width: 100%; padding: 12px; border: 2px solid #d1d5db; border-radius: 8px; font-size: 18px; box-sizing: border-box; outline: none; transition: border-color 0.2s;" placeholder="0" />
+                            <input type="text" inputmode="numeric" t-model="state.kirimAmountInput" t-on-input="setKirimFlowAmountForm" style="width: 100%; padding: 12px; border: 2px solid #d1d5db; border-radius: 8px; font-size: 18px; box-sizing: border-box; outline: none; transition: border-color 0.2s;" placeholder="0" />
                         </div>
                         
                         <div style="margin-bottom: 15px;">
@@ -679,7 +679,7 @@
                             
                             <div style="margin-bottom: 15px; text-align: left;">
                                 <label style="display: block; font-size: 14px; color: #4b5563; margin-bottom: 5px;">To'lov summasi (Kirim):</label>
-                                <input type="text" inputmode="numeric" t-att-value="state.kirimAmount" t-on-input="setKirimAmountForm" style="width: 100%; padding: 12px; font-size: 20px; font-weight: bold; border: 2px solid #2563eb; border-radius: 8px; box-sizing: border-box; text-align: right;"/>
+                                <input type="text" inputmode="numeric" t-att-value="state.kirimAmount" t-on-input="setNasiyaKirimAmountForm" style="width: 100%; padding: 12px; font-size: 20px; font-weight: bold; border: 2px solid #2563eb; border-radius: 8px; box-sizing: border-box; text-align: right;"/>
                             </div>
                             
                             <div style="display: flex; gap: 10px;">

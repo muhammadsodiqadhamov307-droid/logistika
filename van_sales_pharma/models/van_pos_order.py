@@ -89,17 +89,18 @@ class VanPosOrder(models.Model):
                    raise UserError(_("'%s' uchun yetarli zaxira yo'q. Qoldiq: %s, So'ralgan: %s") % 
                                    (line.product_id.display_name, rem_qty, line.qty))
 
-            # 2. Create Nasiya Record
-            nasiya_vals = {
-                'partner_id': order.partner_id.id,
-                'agent_id': order.agent_id.id,
-                'amount_total': order.amount_total,
-                'date': order.date.date(),
-                # We don't link an invoice_id here as per requirements.
-                # We will add a 'van_pos_order_id' reference if needed, or just keep it loose.
-            }
-            nasiya = self.env['van.nasiya'].create(nasiya_vals)
-            order.nasiya_id = nasiya.id
+            # 2. Create Nasiya Record only for partner-backed sales.
+            if order.partner_id:
+                nasiya_vals = {
+                    'partner_id': order.partner_id.id,
+                    'agent_id': order.agent_id.id,
+                    'amount_total': order.amount_total,
+                    'date': order.date.date(),
+                    # We don't link an invoice_id here as per requirements.
+                    # We will add a 'van_pos_order_id' reference if needed, or just keep it loose.
+                }
+                nasiya = self.env['van.nasiya'].create(nasiya_vals)
+                order.nasiya_id = nasiya.id
             
             # Snap the commission amount so it doesn't fluctuate if the admin changes the agent percentage later
             # Calculate commission based on original 'sotish narxi' (list_price) regardless of discounted actual price

@@ -823,7 +823,7 @@ export class VanMobilePos extends Component {
     }
 
     // --- Input Handlers for formatting ---
-    setKirimAmountForm(ev) {
+    setNasiyaKirimAmountForm(ev) {
         // Remove trailing commas mapping errors
         const cursorPosition = ev.target.selectionStart;
         const oldLength = ev.target.value.length;
@@ -1288,7 +1288,7 @@ export class VanMobilePos extends Component {
         this.state.showKirimAmountModal = false;
     }
 
-    setKirimAmountForm(ev) {
+    setKirimFlowAmountForm(ev) {
         let val = ev.target.value.replace(/[^0-9]/g, '');
         if (!val) {
             this.state.kirimAmountInput = '';
