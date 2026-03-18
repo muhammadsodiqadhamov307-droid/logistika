@@ -861,6 +861,70 @@
                     </div>
                 </t>
 
+                <!-- PAYMENT HISTORY SCREEN -->
+                <t t-if="state.screen === 'payment_history'">
+                    <div style="display: flex; align-items: center; margin-bottom: 15px;">
+                        <button t-on-click="() => state.screen = 'products'" style="background: none; border: none; font-size: 20px; color: #4b5563; margin-right: 15px; cursor: pointer;">
+                            <i class="fa fa-arrow-left"></i>
+                        </button>
+                        <h2 style="margin: 0; font-size: 22px; color: #111827; flex: 1;">
+                            <t t-if="state.paymentHistoryType === 'kirim'">Kirimlar Tarixi</t>
+                            <t t-else="">Chiqimlar Tarixi</t>
+                        </h2>
+                        <button t-on-click="() => { this.state.editingPaymentId = null; this.openQuickAction(state.paymentHistoryType); }" style="background-color: #3b82f6; color: white; border: none; border-radius: 8px; padding: 8px 15px; font-weight: bold; cursor: pointer;">
+                            <i class="fa fa-plus"></i> Yangi
+                        </button>
+                    </div>
+                    
+                    <t t-if="state.paymentHistory.length === 0">
+                        <div style="text-align: center; padding: 30px; color: #6b7280; background: white; border-radius: 10px;">
+                            Tarix bo'sh. Hech qanday ma'lumot topilmadi.
+                        </div>
+                    </t>
+                    <t t-else="">
+                        <div style="display: grid; gap: 12px;">
+                            <t t-foreach="state.paymentHistory" t-as="pay" t-key="pay.id">
+                                <div style="background: white; border-radius: 10px; padding: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border-left: 4px solid #ef4444;" t-attf-style="border-color: {{ state.paymentHistoryType === 'kirim' ? '#10b981' : '#ef4444' }};">
+                                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
+                                        <div>
+                                            <div style="font-weight: bold; font-size: 16px; color: #111827;">
+                                                <t t-if="state.paymentHistoryType === 'kirim'">
+                                                    <i class="fa fa-arrow-down" style="color: #10b981; margin-right: 5px;"></i> Kirim
+                                                </t>
+                                                <t t-else="">
+                                                    <t t-if="pay.expense_type === 'daily'">🟡 Kunlik (Biznes)</t>
+                                                    <t t-elif="pay.expense_type === 'salary'">🟣 Oylik (Oylikdan)</t>
+                                                    <t t-else="">Chiqim</t>
+                                                </t>
+                                            </div>
+                                            <div style="font-size: 13px; color: #6b7280; margin-top: 4px;">🗓️ <t t-esc="pay.date"/></div>
+                                        </div>
+                                        <div style="font-size: 18px; font-weight: bold;" t-attf-style="color: {{ state.paymentHistoryType === 'kirim' ? '#10b981' : '#ef4444' }};">
+                                            <t t-esc="formatNumber(pay.amount)"/> so'm
+                                        </div>
+                                    </div>
+                                    
+                                    <div t-if="pay.note" style="font-size: 14px; color: #4b5563; font-style: italic; background: #f9fafb; padding: 8px; border-radius: 6px; margin-bottom: 10px;">
+                                        📝 <t t-esc="pay.note"/>
+                                    </div>
+                                    <div t-if="pay.partner_name" style="font-size: 14px; color: #4b5563; background: #f0fdf4; padding: 8px; border-radius: 6px; margin-bottom: 10px;">
+                                        👤 Mijoz: <t t-esc="pay.partner_name"/>
+                                    </div>
+                                    
+                                    <div style="display: flex; gap: 10px; margin-top: 10px; border-top: 1px solid #f3f4f6; padding-top: 10px;">
+                                        <button t-on-click="() => this.editPaymentAction(pay)" style="flex: 1; background: #f3f4f6; border: none; padding: 8px; border-radius: 6px; color: #4b5563; font-weight: bold; cursor: pointer;">
+                                            ✏️ Tahrirlash
+                                        </button>
+                                        <button t-on-click="() => this.deletePaymentAction(pay.id)" style="flex: 1; background: #fef2f2; border: none; padding: 8px; border-radius: 6px; color: #ef4444; font-weight: bold; cursor: pointer;">
+                                            🗑️ O'chirish
+                                        </button>
+                                    </div>
+                                </div>
+                            </t>
+                        </div>
+                    </t>
+                </t>
+
                 <!-- TRIPS LIST SCREEN -->
                 <t t-if="state.screen === 'trips_list'">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
