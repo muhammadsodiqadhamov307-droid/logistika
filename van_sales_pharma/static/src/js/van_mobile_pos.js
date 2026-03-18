@@ -60,6 +60,11 @@ export class VanMobilePos extends Component {
             quickActionPartnerId: '',
             quickActionExpenseType: 'daily',
 
+            // Payment History
+            paymentHistory: [],
+            paymentHistoryType: 'kirim',
+            editingPaymentId: null,
+
             // Action Menu (3-dots)
             showActionMenu: false,
 
@@ -96,6 +101,9 @@ export class VanMobilePos extends Component {
             tripDate: new Date().toISOString().split('T')[0], // Defaults to today
             tripNote: '',
             tripCart: {},
+            showYuklashPreviewModal: false,
+            yuklashPreviewLines: [],
+            yuklashPreviewTotal: 0,
 
             pollingInterval: null,
 
@@ -1071,25 +1079,51 @@ export class VanMobilePos extends Component {
 
         if (this.state.isOnline) {
             try {
-                const result = await rpc("/van/pos/submit_quick_action", data);
-
-                if (result.success) {
-                    // Locally update balance if this was a kirim from a client
-                    if (this.state.quickActionType === 'kirim' && data.partner_id) {
-                        this.updateLocalClientBalance(data.partner_id, -amount);
+                if (this.state.editingPaymentId) {
+                    // Update existing payment
+                    const updateData = {
+                        payment_id: this.state.editingPaymentId,
+                        payment_type: this.state.quickActionType === 'kirim' ? 'in' : 'out',
+                        amount: amount,
+                        note: this.state.quickActionNote,
+                        partner_id: data.partner_id,
+                        expense_type: this.state.quickActionExpenseType
+                    };
+                    const result = await rpc("/van/pos/save_payment", updateData);
+                    if (result.success) {
+                        this.showToast("Amaliyot yangilandi!", "success");
+                        this.closeQuickAction();
+                        await this.openPaymentHistory(this.state.paymentHistoryType);
+                    } else {
+                        this.state.error = result.error || "Yangilashda xatolik";
                     }
-
-                    this.loadCurrentAgent(); // Refresh agent balance if it was a salary withdrawal
-                    this.closeQuickAction();
-                    this.showToast("Amaliyot saqlandi!", "success");
                 } else {
-                    this.state.error = result.error || "Amaliyot saqlanmadi.";
+                    // Create new payment (retains original logic)
+                    const result = await rpc("/van/pos/submit_quick_action", data);
+
+                    if (result.success) {
+                        // Locally update balance if this was a kirim from a client
+                        if (this.state.quickActionType === 'kirim' && data.partner_id) {
+                            this.updateLocalClientBalance(data.partner_id, -amount);
+                        }
+
+                        this.loadCurrentAgent(); // Refresh agent balance if it was a salary withdrawal
+                        this.closeQuickAction();
+                        this.showToast("Amaliyot saqlandi!", "success");
+
+                        // If we are currently inside the history view, refresh it
+                        if (this.state.screen === 'payment_history') {
+                            await this.openPaymentHistory(this.state.paymentHistoryType);
+                        }
+                    } else {
+                        this.state.error = result.error || "Amaliyot saqlanmadi.";
+                    }
                 }
             } catch (e) {
-                this.state.error = "Tarmoqda xatolik: Amaliyot saqlanmadi.";
+                this.state.error = "Tarmoqda xatolik: Amaliyot bajarilmadi.";
             }
         } else {
-            // OFFLINE SAVE
+            // OFFLINE SAVE (Only for creations, edits not allowed offline)
             const offline_id = this.generateUUID();
             const tx = {
                 offline_id: offline_id,
@@ -1421,22 +1455,147 @@ export class VanMobilePos extends Component {
 
         this.state.loading = true;
         try {
+            const line_vals = validLines.map(l => {
+                return {
+                    product_id: l.product.product_id,
+                    qty: l.qty,
+                    price_unit: l.product.price // Default to product's list price
+                };
+            });
+
+            // Now that we have cart computed, open preview instead of submitting immediately
+            this.state.yuklashPreviewLines = line_vals.map(l => {
+                const product = this.state.allProducts.find(p => p.product_id === l.product_id);
+                return {
+                    product_id: l.product_id,
+                    name: product ? product.name : 'Unknown',
+                    qty: l.qty,
+                    kelish_narxi: l.price_unit,
+                    subtotal: l.qty * l.price_unit
+                };
+            });
+
+            this.recalculateYuklashPreviewTotal();
+            this.state.showYuklashPreviewModal = true;
+            this.state.loading = false;
+
+        } catch (e) {
+            this.state.error = "Tarmoqda xatolik";
+            this.state.loading = false;
+        }
+    }
+
+    recalculateYuklashPreviewTotal() {
+        let t = 0;
+        for (let l of this.state.yuklashPreviewLines) {
+            l.subtotal = l.qty * l.kelish_narxi;
+            t += l.subtotal;
+        }
+        this.state.yuklashPreviewTotal = t;
+    }
+
+    updateYuklashPreviewLine(index, field, value) {
+        const num = parseFormattedNumber(value);
+        if (field === 'qty') {
+            this.state.yuklashPreviewLines[index].qty = num;
+        } else if (field === 'price') {
+            this.state.yuklashPreviewLines[index].kelish_narxi = num;
+        }
+        this.recalculateYuklashPreviewTotal();
+    }
+
+    removeYuklashPreviewLine(index) {
+        this.state.yuklashPreviewLines.splice(index, 1);
+        this.recalculateYuklashPreviewTotal();
+    }
+
+    closeYuklashPreview() {
+        this.state.showYuklashPreviewModal = false;
+    }
+
+    async confirmYuklash() {
+        if (this.state.yuklashPreviewLines.length === 0) {
+            this.showToast("Mahsulot qolmadi", "danger");
+            return;
+        }
+
+        this.state.loading = true;
+        try {
+            // Re-package the lines based on the preview edits
+            const line_vals = this.state.yuklashPreviewLines.map(l => {
+                return {
+                    product_id: l.product_id,
+                    qty: l.qty,
+                    price_unit: l.kelish_narxi
+                };
+            });
+
             const result = await rpc("/van/pos/submit_trip", {
-                agent_id: parseInt(this.state.currentAgent.id),
-                taminotchi_id: this.state.selectedTaminotchiId,
+                taminotchi_id: parseInt(this.state.selectedTaminotchiId),
+                agent_id: this.state.currentAgent.id,
                 date: this.state.tripDate,
                 note: this.state.tripNote,
-                lines: validLines
+                lines: line_vals
             });
 
             if (result.success) {
-                this.loadInventorySilent(); // Trigger stock push to UI
+                this.showToast("Sayohat saqlandi", "success");
+                this.state.showYuklashPreviewModal = false;
+                this.state.screen = 'trips_list';
                 await this.openTripsList();
             } else {
-                this.state.error = result.error || "Sayohatni saqlash muvaffaqiyatsiz.";
+                this.showToast(result.error || "Saqlab bo'lmadi", "danger");
             }
         } catch (e) {
-            this.state.error = "Tarmoqda xatolik: Sayohat saqlanmadi.";
+            this.showToast("Tarmoqda xatolik", "danger");
+        }
+        this.state.loading = false;
+    }
+
+    // --- QUICK ACTIONS HISTORY MANAGEMENT ---
+
+    async openPaymentHistory(type) {
+        // type: 'kirim' or 'chiqim'
+        this.state.paymentHistoryType = type;
+        this.state.loading = true;
+        try {
+            const apiType = type === 'kirim' ? 'in' : 'out';
+            const result = await rpc("/van/pos/get_payments", { payment_type: apiType });
+            if (result.success) {
+                this.state.paymentHistory = result.payments || [];
+                this.state.screen = 'payment_history';
+            } else {
+                this.showToast(result.error || "Tarixni olib bo'lmadi", "danger");
+            }
+        } catch (e) {
+            this.showToast("Tarmoqda xato", "danger");
+        }
+        this.state.loading = false;
+    }
+
+    editPaymentAction(payment) {
+        this.state.editingPaymentId = payment.id;
+        this.state.quickActionType = this.state.paymentHistoryType;
+        this.state.quickActionAmount = formatNumberWithCommas(payment.amount);
+        this.state.quickActionNote = payment.note || '';
+        this.state.quickActionPartnerId = payment.partner_id ? String(payment.partner_id) : '';
+        this.state.quickActionExpenseType = payment.expense_type || 'daily';
+        this.state.showQuickAction = true;
+    }
+
+    async deletePaymentAction(paymentId) {
+        if (!confirm("Ushbu yozuvni o'chirmoqchimisiz?")) return;
+        this.state.loading = true;
+        try {
+            const result = await rpc("/van/pos/delete_payment", { payment_id: paymentId });
+            if (result.success) {
+                this.showToast("O'chirildi", "success");
+                await this.openPaymentHistory(this.state.paymentHistoryType);
+            } else {
+                this.showToast(result.error || "Xatolik", "danger");
+            }
+        } catch (e) {
+            this.showToast("Tarmoq xatosi", "danger");
         }
         this.state.loading = false;
     }

@@ -70,12 +70,12 @@
                     <div t-if="state.showActionMenu and (state.screen === 'clients' or state.screen === 'products')" 
                          id="dots-menu"
                          style="position: absolute; top: 100%; right: 0; background: white; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06); padding: 5px; margin-top: 10px; min-width: 150px; z-index: 100;">
-                        <button t-on-click="() => { this.openQuickAction('kirim'); state.showActionMenu = false; }" style="display: flex; align-items: center; width: 100%; text-align: left; background: none; border: none; padding: 10px; font-size: 15px; border-radius: 5px; color: #10b981; font-weight: bold; margin-bottom: 5px;">
-                            <i class="fa fa-plus-circle" style="margin-right: 10px; width: 15px;"></i> Kirim
+                        <button t-on-click="() => { this.openPaymentHistory('kirim'); state.showActionMenu = false; }" style="display: flex; align-items: center; width: 100%; text-align: left; background: none; border: none; padding: 10px; font-size: 15px; border-radius: 5px; color: #10b981; font-weight: bold; margin-bottom: 5px;">
+                            <i class="fa fa-plus-circle" style="margin-right: 10px; width: 15px;"></i> Kirimlar
                         </button>
                         
-                        <button t-on-click="() => { this.openQuickAction('chiqim'); state.showActionMenu = false; }" style="display: flex; align-items: center; width: 100%; text-align: left; background: none; border: none; padding: 10px; font-size: 15px; border-radius: 5px; color: #ef4444; font-weight: bold; margin-bottom: 5px;">
-                            <i class="fa fa-minus-circle" style="margin-right: 10px; width: 15px;"></i> Chiqim
+                        <button t-on-click="() => { this.openPaymentHistory('chiqim'); state.showActionMenu = false; }" style="display: flex; align-items: center; width: 100%; text-align: left; background: none; border: none; padding: 10px; font-size: 15px; border-radius: 5px; color: #ef4444; font-weight: bold; margin-bottom: 5px;">
+                            <i class="fa fa-minus-circle" style="margin-right: 10px; width: 15px;"></i> Chiqimlar
                         </button>
                         
                         <div style="height: 1px; background: #e5e7eb; margin: 5px 0;"></div>
@@ -145,7 +145,7 @@
                             <strong>Mijoz:</strong> <t t-esc="state.selectedClient.name"/>
                         </div>
                     </t>
-                    <t t-if="state.quickActionType === 'kirim' and state.screen === 'clients'">
+                    <t t-if="state.quickActionType === 'kirim' and (state.screen === 'clients' or state.screen === 'payment_history')">
                         <div style="margin-bottom: 15px;">
                             <label style="display: block; font-size: 14px; font-weight: bold; margin-bottom: 5px; color: #374151;">Mijoz (Ixtiyoriy, agar qarz to'layotgan bo'lsa)</label>
                             <select t-model="state.quickActionPartnerId" style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; box-sizing: border-box; outline: none; background-color: white;">
@@ -216,6 +216,75 @@
                     <div style="display: flex; gap: 10px;">
                         <button t-on-click="closeNewClientForm" style="flex: 1; padding: 14px; background: #f3f4f6; color: #374151; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer;">Bekor qilish</button>
                         <button t-on-click="submitNewClient" style="flex: 1; padding: 14px; background: #2563eb; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer;">Saqlash</button>
+                    </div>
+            </div>
+
+            <!-- Yuklash Preview Modal -->
+            <div t-if="state.showYuklashPreviewModal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); display: flex; justify-content: center; align-items: center; z-index: 1500; padding: 10px;">
+                <div style="background: white; border-radius: 12px; width: 100%; max-width: 600px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); max-height: 90vh; overflow-y: auto;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h2 style="margin: 0; font-size: 20px; color: #1f2937;">Yuklashni Tasdiqlash</h2>
+                        <button t-on-click="closeYuklashPreview" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #6b7280;">✕</button>
+                    </div>
+
+                    <div style="margin-bottom: 15px; background: #f3f4f6; padding: 12px; border-radius: 8px; border: 1px solid #e5e7eb;">
+                        <p style="margin: 4px 0; font-size: 15px;"><strong>Taminotchi:</strong> <t t-esc="state.taminotchis.find(t => t.id == state.selectedTaminotchiId)?.name || ''"/></p>
+                        <p style="margin: 4px 0; font-size: 15px;"><strong>Agent:</strong> <t t-esc="state.currentAgent ? state.currentAgent.name : ''"/></p>
+                        <p style="margin: 4px 0; font-size: 15px;"><strong>Sana:</strong> <t t-esc="state.tripDate"/></p>
+                    </div>
+
+                    <h3 style="margin-top: 20px; margin-bottom: 10px; font-size: 18px; color: #374151; border-bottom: 2px solid #e5e7eb; padding-bottom: 5px;">Mahsulotlar</h3>
+
+                    <div style="overflow-x: auto; margin-bottom: 20px;">
+                        <table style="width: 100%; border-collapse: collapse; min-width: 400px;">
+                            <thead>
+                                <tr style="background: #f9fafb; text-align: left;">
+                                    <th style="padding: 10px; border-bottom: 2px solid #e5e7eb; color: #4b5563; font-size: 14px;">Mahsulot</th>
+                                    <th style="padding: 10px; border-bottom: 2px solid #e5e7eb; color: #4b5563; font-size: 14px; width: 80px;">Miqdor</th>
+                                    <th style="padding: 10px; border-bottom: 2px solid #e5e7eb; color: #4b5563; font-size: 14px; width: 100px;">Kelish Narxi</th>
+                                    <th style="padding: 10px; border-bottom: 2px solid #e5e7eb; color: #4b5563; font-size: 14px; text-align: right;">Summasi</th>
+                                    <th style="padding: 10px; border-bottom: 2px solid #e5e7eb;"></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <t t-foreach="state.yuklashPreviewLines" t-as="line" t-key="line.product_id">
+                                    <tr style="border-bottom: 1px solid #f3f4f6;">
+                                        <td style="padding: 10px; font-size: 14px; color: #1f2937;"><t t-esc="line.name"/></td>
+                                        <td style="padding: 5px;">
+                                            <input type="text" inputmode="numeric" t-att-value="formatNumber(line.qty)" t-on-change="(ev) => this.updateYuklashPreviewLine(line_index, 'qty', ev.target.value)" style="width: 100%; padding: 6px; border: 1px solid #d1d5db; border-radius: 6px; text-align: center;"/>
+                                        </td>
+                                        <td style="padding: 5px;">
+                                            <input type="text" inputmode="numeric" t-att-value="formatNumber(line.kelish_narxi)" t-on-change="(ev) => this.updateYuklashPreviewLine(line_index, 'price', ev.target.value)" style="width: 100%; padding: 6px; border: 1px solid #d1d5db; border-radius: 6px; text-align: right;"/>
+                                        </td>
+                                        <td style="padding: 10px; font-size: 14px; font-weight: bold; color: #111827; text-align: right;">
+                                            <t t-esc="formatNumber(line.subtotal)"/>
+                                        </td>
+                                        <td style="padding: 10px; text-align: center;">
+                                            <button t-on-click="() => this.removeYuklashPreviewLine(line_index)" style="background: none; border: none; color: #ef4444; font-size: 18px; cursor: pointer;">
+                                                <i class="fa fa-trash"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                </t>
+                            </tbody>
+                            <tfoot>
+                                <tr>
+                                    <td colspan="3" style="padding: 12px 10px; font-weight: bold; font-size: 16px; color: #1f2937; text-align: right;">JAMI:</td>
+                                    <td colspan="2" style="padding: 12px 10px; font-weight: bold; font-size: 18px; color: #2563eb; text-align: left;">
+                                        <t t-esc="formatNumber(state.yuklashPreviewTotal)"/> so'm
+                                    </td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+
+                    <div style="display: flex; gap: 10px; margin-top: 10px;">
+                        <button t-on-click="closeYuklashPreview" style="flex: 1; padding: 14px; background: #f3f4f6; color: #374151; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer;">
+                            ❌ Bekor qilish
+                        </button>
+                        <button t-on-click="confirmYuklash" style="flex: 1; padding: 14px; background: #10b981; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 6px rgba(16, 185, 129, 0.3);">
+                            ✅ TASDIQLASH
+                        </button>
                     </div>
                 </div>
             </div>

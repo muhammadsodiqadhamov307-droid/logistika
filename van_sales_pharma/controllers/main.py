@@ -1117,4 +1117,87 @@ class VanPosController(http.Controller):
             html += "<p style='color:green;'><b>Barcha ma'lumotlar to'g'ri!</b> Baza qoldiqlari tarix bilan mos keladi.</p>"
             
         html += "</body></html>"
+        html += "</body></html>"
         return request.make_response(html)
+
+    # ==========================
+    # POS CRUD For Payment History
+    # ==========================
+    @http.route('/van/pos/get_payments', type='json', auth='user')
+    def get_pos_payments(self, payment_type, **kw):
+        """
+        payment_type: 'in' (Kirim) or 'out' (Chiqim)
+        Returns the history of payments for the current agent.
+        """
+        try:
+            agent = request.env.user
+            # Admin can see their own POS agent data if assigned
+            domain = [('agent_id', '=', agent.id), ('payment_type', '=', payment_type)]
+            payments = request.env['van.payment'].sudo().search(domain, order='date desc')
+            
+            res = []
+            for p in payments:
+                res.append({
+                    'id': p.id,
+                    'name': p.name,
+                    'amount': p.amount,
+                    'date': p.date.strftime('%Y-%m-%d %H:%M'),
+                    'note': p.note or '',
+                    'expense_type': p.expense_type if payment_type == 'out' else False,
+                    'partner_id': p.partner_id.id if p.partner_id else False,
+                    'partner_name': p.partner_id.name if p.partner_id else '',
+                    'state': p.state,
+                })
+            return {'success': True, 'payments': res}
+        except Exception as e:
+            return {'success': False, 'error': str(e)}
+
+    @http.route('/van/pos/save_payment', type='json', auth='user')
+    def save_pos_payment(self, payment_type, amount, note='', payment_id=False, partner_id=False, expense_type='daily', **kw):
+        try:
+            agent = request.env.user
+            vals = {
+                'payment_type': payment_type,
+                'amount': float(amount),
+                'note': note,
+            }
+            if payment_type == 'in' and partner_id:
+                vals['partner_id'] = int(partner_id)
+            elif payment_type == 'out':
+                vals['expense_type'] = expense_type
+
+            if payment_id:
+                # Update
+                payment = request.env['van.payment'].sudo().browse(int(payment_id))
+                if payment.agent_id.id != agent.id:
+                    return {'success': False, 'error': "Ruxsat yo'q!"}
+                payment.sudo().write(vals)
+                return {'success': True, 'payment_id': payment.id}
+            else:
+                # Create
+                vals['agent_id'] = agent.id
+                payment = request.env['van.payment'].sudo().create(vals)
+                return {'success': True, 'payment_id': payment.id}
+        except Exception as e:
+            return {'success': False, 'error': str(e)}
+
+    @http.route('/van/pos/delete_payment', type='json', auth='user')
+    def delete_pos_payment(self, payment_id, **kw):
+        try:
+            agent = request.env.user
+            payment = request.env['van.payment'].sudo().browse(int(payment_id))
+            if payment.agent_id.id != agent.id:
+                return {'success': False, 'error': "Sizda bu yozuvni o'chirish huquqi yo'q!"}
+            if payment.state == 'confirmed':
+                return {'success': False, 'error': "Tasdiqlangan to'lovni o'chirib bo'lmaydi!"}
+            
+            partner = payment.partner_id
+            payment.sudo().unlink()
+            
+            # Recalculate debt if it was a client Kirim
+            if partner:
+                partner.sudo()._compute_van_nasiya_stats()
+                
+            return {'success': True}
+        except Exception as e:
+            return {'success': False, 'error': str(e)}
