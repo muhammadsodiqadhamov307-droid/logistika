@@ -1130,9 +1130,8 @@ class VanPosController(http.Controller):
         Returns the history of payments for the current agent.
         """
         try:
-            agent = request.env.user
-            # Admin can see their own POS agent data if assigned
-            domain = [('agent_id', '=', agent.id), ('payment_type', '=', payment_type)]
+            agent_id = self._get_agent_id()
+            domain = [('agent_id', '=', agent_id), ('payment_type', '=', payment_type)]
             payments = request.env['van.payment'].sudo().search(domain, order='date desc')
             
             res = []
@@ -1154,29 +1153,47 @@ class VanPosController(http.Controller):
 
     @http.route('/van/pos/save_payment', type='json', auth='user')
     def save_pos_payment(self, payment_type, amount, note='', payment_id=False, partner_id=False, expense_type='daily', **kw):
+        """ Creates or updates a van.payment record (Kirim/Chiqim) """
         try:
-            agent = request.env.user
-            vals = {
-                'payment_type': payment_type,
-                'amount': float(amount),
-                'note': note,
-            }
-            if payment_type == 'in' and partner_id:
-                vals['partner_id'] = int(partner_id)
+            agent_id = self._get_agent_id()
+            amount = float(amount)
+            if amount <= 0:
+                return {'success': False, 'error': "Summa noto'g'ri kiritildi."}
+                
+            name = _('Payment')
+            if payment_type == 'in':
+                name = _('Kirim (Mobile POS)')
             elif payment_type == 'out':
-                vals['expense_type'] = expense_type
+                name = _('Chiqim (Mobile POS)')
 
             if payment_id:
                 # Update
                 payment = request.env['van.payment'].sudo().browse(int(payment_id))
-                if payment.agent_id.id != agent.id:
+                if payment.agent_id.id != agent_id: # Use agent_id from _get_agent_id()
                     return {'success': False, 'error': "Ruxsat yo'q!"}
+                
+                vals = {
+                    'name': name,
+                    'amount': amount,
+                    'note': note,
+                    'partner_id': int(partner_id) if partner_id else False,
+                    'expense_type': expense_type if payment_type == 'out' else False,
+                }
                 payment.sudo().write(vals)
                 return {'success': True, 'payment_id': payment.id}
             else:
                 # Create
-                vals['agent_id'] = agent.id
-                payment = request.env['van.payment'].sudo().create(vals)
+                payment = request.env['van.payment'].sudo().create({
+                    'name': name,
+                    'agent_id': agent_id,
+                    'partner_id': int(partner_id) if partner_id else False,
+                    'payment_type': payment_type,
+                    'amount': amount,
+                    'date': fields.Datetime.now(),
+                    'note': note,
+                    'expense_type': expense_type if payment_type == 'out' else False,
+                    'state': 'done'
+                })
                 return {'success': True, 'payment_id': payment.id}
         except Exception as e:
             return {'success': False, 'error': str(e)}
@@ -1184,9 +1201,9 @@ class VanPosController(http.Controller):
     @http.route('/van/pos/delete_payment', type='json', auth='user')
     def delete_pos_payment(self, payment_id, **kw):
         try:
-            agent = request.env.user
+            agent_id = self._get_agent_id()
             payment = request.env['van.payment'].sudo().browse(int(payment_id))
-            if payment.agent_id.id != agent.id:
+            if payment.agent_id.id != agent_id:
                 return {'success': False, 'error': "Sizda bu yozuvni o'chirish huquqi yo'q!"}
             if payment.state == 'confirmed':
                 return {'success': False, 'error': "Tasdiqlangan to'lovni o'chirib bo'lmaydi!"}

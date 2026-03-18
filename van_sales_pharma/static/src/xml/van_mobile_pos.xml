@@ -220,6 +220,82 @@
                 </div>
             </div>
 
+            <!-- KIRIM CLIENT MODAL (Step 1) -->
+            <div t-if="state.showKirimClientModal" class="kirim-modal-overlay" style="position: absolute; top:0; left:0; right:0; bottom:0; padding:20px; z-index:2000;">
+                <div class="kirim-modal-content">
+                    <div class="kirim-modal-header">
+                        <h2>Mijoz Tanlash</h2>
+                        <button class="kirim-btn-close" t-on-click="closeKirimClientModal">✕</button>
+                    </div>
+                    
+                    <div class="kirim-search-box">
+                        <input type="text" t-model="state.kirimClientSearch" placeholder="🔍 Mijoz qidirish..." />
+                    </div>
+                    
+                    <div class="kirim-client-list">
+                        <div class="kirim-client-option turli-tushum" t-on-click="() => this.selectKirimClient(null, 'Turli Tushum', 0)">
+                            <div class="kirim-client-info">
+                                <h3>💰 Turli Tushum</h3>
+                                <p class="subtitle">Mijozisiz tushum</p>
+                            </div>
+                            <div class="kirim-client-arrow">→</div>
+                        </div>
+                        
+                        <div class="kirim-divider"><span>Yoki mijozni tanlang</span></div>
+                        
+                        <t t-foreach="filteredKirimClients" t-as="client" t-key="client.id">
+                            <div class="kirim-client-option" t-on-click="() => this.selectKirimClient(client.id, client.name, client.balance || 0)">
+                                <div class="kirim-client-info">
+                                    <h3><t t-esc="client.name"/></h3>
+                                    <p t-if="client.phone" class="phone">📞 <t t-esc="client.phone"/></p>
+                                    <p t-attf-class="debt {{ (client.balance || 0) > 0 ? 'text-danger' : 'text-success' }}">
+                                        Qarz: <t t-esc="formatNumber(client.balance || 0)"/> so'm
+                                    </p>
+                                </div>
+                                <div class="kirim-client-arrow">→</div>
+                            </div>
+                        </t>
+                    </div>
+                </div>
+            </div>
+
+            <!-- KIRIM AMOUNT MODAL (Step 2) -->
+            <div t-if="state.showKirimAmountModal" class="kirim-modal-overlay" style="position: absolute; top:0; left:0; right:0; bottom:0; padding:20px; z-index:2000;">
+                <div class="kirim-modal-content">
+                    <div class="kirim-modal-header">
+                        <h2>Kirim Qabul Qilish</h2>
+                        <button class="kirim-btn-close" t-on-click="closeKirimAmountModal">✕</button>
+                    </div>
+                    
+                    <div class="kirim-selected-client">
+                        <span class="icon">👤</span>
+                        <span class="name"><t t-esc="state.selectedKirimClientName"/></span>
+                    </div>
+                    
+                    <div t-if="state.selectedKirimClientId" class="kirim-debt-card">
+                        <p>Hozirgi qarz:</p>
+                        <h3 class="text-danger"><t t-esc="formatNumber(state.selectedKirimClientDebt)"/> so'm</h3>
+                    </div>
+                    
+                    <div style="padding: 16px;">
+                        <div style="margin-bottom: 15px;">
+                            <label style="display: block; font-size: 14px; font-weight: bold; margin-bottom: 5px; color: #374151;">Summa (so'm)</label>
+                            <input type="text" inputmode="numeric" t-model="state.kirimAmountInput" t-on-input="setKirimAmountForm" style="width: 100%; padding: 12px; border: 2px solid #d1d5db; border-radius: 8px; font-size: 18px; box-sizing: border-box; outline: none; transition: border-color 0.2s;" placeholder="0" />
+                        </div>
+                        
+                        <div style="margin-bottom: 15px;">
+                            <label style="display: block; font-size: 14px; font-weight: bold; margin-bottom: 5px; color: #374151;">Izoh (ixtiyoriy)</label>
+                            <textarea t-model="state.kirimNotes" rows="3" style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; box-sizing: border-box; outline: none;" placeholder="Qo'shimcha ma'lumot..."></textarea>
+                        </div>
+                    </div>
+                    
+                    <div class="kirim-modal-actions">
+                        <button class="kirim-btn-cancel" t-on-click="closeKirimAmountModal">Bekor qilish</button>
+                        <button class="kirim-btn-primary" t-on-click="submitKirimFlow">✓ Saqlash</button>
+                    </div>
+                </div>
+            </div>
+
             <!-- Yuklash Preview Modal -->
             <div t-if="state.showYuklashPreviewModal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); display: flex; justify-content: center; align-items: center; z-index: 1500; padding: 10px;">
                 <div style="background: white; border-radius: 12px; width: 100%; max-width: 600px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); max-height: 90vh; overflow-y: auto;">
@@ -871,7 +947,14 @@
                             <t t-if="state.paymentHistoryType === 'kirim'">Kirimlar Tarixi</t>
                             <t t-else="">Chiqimlar Tarixi</t>
                         </h2>
-                        <button t-on-click="() => { this.state.editingPaymentId = null; this.openQuickAction(state.paymentHistoryType); }" style="background-color: #3b82f6; color: white; border: none; border-radius: 8px; padding: 8px 15px; font-weight: bold; cursor: pointer;">
+                        <button t-on-click="() => { 
+                            if(state.paymentHistoryType === 'kirim') {
+                                this.openKirimClientModal();
+                            } else {
+                                this.state.editingPaymentId = null; 
+                                this.openQuickAction(state.paymentHistoryType); 
+                            }
+                        }" style="background-color: #3b82f6; color: white; border: none; border-radius: 8px; padding: 8px 15px; font-weight: bold; cursor: pointer;">
                             <i class="fa fa-plus"></i> Yangi
                         </button>
                     </div>
@@ -882,44 +965,86 @@
                         </div>
                     </t>
                     <t t-else="">
-                        <div style="display: grid; gap: 12px;">
+                        <div style="display: flex; flex-direction: column;">
                             <t t-foreach="state.paymentHistory" t-as="pay" t-key="pay.id">
-                                <div style="background: white; border-radius: 10px; padding: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border-left: 4px solid #ef4444;" t-attf-style="border-color: {{ state.paymentHistoryType === 'kirim' ? '#10b981' : '#ef4444' }};">
-                                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
-                                        <div>
-                                            <div style="font-weight: bold; font-size: 16px; color: #111827;">
-                                                <t t-if="state.paymentHistoryType === 'kirim'">
-                                                    <i class="fa fa-arrow-down" style="color: #10b981; margin-right: 5px;"></i> Kirim
-                                                </t>
-                                                <t t-else="">
-                                                    <t t-if="pay.expense_type === 'daily'">🟡 Kunlik (Biznes)</t>
-                                                    <t t-elif="pay.expense_type === 'salary'">🟣 Oylik (Oylikdan)</t>
-                                                    <t t-else="">Chiqim</t>
-                                                </t>
+                                <t t-if="state.paymentHistoryType === 'kirim'">
+                                    <div class="transaction-card kirim-card">
+                                        <div class="txn-header">
+                                            <div class="txn-type-badge kirim">
+                                                <span class="icon">💵</span>
+                                                <span class="label">Kirim</span>
                                             </div>
-                                            <div style="font-size: 13px; color: #6b7280; margin-top: 4px;">🗓️ <t t-esc="pay.date"/></div>
+                                            <div class="txn-amount kirim">
+                                                <t t-esc="formatNumber(pay.amount)"/> <span class="currency">so'm</span>
+                                            </div>
                                         </div>
-                                        <div style="font-size: 18px; font-weight: bold;" t-attf-style="color: {{ state.paymentHistoryType === 'kirim' ? '#10b981' : '#ef4444' }};">
-                                            <t t-esc="formatNumber(pay.amount)"/> so'm
+                                        
+                                        <div class="txn-details">
+                                            <div class="client-name">
+                                                <span class="icon">👤</span>
+                                                <span class="name"><t t-esc="pay.partner_name || 'Turli Tushum'"/></span>
+                                            </div>
+                                            <div class="txn-date">
+                                                <span class="icon">📅</span>
+                                                <span class="date"><t t-esc="pay.date"/></span>
+                                            </div>
+                                            <div t-if="pay.note" class="txn-notes">
+                                                <span class="icon">📝</span>
+                                                <span class="text"><t t-esc="pay.note"/></span>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="txn-actions">
+                                            <button class="btn-action btn-edit" t-on-click="() => this.editPaymentAction(pay)">
+                                                <span class="icon">✏️</span>
+                                                <span class="text">Tahrirlash</span>
+                                            </button>
+                                            <button class="btn-action btn-delete" t-on-click="() => this.deletePaymentAction(pay.id)">
+                                                <span class="icon">🗑️</span>
+                                                <span class="text">O'chirish</span>
+                                            </button>
                                         </div>
                                     </div>
-                                    
-                                    <div t-if="pay.note" style="font-size: 14px; color: #4b5563; font-style: italic; background: #f9fafb; padding: 8px; border-radius: 6px; margin-bottom: 10px;">
-                                        📝 <t t-esc="pay.note"/>
+                                </t>
+                                <t t-else="">
+                                    <div class="transaction-card chiqim-card">
+                                        <div class="txn-header">
+                                            <div class="txn-type-badge chiqim">
+                                                <span class="icon">💸</span>
+                                                <span class="label">
+                                                    <t t-if="pay.expense_type === 'daily'">Kunlik (Biznes)</t>
+                                                    <t t-elif="pay.expense_type === 'salary'">Oylik (Oylikdan)</t>
+                                                    <t t-else="">Chiqim</t>
+                                                </span>
+                                            </div>
+                                            <div class="txn-amount chiqim">
+                                                <t t-esc="formatNumber(pay.amount)"/> <span class="currency">so'm</span>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="txn-details">
+                                            <div class="txn-date">
+                                                <span class="icon">📅</span>
+                                                <span class="date"><t t-esc="pay.date"/></span>
+                                            </div>
+                                            <div t-if="pay.note" class="txn-notes">
+                                                <span class="icon">📝</span>
+                                                <span class="text"><t t-esc="pay.note"/></span>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="txn-actions">
+                                            <button class="btn-action btn-edit" t-on-click="() => this.editPaymentAction(pay)">
+                                                <span class="icon">✏️</span>
+                                                <span class="text">Tahrirlash</span>
+                                            </button>
+                                            <button class="btn-action btn-delete" t-on-click="() => this.deletePaymentAction(pay.id)">
+                                                <span class="icon">🗑️</span>
+                                                <span class="text">O'chirish</span>
+                                            </button>
+                                        </div>
                                     </div>
-                                    <div t-if="pay.partner_name" style="font-size: 14px; color: #4b5563; background: #f0fdf4; padding: 8px; border-radius: 6px; margin-bottom: 10px;">
-                                        👤 Mijoz: <t t-esc="pay.partner_name"/>
-                                    </div>
-                                    
-                                    <div style="display: flex; gap: 10px; margin-top: 10px; border-top: 1px solid #f3f4f6; padding-top: 10px;">
-                                        <button t-on-click="() => this.editPaymentAction(pay)" style="flex: 1; background: #f3f4f6; border: none; padding: 8px; border-radius: 6px; color: #4b5563; font-weight: bold; cursor: pointer;">
-                                            ✏️ Tahrirlash
-                                        </button>
-                                        <button t-on-click="() => this.deletePaymentAction(pay.id)" style="flex: 1; background: #fef2f2; border: none; padding: 8px; border-radius: 6px; color: #ef4444; font-weight: bold; cursor: pointer;">
-                                            🗑️ O'chirish
-                                        </button>
-                                    </div>
-                                </div>
+                                </t>
                             </t>
                         </div>
                     </t>
