@@ -135,121 +135,227 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
+    background:
+        radial-gradient(circle at top, rgba(59, 130, 246, 0.16), transparent 35%),
+        rgba(15, 23, 42, 0.56);
     z-index: 2000;
     display: flex;
     align-items: center;
     justify-content: center;
-    backdrop-filter: blur(2px);
+    backdrop-filter: blur(10px);
 }
 
 .kirim-modal-content {
-    background: white;
+    background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
     width: 90%;
     max-width: 500px;
     max-height: 80vh;
-    border-radius: 16px;
+    border-radius: 24px;
     overflow: hidden;
     display: flex;
     flex-direction: column;
-    box-shadow: 0 25px 60px rgba(15, 23, 42, 0.28);
+    box-shadow: 0 30px 80px rgba(15, 23, 42, 0.28);
     position: relative;
     z-index: 1;
-    border: 1px solid #dbe3f0;
+    border: 1px solid rgba(219, 227, 240, 0.9);
+}
+
+.kirim-modal-sheet {
+    width: min(520px, 100%);
+    max-height: calc(100vh - 40px);
 }
 
 .kirim-modal-header {
     display: flex;
     justify-content: space-between;
-    align-items: center;
-    padding: 16px;
-    background: #5e72e4;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 20px 20px 16px;
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
     color: white;
 }
 
 .kirim-modal-header h2 {
     margin: 0;
-    font-size: 18px;
+    font-size: 22px;
+    font-weight: 800;
+    line-height: 1.1;
+}
+
+.kirim-modal-subtitle {
+    margin: 6px 0 0;
+    font-size: 13px;
+    line-height: 1.4;
+    color: rgba(255, 255, 255, 0.82);
 }
 
 .kirim-btn-close {
-    background: none;
-    border: none;
+    background: rgba(255, 255, 255, 0.14);
+    border: 1px solid rgba(255, 255, 255, 0.24);
     color: white;
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
     font-size: 24px;
     cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.kirim-btn-close:hover {
+    background: rgba(255, 255, 255, 0.22);
+    transform: translateY(-1px);
 }
 
 .kirim-search-box {
-    padding: 16px;
+    padding: 16px 20px 12px;
+    background: white;
+}
+
+.kirim-search-input-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 0 14px;
+    min-height: 52px;
+    border: 1px solid #dbe3f0;
+    background: #f8fafc;
+    border-radius: 16px;
+    box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.03);
+}
+
+.kirim-search-icon {
+    color: #64748b;
+    font-size: 15px;
 }
 
 .kirim-search-box input {
-    width: 100%;
-    padding: 12px;
-    border: 1px solid #ddd;
-    border-radius: 8px;
+    flex: 1;
+    min-width: 0;
+    border: 0;
+    outline: 0;
+    background: transparent;
     font-size: 16px;
+    color: #0f172a;
 }
 
 .kirim-client-option {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 16px;
-    border-bottom: 1px solid #f0f0f0;
+    gap: 14px;
+    padding: 16px 18px;
+    margin: 0 14px 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 18px;
+    background: #ffffff;
     cursor: pointer;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
+    transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
 }
 
 .kirim-client-option:hover {
-    background: #f8f9fa;
+    transform: translateY(-1px);
+    border-color: #93c5fd;
+    box-shadow: 0 14px 30px rgba(37, 99, 235, 0.10);
 }
 
 .kirim-client-option.turli-tushum {
-    background: #fff3cd;
-    border: 2px solid #ffc107;
+    background: linear-gradient(135deg, #fff7dd 0%, #fff1b8 100%);
+    border: 1px solid #facc15;
 }
 
 .kirim-client-info h3 {
     margin: 0 0 4px 0;
-    font-size: 16px;
-    color: #333;
+    font-size: 18px;
+    font-weight: 800;
+    color: #0f172a;
 }
 
 .kirim-client-info .subtitle {
     margin: 0;
     font-size: 14px;
-    color: #666;
+    color: #475569;
 }
 
 .kirim-client-info .phone {
-    margin: 4px 0;
+    margin: 6px 0 0;
     font-size: 14px;
-    color: #666;
+    color: #64748b;
 }
 
 .kirim-client-info .debt {
-    margin: 4px 0;
+    margin: 8px 0 0;
     font-size: 14px;
-    font-weight: 600;
+    font-weight: 700;
 }
 
 .kirim-client-arrow {
-    font-size: 24px;
-    color: #999;
+    width: 38px;
+    height: 38px;
+    border-radius: 999px;
+    background: #eff6ff;
+    color: #2563eb;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    flex-shrink: 0;
 }
 
 .kirim-divider {
     text-align: center;
-    padding: 12px;
-    color: #999;
-    font-size: 14px;
+    padding: 6px 16px 14px;
+    color: #64748b;
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
 }
 
 .kirim-client-list {
     flex: 1;
     overflow-y: auto;
-    background: white;
+    background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+    padding-bottom: 10px;
+}
+
+.kirim-empty-state {
+    padding: 24px 22px 28px;
+    margin: 0 14px 14px;
+    border-radius: 18px;
+    text-align: center;
+    background: #f8fafc;
+    border: 1px dashed #cbd5e1;
+    color: #64748b;
+}
+
+.kirim-empty-state .icon {
+    width: 54px;
+    height: 54px;
+    margin: 0 auto 12px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #e2e8f0;
+    color: #334155;
+    font-size: 20px;
+}
+
+.kirim-empty-state .title {
+    font-size: 16px;
+    font-weight: 800;
+    color: #0f172a;
+    margin-bottom: 6px;
+}
+
+.kirim-empty-state .text {
+    font-size: 13px;
+    line-height: 1.5;
 }
 
 @media (max-width: 768px) {
@@ -276,32 +382,65 @@
         width: 100%;
         max-width: 100%;
         max-height: calc(100vh - 40px);
-        border-radius: 18px;
+        border-radius: 22px;
+    }
+
+    .kirim-modal-overlay {
+        padding: 12px;
+        align-items: flex-end;
+    }
+
+    .kirim-modal-sheet {
+        max-height: min(88vh, 760px);
+    }
+
+    .kirim-modal-header {
+        padding: 18px 16px 14px;
+    }
+
+    .kirim-modal-header h2 {
+        font-size: 20px;
+    }
+
+    .kirim-search-box {
+        padding: 14px 16px 10px;
+    }
+
+    .kirim-client-option {
+        margin: 0 10px 10px;
+        padding: 14px 14px;
+        border-radius: 16px;
+    }
+
+    .kirim-client-info h3 {
+        font-size: 17px;
     }
 }
 
 .kirim-selected-client {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 16px;
-    background: #e3f2fd;
-    border-radius: 8px;
-    margin: 16px;
+    gap: 10px;
+    padding: 16px 18px;
+    background: linear-gradient(135deg, #dbeafe 0%, #eff6ff 100%);
+    border-radius: 16px;
+    margin: 16px 16px 12px;
+    border: 1px solid #bfdbfe;
 }
 
 .kirim-selected-client .name {
     font-size: 18px;
-    font-weight: 600;
-    color: #1976d2;
+    font-weight: 800;
+    color: #1d4ed8;
 }
 
 .kirim-debt-card {
     margin: 0 16px 16px 16px;
     padding: 16px;
-    background: #fff3cd;
-    border-radius: 8px;
+    background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
+    border-radius: 16px;
     text-align: center;
+    border: 1px solid #fdba74;
 }
 
 .kirim-debt-card p {
@@ -315,6 +454,56 @@
     font-size: 24px;
 }
 
+.kirim-modal-body {
+    padding: 0 16px 4px;
+}
+
+.kirim-field {
+    margin-bottom: 15px;
+}
+
+.kirim-field label {
+    display: block;
+    font-size: 14px;
+    font-weight: 800;
+    margin-bottom: 7px;
+    color: #334155;
+}
+
+.kirim-amount-input,
+.kirim-note-input {
+    width: 100%;
+    box-sizing: border-box;
+    border-radius: 16px;
+    border: 1px solid #dbe3f0;
+    background: #f8fafc;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    color: #0f172a;
+}
+
+.kirim-amount-input {
+    padding: 14px 16px;
+    font-size: 22px;
+    font-weight: 800;
+    text-align: right;
+    border-width: 2px;
+}
+
+.kirim-note-input {
+    padding: 13px 14px;
+    font-size: 15px;
+    resize: vertical;
+    min-height: 96px;
+}
+
+.kirim-amount-input:focus,
+.kirim-note-input:focus,
+.kirim-search-box input:focus {
+    border-color: #60a5fa;
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.14);
+}
+
 .kirim-modal-actions {
     display: flex;
     gap: 12px;
@@ -323,20 +512,22 @@
 
 .kirim-modal-actions button {
     flex: 1;
-    padding: 14px;
+    min-height: 54px;
+    padding: 14px 16px;
     border: none;
-    border-radius: 8px;
+    border-radius: 16px;
     font-size: 16px;
-    font-weight: 600;
+    font-weight: 800;
     cursor: pointer;
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
 }
 
 .kirim-btn-cancel {
-    background: #6c757d;
-    color: white;
+    background: #eef2f7;
+    color: #334155;
 }
 
 .kirim-btn-primary {
-    background: #28a745;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
     color: white;
 }

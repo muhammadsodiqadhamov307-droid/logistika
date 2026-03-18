@@ -222,26 +222,32 @@
 
             <!-- KIRIM CLIENT MODAL (Step 1) -->
             <div t-if="state.showKirimClientModal" class="kirim-modal-overlay" style="position: fixed; inset: 0; padding:20px; z-index:2200;" t-on-click="closeKirimClientModal">
-                <div class="kirim-modal-content" t-on-click.stop="" style="background: white; width: min(520px, 100%); max-height: calc(100vh - 40px); border-radius: 18px; overflow: hidden; border: 1px solid #dbe3f0; box-shadow: 0 32px 80px rgba(15,23,42,0.28);">
+                <div class="kirim-modal-content kirim-modal-sheet" t-on-click.stop="">
                     <div class="kirim-modal-header">
-                        <h2>Mijoz Tanlash</h2>
+                        <div>
+                            <h2>Mijoz Tanlash</h2>
+                            <p class="kirim-modal-subtitle">Kirimni qaysi mijoz nomidan qabul qilasiz?</p>
+                        </div>
                         <button class="kirim-btn-close" t-on-click="closeKirimClientModal">✕</button>
                     </div>
                     
                     <div class="kirim-search-box">
-                        <input type="text" t-model="state.kirimClientSearch" placeholder="🔍 Mijoz qidirish..." />
+                        <div class="kirim-search-input-wrap">
+                            <span class="kirim-search-icon"><i class="fa fa-search"></i></span>
+                            <input type="text" t-model="state.kirimClientSearch" placeholder="Mijoz qidirish..." />
+                        </div>
                     </div>
                     
-                    <div class="kirim-client-list" style="background: white;">
+                    <div class="kirim-client-list">
                         <div class="kirim-client-option turli-tushum" t-on-click="selectTurliTushum">
                             <div class="kirim-client-info">
                                 <h3>💰 Turli Tushum</h3>
                                 <p class="subtitle">Mijozisiz tushum</p>
                             </div>
-                            <div class="kirim-client-arrow">→</div>
+                            <div class="kirim-client-arrow"><i class="fa fa-arrow-right"></i></div>
                         </div>
                         
-                        <div class="kirim-divider"><span>Yoki mijozni tanlang</span></div>
+                        <div class="kirim-divider"><span>Agent mijozlari</span></div>
                         
                         <t t-foreach="filteredKirimClients" t-as="client" t-key="client.id">
                             <div class="kirim-client-option" t-on-click="() => this.selectKirimClient(client.id, client.name, client.balance || 0)">
@@ -252,11 +258,13 @@
                                         Qarz: <t t-esc="formatNumber(client.balance || 0)"/> so'm
                                     </p>
                                 </div>
-                                <div class="kirim-client-arrow">→</div>
+                                <div class="kirim-client-arrow"><i class="fa fa-chevron-right"></i></div>
                             </div>
                         </t>
-                        <div t-if="filteredKirimClients.length === 0" style="padding: 18px 16px 24px; color: #64748b; text-align: center; font-size: 14px;">
-                            Agentga biriktirilgan mijoz topilmadi.
+                        <div t-if="filteredKirimClients.length === 0" class="kirim-empty-state">
+                            <div class="icon"><i class="fa fa-users"></i></div>
+                            <div class="title">Mijoz topilmadi</div>
+                            <div class="text">Agentga biriktirilgan mijozlar ro'yxatida mos natija yo'q.</div>
                         </div>
                     </div>
                 </div>
@@ -264,9 +272,12 @@
 
             <!-- KIRIM AMOUNT MODAL (Step 2) -->
             <div t-if="state.showKirimAmountModal" class="kirim-modal-overlay" style="position: fixed; inset: 0; padding:20px; z-index:2200;" t-on-click="closeKirimAmountModal">
-                <div class="kirim-modal-content" t-on-click.stop="" style="background: white; width: min(520px, 100%); max-height: calc(100vh - 40px); border-radius: 18px; overflow: hidden; border: 1px solid #dbe3f0; box-shadow: 0 32px 80px rgba(15,23,42,0.28);">
+                <div class="kirim-modal-content kirim-modal-sheet" t-on-click.stop="">
                     <div class="kirim-modal-header">
-                        <h2>Kirim Qabul Qilish</h2>
+                        <div>
+                            <h2>Kirim Qabul Qilish</h2>
+                            <p class="kirim-modal-subtitle">Summani kiriting va operatsiyani tasdiqlang.</p>
+                        </div>
                         <button class="kirim-btn-close" t-on-click="closeKirimAmountModal">✕</button>
                     </div>
                     
@@ -280,15 +291,15 @@
                         <h3 class="text-danger"><t t-esc="formatNumber(state.selectedKirimClientDebt)"/> so'm</h3>
                     </div>
                     
-                    <div style="padding: 16px;">
-                        <div style="margin-bottom: 15px;">
-                            <label style="display: block; font-size: 14px; font-weight: bold; margin-bottom: 5px; color: #374151;">Summa (so'm)</label>
-                            <input type="text" inputmode="numeric" t-model="state.kirimAmountInput" t-on-input="setKirimFlowAmountForm" style="width: 100%; padding: 12px; border: 2px solid #d1d5db; border-radius: 8px; font-size: 18px; box-sizing: border-box; outline: none; transition: border-color 0.2s;" placeholder="0" />
+                    <div class="kirim-modal-body">
+                        <div class="kirim-field">
+                            <label>Summa (so'm)</label>
+                            <input class="kirim-amount-input" type="text" inputmode="numeric" t-model="state.kirimAmountInput" t-on-input="setKirimFlowAmountForm" placeholder="0" />
                         </div>
                         
-                        <div style="margin-bottom: 15px;">
-                            <label style="display: block; font-size: 14px; font-weight: bold; margin-bottom: 5px; color: #374151;">Izoh (ixtiyoriy)</label>
-                            <textarea t-model="state.kirimNotes" rows="3" style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; box-sizing: border-box; outline: none;" placeholder="Qo'shimcha ma'lumot..."></textarea>
+                        <div class="kirim-field">
+                            <label>Izoh (ixtiyoriy)</label>
+                            <textarea class="kirim-note-input" t-model="state.kirimNotes" rows="3" placeholder="Qo'shimcha ma'lumot..."></textarea>
                         </div>
                     </div>
                     
