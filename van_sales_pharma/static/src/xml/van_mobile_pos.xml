@@ -233,7 +233,7 @@
                     </div>
                     
                     <div class="kirim-client-list">
-                        <div class="kirim-client-option turli-tushum" t-on-click="() => this.selectKirimClient(null, 'Turli Tushum', 0)">
+                        <div class="kirim-client-option turli-tushum" t-on-click="selectTurliTushum">
                             <div class="kirim-client-info">
                                 <h3>💰 Turli Tushum</h3>
                                 <p class="subtitle">Mijozisiz tushum</p>
@@ -947,14 +947,7 @@
                             <t t-if="state.paymentHistoryType === 'kirim'">Kirimlar Tarixi</t>
                             <t t-else="">Chiqimlar Tarixi</t>
                         </h2>
-                        <button t-on-click="() => { 
-                            if(state.paymentHistoryType === 'kirim') {
-                                this.openKirimClientModal();
-                            } else {
-                                this.state.editingPaymentId = null; 
-                                this.openQuickAction(state.paymentHistoryType); 
-                            }
-                        }" style="background-color: #3b82f6; color: white; border: none; border-radius: 8px; padding: 8px 15px; font-weight: bold; cursor: pointer;">
+                        <button t-on-click="onNewPaymentClick" style="background-color: #3b82f6; color: white; border: none; border-radius: 8px; padding: 8px 15px; font-weight: bold; cursor: pointer;">
                             <i class="fa fa-plus"></i> Yangi
                         </button>
                     </div>

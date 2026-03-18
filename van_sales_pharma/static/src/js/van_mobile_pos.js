@@ -1228,6 +1228,28 @@ export class VanMobilePos extends Component {
         this.state.showClientPickerModal = false;
     }
 
+    openKirimClientModal() {
+        this.state.showKirimClientModal = true;
+        this.state.kirimClientSearch = '';
+    }
+
+    onNewPaymentClick() {
+        if (this.state.paymentHistoryType === 'kirim') {
+            this.openKirimClientModal();
+        } else {
+            this.state.editingPaymentId = null;
+            this.openQuickAction(this.state.paymentHistoryType);
+        }
+    }
+
+    selectTurliTushum() {
+        this.selectKirimClient(null, 'Turli Tushum', 0);
+    }
+
+    closeKirimClientModal() {
+        this.state.showClientPickerModal = false;
+    }
+
     selectRequestClient(client) {
         this.state.requestPartnerId = client.id;
         this.state.requestPartnerName = client.name;
