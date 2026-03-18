@@ -670,36 +670,100 @@
                         </div>
                         
                         <t t-foreach="state.activeRequest.lines" t-as="line" t-key="'det-'+line_index">
-                            <div style="padding: 12px 15px; border-bottom: 1px solid #f3f4f6; display: flex; align-items: flex-start; gap: 12px;">
-                                <!-- Image Avatar -->
-                                <div style="width: 48px; height: 48px; flex-shrink: 0; background-color: #f8fafc; border-radius: 6px; border: 1px solid #e2e8f0; overflow: hidden;">
-                                    <t t-if="line.image_url">
-                                        <img t-att-src="line.image_url" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.src='/van_sales_pharma/static/description/icon.png';"/>
-                                    </t>
-                                </div>
-                                
-                                <!-- Product Text -->
-                                <div style="flex-grow: 1;">
-                                    <div style="font-weight: bold; font-size: 14px; color: #1e293b; margin-bottom: 4px; line-height: 1.3;">
-                                        <t t-esc="line.product_name"/>
+                            <div style="padding: 12px 15px; border-bottom: 1px solid #f3f4f6; display: flex; align-items: flex-start; gap: 12px; flex-direction: column;">
+                                <div style="display: flex; align-items: flex-start; gap: 12px; width: 100%;">
+                                    <!-- Image Avatar -->
+                                    <div style="width: 48px; height: 48px; flex-shrink: 0; background-color: #f8fafc; border-radius: 6px; border: 1px solid #e2e8f0; overflow: hidden;">
+                                        <t t-if="line.image_url">
+                                            <img t-att-src="line.image_url" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.src='/van_sales_pharma/static/description/icon.png';"/>
+                                        </t>
                                     </div>
-                                    <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 8px;">
-                                        <div style="font-size: 13px; color: #64748b;">
-                                            <span style="font-weight: bold; color: #334155;"><t t-esc="line.qty"/> ta</span> x <t t-esc="(line.price || 0).toLocaleString()"/> so'm
+                                    
+                                    <!-- Product Text -->
+                                    <div style="flex-grow: 1;">
+                                        <div style="font-weight: bold; font-size: 14px; color: #1e293b; margin-bottom: 4px; line-height: 1.3; display: flex; justify-content: space-between;">
+                                            <span><t t-esc="line.product_name"/></span>
+                                            <button t-if="state.activeRequest.state === 'draft'" t-on-click="(ev) => this.removeRequestLine(line_index)" style="background: none; border: none; color: #ef4444; font-size: 16px; padding: 0 5px;">
+                                                <i class="fa fa-trash"></i>
+                                            </button>
                                         </div>
-                                        <div style="font-weight: bold; font-size: 15px; color: #059669;">
-                                            <t t-esc="(line.subtotal || 0).toLocaleString()"/> so'm
+                                        <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 8px;">
+                                            <div t-if="state.activeRequest.state !== 'draft'" style="font-size: 13px; color: #64748b;">
+                                                <span style="font-weight: bold; color: #334155;"><t t-esc="line.qty"/> ta</span> x <t t-esc="(line.price || 0).toLocaleString()"/> so'm
+                                            </div>
+                                            <div t-else="" style="font-size: 13px; color: #64748b; display: flex; gap: 10px; align-items: center;">
+                                                <input type="number" t-att-value="line.qty" t-on-input="(ev) => this.updateRequestLineQty(line_index, ev.target.value)" style="width: 50px; padding: 4px; border: 1px solid #cbd5e1; border-radius: 4px; text-align: center;"/>
+                                                <span>ta x</span>
+                                                <input type="number" t-att-value="line.price" t-on-input="(ev) => this.updateRequestLinePrice(line_index, ev.target.value)" style="width: 80px; padding: 4px; border: 1px solid #cbd5e1; border-radius: 4px; text-align: right;"/>
+                                                <span>so'm</span>
+                                            </div>
+
+                                            <div style="font-weight: bold; font-size: 15px; color: #059669;">
+                                                <t t-esc="(line.subtotal || 0).toLocaleString()"/> so'm
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         </t>
                         
+                        <div t-if="state.activeRequest.state === 'draft'" style="padding: 10px 15px; background: #f8fafc; border-bottom: 1px solid #e2e8f0;">
+                            <button t-on-click="addRequestLine" style="background: none; border: 1px dashed #3b82f6; color: #3b82f6; width: 100%; padding: 8px; border-radius: 6px; font-weight: bold; font-size: 14px;">
+                                <i class="fa fa-plus"></i> Mahsulot qo'shish
+                            </button>
+                        </div>
+                        
                         <!-- Grand Total Footer -->
                         <div style="background: #eff6ff; padding: 15px; border-top: 2px solid #bfdbfe; display: flex; justify-content: space-between; align-items: center;">
                             <span style="font-weight: bold; font-size: 16px; color: #1e3a8a;">JAMI SUMMA:</span>
                             <span style="font-weight: bold; font-size: 20px; color: #dc2626;"><t t-esc="(state.activeRequest.total_amount || 0).toLocaleString()"/> so'm</span>
                         </div>
+                    </div>
+
+                    <div t-if="state.activeRequest.state === 'draft'" style="margin-bottom: 20px; display: flex; gap: 10px;">
+                        <button t-on-click="saveRequestEdits" style="flex: 1; padding: 12px; background-color: #f59e0b; color: white; font-weight: bold; border: none; border-radius: 8px; font-size: 16px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                            SAQLASH
+                        </button>
+                        <button t-on-click="fulfillRequest" style="flex: 2; padding: 12px; background-color: #10b981; color: white; font-weight: bold; border: none; border-radius: 8px; font-size: 16px; box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.4);">
+                            🛒 XARID QILISH
+                        </button>
+                    </div>
+                </t>
+                
+                <!-- REQUEST ADD PRODUCT SCREEN -->
+                <t t-if="state.screen === 'request_add_product'">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <button t-on-click="goBack" style="background: none; border: none; font-size: 16px; color: #3b82f6; display: flex; align-items: center; font-weight: bold;">
+                            <i class="fa fa-arrow-left" style="margin-right: 8px;"></i> Ortga
+                        </button>
+                        <div style="font-weight: bold; font-size: 16px; color: #1e3a8a;">Mahsulot Qo'shish</div>
+                    </div>
+
+                    <div style="margin-bottom: 15px; position: relative;">
+                        <i class="fa fa-search" style="position: absolute; left: 12px; top: 12px; color: #9ca3af;"></i>
+                        <input type="text" placeholder="Mahsulot izlash..." t-model="state.productSearchQuery" style="width: 100%; padding: 12px 12px 12px 35px; border-radius: 8px; border: 1px solid #d1d5db; font-size: 15px; box-sizing: border-box; outline: none;"/>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding-bottom: 20px;">
+                        <t t-foreach="filteredAllProducts" t-as="p" t-key="'reqadd-'+p.product_id">
+                            <div style="background: white; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; display: flex; flex-direction: column;">
+                                <div class="van-product-image-container">
+                                    <t t-if="p.image_url">
+                                        <img class="sorov-product-image" t-att-src="p.image_url" onerror="this.src='/van_sales_pharma/static/description/icon.png';"/>
+                                    </t>
+                                </div>
+                                
+                                <div style="padding: 10px; flex: 1; display: flex; flex-direction: column;">
+                                    <div style="font-weight: bold; font-size: 13px; line-height: 1.2; margin-bottom: 5px; color: #1f2937; flex: 1;">
+                                        <t t-esc="p.name"/>
+                                    </div>
+                                    <div style="font-size: 13px; font-weight: bold; color: #16a34a; margin-bottom: 8px;"><t t-esc="p.price.toLocaleString()"/> UZS</div>
+                                    <button t-on-click="() => this.addNewLineToActiveRequest(p)" style="width: 100%; padding: 8px; border-radius: 6px; border: none; background-color: #2563eb; color: white; font-weight: bold; font-size: 13px; cursor: pointer;">
+                                        <i class="fa fa-plus"></i> Qo'shish
+                                    </button>
+                                </div>
+                            </div>
+                        </t>
                     </div>
                 </t>
 

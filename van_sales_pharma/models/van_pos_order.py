@@ -39,6 +39,8 @@ class VanPosOrder(models.Model):
     ], string='To\'lov Turi', compute='_compute_payment_type', store=True)
     
     note = fields.Text(string='Eslatmalar')
+    
+    request_id = fields.Many2one('van.request', string='So\'rov', readonly=True)
 
     @api.depends('partner_id')
     def _compute_payment_type(self):

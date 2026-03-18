@@ -570,6 +570,55 @@ class VanPosController(http.Controller):
         except Exception as e:
             return {'success': False, 'error': str(e)}
 
+    @http.route('/van/pos/fulfill_request', type='jsonrpc', auth='user')
+    def fulfill_request(self, request_id):
+        try:
+            req = request.env['van.request'].sudo().search([('id', '=', int(request_id))])
+            if req:
+                action = req.sudo().action_xarid()
+                sale_id = req.sale_order_id.id
+                nasiya_id = req.sale_order_id.nasiya_id.id
+                nasiya_amount = req.sale_order_id.amount_total
+                
+                return {
+                    'success': True,
+                    'order_id': sale_id, 
+                    'nasiya_id': nasiya_id,
+                    'nasiya_amount': nasiya_amount,
+                    'action': action
+                }
+            return {'success': False, 'error': "So'rov topilmadi yoki ruxsat yo'q"}
+        except Exception as e:
+            return {'success': False, 'error': str(e)}
+
+    @http.route('/van/pos/update_request', type='jsonrpc', auth='user')
+    def update_request(self, request_id, lines):
+        try:
+            req = request.env['van.request'].sudo().search([('id', '=', int(request_id))])
+            if not req:
+                return {'success': False, 'error': "So'rov topilmadi"}
+                
+            if req.state != 'draft':
+                return {'success': False, 'error': "Faqat kutilayotgan so'rovlarni o'zgartirish mumkin"}
+
+            # Replace lines entirely or update existing. Simplest is to unlink all and recreate
+            # Or use Odoo's command (5, 0, 0) to clear, then (0, 0, values) to add
+            line_commands = [(5, 0, 0)]
+            for l in lines:
+                line_commands.append((0, 0, {
+                    'product_id': int(l['product_id']),
+                    'qty': float(l['qty']),
+                    'price': float(l.get('price', 0.0))
+                }))
+                
+            req.sudo().write({
+                'line_ids': line_commands
+            })
+            
+            return {'success': True}
+        except Exception as e:
+            return {'success': False, 'error': str(e)}
+
     @http.route('/van/pos/get_current_agent', type='jsonrpc', auth='user')
     def get_current_agent(self):
         try:

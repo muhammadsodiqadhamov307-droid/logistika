@@ -1134,8 +1134,122 @@ export class VanMobilePos extends Component {
     }
 
     viewRequestDetails(req) {
-        this.state.activeRequest = req;
+        // Create a deep copy of lines so edits don't affect main list until saved
+        this.state.activeRequest = { ...req, lines: req.lines.map(l => ({ ...l })) };
         this.state.screen = 'request_details';
+    }
+
+    updateRequestLineQty(index, qtyStr) {
+        const qty = parseFloat(qtyStr) || 0;
+        const line = this.state.activeRequest.lines[index];
+        line.qty = qty;
+        line.subtotal = qty * line.price;
+        this._recalcActiveRequestTotal();
+    }
+
+    updateRequestLinePrice(index, priceStr) {
+        const price = parseFloat(priceStr) || 0;
+        const line = this.state.activeRequest.lines[index];
+        line.price = price;
+        line.subtotal = line.qty * price;
+        this._recalcActiveRequestTotal();
+    }
+
+    removeRequestLine(index) {
+        this.state.activeRequest.lines.splice(index, 1);
+        this._recalcActiveRequestTotal();
+    }
+
+    addRequestLine() {
+        // Change screen to a product selector specially for request modification
+        this.state.editingRequestId = this.state.activeRequest.id;
+        this.state.screen = 'request_add_product';
+    }
+
+    addNewLineToActiveRequest(product) {
+        // Check if exists
+        const existing = this.state.activeRequest.lines.find(l => l.product_id === product.product_id);
+        if (existing) {
+            existing.qty += 1;
+            existing.subtotal = existing.qty * existing.price;
+        } else {
+            this.state.activeRequest.lines.push({
+                product_id: product.product_id,
+                product_name: product.name,
+                qty: 1,
+                price: product.price, // using list_price from all_products effectively
+                subtotal: product.price,
+                image_url: product.image_url
+            });
+        }
+        this._recalcActiveRequestTotal();
+        this.showToast("Mahsulot qo'shildi!", "success");
+        this.state.screen = 'request_details';
+        this.state.productSearchQuery = '';
+    }
+
+    _recalcActiveRequestTotal() {
+        let total = 0;
+        for (let l of this.state.activeRequest.lines) {
+            total += l.subtotal;
+        }
+        this.state.activeRequest.total_amount = total;
+    }
+
+    async saveRequestEdits() {
+        this.state.loading = true;
+        try {
+            // First we need a backend endpoint to save changes!
+            // Wait, we didn't add saveRequestEdits endpoint to python. We should just call `update_request_lines` RPC that we will write natively or just update the request.
+            // Let's create the RPC call and we'll implement the backend next.
+            const pId = this.state.activeRequest.partner_id ? this.state.activeRequest.partner_id : false;
+            const res = await rpc("/van/pos/update_request", {
+                request_id: this.state.activeRequest.id,
+                lines: this.state.activeRequest.lines.map(l => ({ product_id: l.product_id, qty: l.qty, price: l.price }))
+            });
+            if (res.success) {
+                this.showToast("So'rov o'zgartirildi!");
+                await this.openRequestsList();
+            } else {
+                this.state.error = res.error || "Xatolik ro'y berdi.";
+            }
+        } catch (e) {
+            this.state.error = "Tarmoqda xatolik: " + e.message;
+        }
+        this.state.loading = false;
+    }
+
+    async fulfillRequest() {
+        if (!confirm("Ushbu so'rovni xarid qilib POS savdosiga o'tkazasizmi?")) return;
+
+        // First save any pending edits
+        await this.saveRequestEdits();
+        if (this.state.error) return; // Stop if save failed
+
+        this.state.loading = true;
+        try {
+            const res = await rpc("/van/pos/fulfill_request", { request_id: this.state.activeRequest.id });
+            if (res.success) {
+                this.loadInventorySilent();
+                this.showToast("Xarid Muvaffaqiyatli Saqlandi!", "success");
+
+                // If it created a nasiya, redirect to kirim screen or show toast
+                if (res.nasiya_id) {
+                    this.state.newNasiyaId = res.nasiya_id;
+                    this.state.nasiyaAmount = res.nasiya_amount;
+                    this.state.kirimAmount = res.nasiya_amount;
+                    this.state.screen = 'kirim';
+                    // We also need to refresh active client if selected, but we might just reset
+                } else {
+                    this.openRequestsList();
+                }
+            } else {
+                this.state.error = res.error || "Xaridni amalga oshirishda xatolik";
+            }
+        } catch (e) {
+            this.state.error = "Tarmoqda xatolik: " + e.message;
+        }
+        this.state.loading = false;
     }
 
     viewTripDetails(trip) {
@@ -1194,6 +1308,8 @@ export class VanMobilePos extends Component {
         } else if (this.state.screen === 'request_details') {
             this.state.activeRequest = null;
             this.state.screen = 'requests_list';
+        } else if (this.state.screen === 'request_add_product') {
+            this.state.screen = 'request_details';
         } else if (this.state.screen === 'trips_list') {
             this.state.screen = 'products';
         } else if (this.state.screen === 'mahsulot_yuklash_form') {

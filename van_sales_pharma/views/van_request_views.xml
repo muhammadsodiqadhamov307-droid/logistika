@@ -33,6 +33,7 @@
                 <field name="date"/>
                 <field name="agent_id"/>
                 <field name="partner_id"/>
+                <field name="total_amount" sum="Jami Summa"/>
                 <field name="state" widget="badge" decoration-info="state == 'draft'" decoration-success="state == 'done'" decoration-muted="state == 'cancel'"/>
             </list>
         </field>
@@ -45,7 +46,8 @@
         <field name="arch" type="xml">
             <form string="So'rov">
                 <header>
-                    <button name="action_done" string="Bajarildi" type="object" class="oe_highlight" invisible="state != 'draft'"/>
+                    <button name="action_xarid" string="🛒 Xarid" type="object" class="oe_highlight" invisible="state != 'draft'"/>
+                    <button name="action_done" string="Bajarildi" type="object" class="btn-secondary" invisible="state != 'draft'"/>
                     <button name="action_cancel" string="Bekor qilish" type="object" invisible="state != 'draft'"/>
                     <button name="action_draft" string="Qoralama qilib qaytarish" type="object" invisible="state == 'draft'"/>
                     <field name="state" widget="statusbar" statusbar_visible="draft,done,cancel"/>
@@ -62,13 +64,20 @@
                             <field name="agent_id"/>
                             <field name="date"/>
                         </group>
+                        <group>
+                            <field name="total_amount" widget="monetary"/>
+                            <field name="fulfilled_date" invisible="not fulfilled_date"/>
+                            <field name="sale_order_id" invisible="not sale_order_id"/>
+                        </group>
                     </group>
                     <notebook>
                         <page string="Mahsulotlar" name="lines">
-                            <field name="line_ids">
+                            <field name="line_ids" readonly="state == 'done' or state == 'cancel'">
                                 <list editable="bottom">
                                     <field name="product_id"/>
                                     <field name="qty"/>
+                                    <field name="price"/>
+                                    <field name="subtotal" sum="Jami"/>
                                 </list>
                             </field>
                         </page>
