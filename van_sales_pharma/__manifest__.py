@@ -44,6 +44,7 @@
     'assets': {
         'web.assets_backend': [
             'van_sales_pharma/static/src/css/van_sales.css',
+            'van_sales_pharma/static/src/css/van_mobile_pos.css',
             'van_sales_pharma/static/src/js/van_agent_locker.js',
             'van_sales_pharma/static/src/js/van_dashboard.js',
             'van_sales_pharma/static/src/xml/van_dashboard.xml',
