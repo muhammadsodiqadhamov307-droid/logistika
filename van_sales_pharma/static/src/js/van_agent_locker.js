@@ -23,7 +23,7 @@ if (session.is_van_agent) {
                 // Allow the mobile POS client action, login/logout routes
                 // Also explicitly allow the agent to view their own summary form
                 let isAllowed = false;
-                if (actionRequest === 'van_sales_pharma.action_van_mobile_pos_app' || actionRequest === 'van_sales_pharma.action_van_mobile_pos') isAllowed = true;
+                if (actionRequest === 'van_sales_pharma.action_van_mobile_pos_app' || actionRequest === 'van_sales_pharma.action_van_mobile_pos' || actionRequest === 'van_sales_pharma.action_van_mobile_pos_entry') isAllowed = true;
                 if (actionTag === 'van_sales_pharma.MobilePosClientAction' || actionTag === 'reload') isAllowed = true;
                 if (actionRequest && actionRequest.res_model === 'van.agent.summary') isAllowed = true;
 

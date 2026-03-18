@@ -14,7 +14,7 @@ class ResUsers(models.Model):
                                     help="Agentning joriy oylik komissiyalari yig'indisi minus Oylik Chiqimlar")
 
     ostatka_ids = fields.One2many('van.agent.ostatka', 'agent_id', string='Boshlang\'ich qoldiq (Ostatka)')
-    salary_payout_ids = fields.One2many('van.salary.payout', 'agent_id', string='Oylik To\'lovlar Tarixi')
+    salary_payout_ids = fields.One2many('van.salary.payout', 'agent_id', string='Oylik Yopishlar Tarixi')
     default_taminotchi_id = fields.Many2one('van.taminotchi', string="Asosiy Taminotchi", help="Yangi Yuklash qilishda avtomatik tanlanuvchi Taminotchi")
 
     agent_oyligi = fields.Monetary(
@@ -39,7 +39,7 @@ class ResUsers(models.Model):
 
     agent_chiqim_ids = fields.One2many(
         'van.payment', 'agent_id', 
-        string="Oylik To'lovlar Tarixi", 
+        string="Oylik Avanslar Tarixi", 
         domain=[('payment_type', '=', 'out'), ('expense_type', '=', 'salary')]
     )
 

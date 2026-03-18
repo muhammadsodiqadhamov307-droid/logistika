@@ -1,7 +1,7 @@
 import sys
 
 def update_home_action(env):
-    action = env.ref('van_sales_pharma.action_van_mobile_pos', raise_if_not_found=False)
+    action = env.ref('van_sales_pharma.action_van_mobile_pos_entry', raise_if_not_found=False)
     if not action:
         print("Action not found")
         return

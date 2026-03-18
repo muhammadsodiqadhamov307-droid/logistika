@@ -29,7 +29,7 @@ class VanTrip(models.Model):
     state = fields.Selection([
         ('draft', 'Qoralama'),
         ('validated', 'Tasdiqlangan')
-    ], string='Holat', default='draft', required=True, copy=False, tracking=True)
+    ], string='Holat', default='draft', required=True, copy=False)
 
     trip_line_ids = fields.One2many('van.trip.line', 'trip_id', string='Yuklangan Mahsulotlar')
 

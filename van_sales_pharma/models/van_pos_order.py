@@ -25,7 +25,7 @@ class VanPosOrder(models.Model):
         ('draft', 'Qoralama'),
         ('done', 'Bajarilgan'),
         ('cancel', 'Bekor Qilingan')
-    ], string='Holat', default='draft', required=True, tracking=True)
+    ], string='Holat', default='draft', required=True)
 
     line_ids = fields.One2many('van.pos.order.line', 'order_id', string='Buyurtma Qatorlari')
     

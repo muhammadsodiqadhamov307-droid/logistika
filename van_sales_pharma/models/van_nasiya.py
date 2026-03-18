@@ -30,7 +30,7 @@ class VanNasiya(models.Model):
         ('open', 'Ochiq'),
         ('partial', 'Qisman To\'langan'),
         ('paid', 'To\'langan Uzilgan')
-    ], string='Holat', compute='_compute_state', store=True, tracking=True)
+    ], string='Holat', compute='_compute_state', store=True)
 
     @api.model_create_multi
     def create(self, vals_list):

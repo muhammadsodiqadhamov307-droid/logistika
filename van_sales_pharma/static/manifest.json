@@ -1,7 +1,7 @@
 {
     "name": "Van Sales",
     "short_name": "Van Sales",
-    "start_url": "/web#action=van_sales_pharma.action_van_mobile_pos",
+    "start_url": "/van/mobile-pos",
     "scope": "/",
     "display": "standalone",
     "orientation": "portrait",

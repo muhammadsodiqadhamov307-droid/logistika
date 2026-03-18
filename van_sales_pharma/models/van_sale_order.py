@@ -33,7 +33,7 @@ class VanSaleOrder(models.Model):
         ('paid', 'To\'langan'),
         ('nasiya', 'Nasiyaga Berilgan'),
         ('cancel', 'Bekor Qilingan')
-    ], string='Holat', default='draft', required=True, tracking=True)
+    ], string='Holat', default='draft', required=True)
 
     amount_total = fields.Monetary(string='Jami Summa', compute='_compute_amount_total', store=True, currency_field='currency_id')
 

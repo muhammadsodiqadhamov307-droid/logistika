@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <record id="action_van_mobile_pos" model="ir.actions.act_url">
+    <record id="action_van_mobile_pos_entry" model="ir.actions.act_url">
         <field name="name">Mobil POS</field>
         <field name="url">/van/mobile-pos</field>
         <field name="target">self</field>
@@ -15,7 +15,7 @@
     <menuitem id="menu_van_mobile_pos" 
               name="Mobil POS" 
               parent="menu_van_sales_root" 
-              action="action_van_mobile_pos" 
+              action="action_van_mobile_pos_entry" 
               sequence="5"
               groups="van_sales_pharma.group_van_agent,van_sales_pharma.group_van_admin"/>
 </odoo>

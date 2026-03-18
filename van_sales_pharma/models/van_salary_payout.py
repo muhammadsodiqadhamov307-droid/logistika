@@ -32,7 +32,7 @@ class VanSalaryPayoutWizard(models.TransientModel):
 
     agent_id = fields.Many2one('res.users', string='Agent', required=True)
     amount = fields.Monetary(string='To\'lanadigan Summa', currency_field='currency_id', readonly=True)
-    notes = fields.Text(string='Izoh', placeholder='Masalan: Mart oyligi to\'lovi...')
+    notes = fields.Text(string='Izoh')
     currency_id = fields.Many2one('res.currency', string='Valyuta', related='agent_id.x_currency_id')
 
     def action_confirm_payout(self):

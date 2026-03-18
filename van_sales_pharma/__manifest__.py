@@ -3,7 +3,7 @@
     'version': '1.1',
     'category': 'Sales/Point of Sale',
     'summary': 'Agentlar mashinasi savdosi, nasiya boshqaruvi va moliyaviy dashboard',
-    'author': '',
+    'author': 'Logistika',
     'depends': [
         'base',
         'mail',

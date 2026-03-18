@@ -49,7 +49,7 @@ class VanPayment(models.Model):
     state = fields.Selection([
         ('received', 'Qabul Qilingan'),
         ('confirmed', 'Tasdiqlangan (Buxgalteriya)')
-    ], string='Holat', default='received', required=True, tracking=True)
+    ], string='Holat', default='received', required=True)
     
     note = fields.Text(string='Izoh')
 

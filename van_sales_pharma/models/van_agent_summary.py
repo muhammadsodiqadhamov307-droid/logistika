@@ -31,7 +31,7 @@ class VanAgentSummary(models.Model):
     yalpi_balans = fields.Monetary(string='Yalpi Balans', compute='_compute_financials', currency_field='currency_id')
     agent_oyligi_earned = fields.Monetary(string='Agent Oyligi (Ishlab topilgan)', compute='_compute_oylik_balansi', currency_field='currency_id')
     oylik_olindi = fields.Monetary(string='Oylik Olindi', compute='_compute_oylik_balansi', currency_field='currency_id')
-    oylik_qoldigi = fields.Monetary(string='Oylik Qoldig\'i', compute='_compute_oylik_balansi', currency_field='currency_id')
+    oylik_qoldigi = fields.Monetary(string='Qolgan Oylik', compute='_compute_oylik_balansi', currency_field='currency_id')
     sof_balans = fields.Monetary(string='Sof Balans', compute='_compute_financials', currency_field='currency_id')
 
 

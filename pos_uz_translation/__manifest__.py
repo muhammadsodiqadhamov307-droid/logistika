@@ -4,6 +4,7 @@
     'version': '1.0',
     'category': 'Sales/Point of Sale',
     'summary': 'Provides Uzbek translation for the Point of Sale module.',
+    'author': 'Logistika',
     'description': """
 This module provides the Uzbek translation for the core Point of Sale module.
 Install this standalone app on any Odoo instance to automatically apply the translations to the POS app.
