@@ -1,4 +1,4 @@
-from odoo import http
+from odoo import http, fields
 from odoo.http import request
 from odoo.exceptions import UserError
 import logging
@@ -577,22 +577,18 @@ class VanPosController(http.Controller):
 
     @http.route('/van/pos/fulfill_request', type='jsonrpc', auth='user')
     def fulfill_request(self, request_id):
+        """Mark a So'rov as fulfilled. Called after the sale is already created via submit_order."""
         try:
             req = request.env['van.request'].sudo().search([('id', '=', int(request_id))])
-            if req:
-                action = req.sudo().action_xarid()
-                sale_id = req.sale_order_id.id
-                nasiya_id = req.sale_order_id.nasiya_id.id
-                nasiya_amount = req.sale_order_id.amount_total
-                
-                return {
-                    'success': True,
-                    'order_id': sale_id, 
-                    'nasiya_id': nasiya_id,
-                    'nasiya_amount': nasiya_amount,
-                    'action': action
-                }
-            return {'success': False, 'error': "So'rov topilmadi yoki ruxsat yo'q"}
+            if not req:
+                return {'success': False, 'error': "So'rov topilmadi"}
+            if req.state == 'done':
+                return {'success': True}  # Already done, idempotent
+            req.sudo().write({
+                'state': 'done',
+                'fulfilled_date': fields.Datetime.now(),
+            })
+            return {'success': True}
         except Exception as e:
             return {'success': False, 'error': str(e)}
 

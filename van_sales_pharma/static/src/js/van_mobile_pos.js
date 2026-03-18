@@ -88,11 +88,14 @@ export class VanMobilePos extends Component {
             syncQueue: [],
             isSyncing: false,
 
-            // Client Hisob-kitob (Report)
-            clientReport: null,          // { client_name, total_due, transactions }
+            // Client Report
+            clientReport: null,
             clientReportLoading: false,
             clientReportDateFrom: '',
             clientReportDateTo: '',
+
+            // So'rov -> POS integration
+            sourceSorovId: null,   // set when fulfilling a request via POS flow,
             clientReportClientId: null,
             clientReportExpandedRows: {}, // order_index: true/false
         });
@@ -820,7 +823,18 @@ export class VanMobilePos extends Component {
                 const result = await rpc("/van/pos/submit_order", data);
 
                 if (result.success) {
-                    this.loadInventorySilent(); // Trigger immediate stock update
+                    this.loadInventorySilent();
+
+                    // If this sale was created from a So'rov, mark it as fulfilled
+                    if (this.state.sourceSorovId) {
+                        const sorovId = this.state.sourceSorovId;
+                        this.state.sourceSorovId = null;
+                        try {
+                            await rpc("/van/pos/fulfill_request", { request_id: sorovId });
+                        } catch (e) {
+                            console.error("So'rovni bajarildi deb belgilashda xatolik:", e);
+                        }
+                    }
 
                     if (!isNasiya) {
                         // Naqt savdo: money is already received, skip payment screen.
@@ -831,7 +845,6 @@ export class VanMobilePos extends Component {
                         this.state.newNasiyaId = result.nasiya_id;
                         this.state.nasiyaAmount = result.nasiya_amount;
                         this.state.kirimAmount = result.nasiya_amount;
-                        // DO NOT update balance locally yet, submitKirim will handle it.
                         this.state.screen = 'kirim';
                         this.showToast("Nasiya saqlandi. To'lovni kiriting.", "success");
                     }
@@ -1233,27 +1246,54 @@ export class VanMobilePos extends Component {
     async fulfillRequest() {
         if (!confirm("Ushbu so'rovni xarid qilib POS savdosiga o'tkazasizmi?")) return;
 
-        const requestId = this.state.activeRequest.id;
+        const req = this.state.activeRequest;
 
-        // Save any pending edits first WITHOUT navigating away
+        // 1. Save any pending edits first WITHOUT navigating away
         await this.saveRequestEdits(false);
-        if (this.state.error) return; // Stop if save failed
+        if (this.state.error) return;
 
-        this.state.loading = true;
-        try {
-            const res = await rpc("/van/pos/fulfill_request", { request_id: requestId });
-            if (res.success) {
-                this.loadInventorySilent();
-                this.showToast("Xarid Muvaffaqiyatli Saqlandi!", "success");
-                // Navigate back to requests list
-                await this.openRequestsList();
-            } else {
-                this.state.error = res.error || "Xaridni amalga oshirishda xatolik";
-            }
-        } catch (e) {
-            this.state.error = "Tarmoqda xatolik: " + e.message;
+        // 2. Find the client from the clients list (to get total_due etc.)
+        const client = this.state.clients.find(c => c.id === req.partner_id) || {
+            id: req.partner_id || 0,
+            name: req.partner_name || 'Naqt savdo',
+            total_due: 0
+        };
+
+        // 3. Pre-fill cart from So'rov lines
+        //    state.cart format: { [product_id]: { qty, custom_price, product: {product_id, name, ...} } }
+        const newCart = {};
+        for (const line of req.lines) {
+            if (!line.product_id) continue;
+            // Try to find the product in inventory first, then allProducts
+            const invProduct = this.state.inventory.find(p => p.product_id === line.product_id);
+            const anyProduct = invProduct || this.state.allProducts.find(p => p.product_id === line.product_id);
+            const productObj = anyProduct ? { ...anyProduct } : {
+                product_id: line.product_id,
+                name: line.product_name,
+                price: line.price,
+                remaining: 9999,
+                image_url: line.image_url || ''
+            };
+            newCart[line.product_id] = {
+                product: productObj,
+                qty: line.qty,
+                custom_price: line.price
+            };
         }
-        this.state.loading = false;
+
+        if (Object.keys(newCart).length === 0) {
+            this.state.error = "So'rovda mahsulot yo'q!";
+            return;
+        }
+
+        // 4. Apply to state
+        this.state.cart = newCart;
+        this.state.selectedClient = client;
+        this.state.sourceSorovId = req.id;
+        this.state.activeRequest = null;
+
+        // 5. Navigate to existing checkout screen
+        this.state.screen = 'checkout';
     }
 
     viewTripDetails(trip) {
