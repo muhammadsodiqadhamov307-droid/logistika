@@ -60,33 +60,42 @@ class VanPayment(models.Model):
                 vals['name'] = self.env['ir.sequence'].next_by_code('van.payment') or _('Yangi')
         records = super().create(vals_list)
         
-        # 3. Telegram Notification for Inbound Payments
+        # Telegram notification must never block payment creation.
         for rec in records:
-            if rec.payment_type == 'in' and rec.partner_id and rec.partner_id.telegram_chat_id:
-                # Recalculate debt dynamically
+            if rec.payment_type != 'in' or not rec.partner_id or not rec.partner_id.telegram_chat_id:
+                continue
+            try:
                 rec.partner_id._compute_van_nasiya_stats()
-                
-                import pytz
-                user_tz = pytz.timezone(self.env.user.tz or 'Asia/Tashkent')
-                local_dt = pytz.utc.localize(rec.date).astimezone(user_tz)
+                local_dt = fields.Datetime.context_timestamp(
+                    rec.with_context(tz=self.env.user.tz or 'Asia/Tashkent'),
+                    rec.date,
+                )
                 date_str = local_dt.strftime('%Y-%m-%d %H:%M')
-                
+
                 msg = f"✅ <b>To'lov qabul qilindi</b>\n"
                 msg += f"📅 {date_str}\n"
                 msg += f"💵 Miqdor: {rec.amount:,.0f} so'm\n"
                 msg += f"💳 Qolgan qarz: {rec.partner_id.x_van_total_due:,.0f} so'm"
-                
-                # Attach Web App Button for Zakaz Berish
-                base_url = self.env['ir.config_parameter'].sudo().get_param('van_telegram_odoo_url', self.env['ir.config_parameter'].sudo().get_param('web.base.url', ''))
+
+                base_url = self.env['ir.config_parameter'].sudo().get_param(
+                    'van_telegram_odoo_url',
+                    self.env['ir.config_parameter'].sudo().get_param('web.base.url', '')
+                )
                 if not base_url.startswith('http'):
                     base_url = "https://" + base_url.lstrip('/')
                 elif base_url.startswith('http://') and not ('localhost' in base_url or '127.0.0.1' in base_url):
                     base_url = base_url.replace('http://', 'https://')
                 base_url = base_url.rstrip('/')
-                
+
                 web_app_url = f"{base_url}/van/client/request?chat_id={rec.partner_id.telegram_chat_id}"
                 button = {"text": "🛒 Zakaz berish", "web_app": {"url": web_app_url}}
                 reply_markup = {"inline_keyboard": [[button]]}
-                
-                self.env['van.telegram.utils'].send_message(rec.partner_id.telegram_chat_id, msg, reply_markup=reply_markup)
+
+                self.env['van.telegram.utils'].send_message(
+                    rec.partner_id.telegram_chat_id,
+                    msg,
+                    reply_markup=reply_markup,
+                )
+            except Exception:
+                _logger.exception("Failed post-create kirim notification for van.payment %s", rec.id)
         return records

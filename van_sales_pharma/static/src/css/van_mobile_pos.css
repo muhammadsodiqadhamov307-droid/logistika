@@ -479,7 +479,7 @@
 
     .kirim-modal-overlay {
         padding: 12px;
-        align-items: flex-end;
+        align-items: center;
     }
 
     .kirim-modal-sheet {

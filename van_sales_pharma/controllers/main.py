@@ -1007,7 +1007,7 @@ class VanPosController(http.Controller):
 
     @http.route('/van/mijoz/delete-sotuv', type='jsonrpc', auth='user')
     def delete_sotuv(self, order_id):
-        """Deletes an existing Sotuv, restoring inventory"""
+        """Deletes an existing Sotuv without any legacy inventory writes."""
         try:
             order = request.env['van.pos.order'].sudo().browse(int(order_id))
             if not order.exists():
@@ -1021,8 +1021,17 @@ class VanPosController(http.Controller):
                 return {'success': False, 'error': 'Faqat o\'zingizning sotuvingizni o\'chira olasiz.'}
 
             partner = order.partner_id
-            
-            # Restore inventory for each line
+
+            # Explicitly break linked debt records first so the mobile delete path
+            # stays independent from any legacy inventory rollback logic.
+            if order.nasiya_id:
+                nasiya = order.nasiya_id.sudo()
+                order.sudo().write({'nasiya_id': False})
+                nasiya.unlink()
+
+            if order.line_ids:
+                order.line_ids.sudo().unlink()
+
             order.sudo().unlink()
             
             # Recompute balances since sale was deleted
