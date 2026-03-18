@@ -1,4 +1,4 @@
-from odoo import http, fields
+from odoo import http, fields, _
 from odoo.http import request
 from odoo.exceptions import UserError
 import logging
@@ -10,10 +10,14 @@ class VanPosController(http.Controller):
 
     def _get_agent_id(self):
         """Returns the acting agent ID if an admin has selected one, otherwise the actual user ID."""
-        if request.env.user.has_group('van_sales_pharma.group_van_admin'):
+        user = request.env.user
+        is_admin = user.has_group('van_sales_pharma.group_van_admin') or user.has_group('base.group_system')
+        if is_admin:
             acting_id = request.session.get('acting_as_agent_id')
             if acting_id:
-                return acting_id
+                acting_user = request.env['res.users'].sudo().browse(int(acting_id))
+                if acting_user.exists():
+                    return acting_user.id
         return request.env.uid
 
     @http.route('/van/mobile-pos', type='http', auth='user')
@@ -638,8 +642,8 @@ class VanPosController(http.Controller):
                 summary_id = summary.id
                 
                 # Check if currently acting as an admin
-                is_admin_mode = bool(request.env.user.has_group('van_sales_pharma.group_van_admin') and request.session.get('acting_as_agent_id'))
-                is_admin = request.env.user.has_group('van_sales_pharma.group_van_admin')
+                is_admin = request.env.user.has_group('van_sales_pharma.group_van_admin') or request.env.user.has_group('base.group_system')
+                is_admin_mode = bool(is_admin and request.session.get('acting_as_agent_id'))
 
                 return {
                     'id': user.id,
@@ -647,8 +651,8 @@ class VanPosController(http.Controller):
                     'name': user.name,
                     'phone': user.phone or '',
                     'oylik_balansi': user.oylik_balansi,
-                    'default_taminotchi_id': user.default_taminotchi_id.id,
-                    'default_taminotchi_name': user.default_taminotchi_id.name or '',
+                    'default_taminotchi_id': user.default_taminotchi_id.id if user.default_taminotchi_id else False,
+                    'default_taminotchi_name': user.default_taminotchi_id.name if user.default_taminotchi_id else '',
                     'image_url': f'/web/image?model=res.users&id={user.id}&field=avatar_128',
                     'is_admin_mode': is_admin_mode,
                     'is_admin': is_admin

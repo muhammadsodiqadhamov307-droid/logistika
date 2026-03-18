@@ -373,7 +373,9 @@ export class VanMobilePos extends Component {
             this.state.showAgentPicker = false;
             // Refresh agent info and inventory with newly selected agent
             await this.loadCurrentAgent();
+            await this.loadClients();
             await this.loadInventory();
+            this.state.error = null;
             this.showToast("Agent o'zgartirildi", "success");
         } catch (e) {
             this.showToast("Agent almashtirishda xatolik", "danger");
@@ -449,6 +451,7 @@ export class VanMobilePos extends Component {
             const result = await rpc('/van/pos/get_current_agent');
             if (result) {
                 this.state.currentAgent = result;
+                this.state.error = null;
                 await this.saveToIDB('agent', [result], false); // Save as array for consistency with getFromIDB
             }
         } catch (e) {
