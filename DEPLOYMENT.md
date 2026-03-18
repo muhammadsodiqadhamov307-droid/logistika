@@ -491,7 +491,6 @@ Oylik Qoldig'i = Agent Oyligi - Oylik Olindi
 Sof Balans = Yalpi Balans - Oylik Olindi
 Foyda = Σ(actual_sale_price - kelish_narxi) × qty
 Agentdan qoladigan = Foyda - Agent Oyligi (earned)
-Jami Qarz (Admin'ga) = Oylik Olindi + Cash Advances - Kirims
 ```
 
 ---

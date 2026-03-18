@@ -6,6 +6,22 @@ import { useService } from "@web/core/utils/hooks";
 import { rpc } from "@web/core/network/rpc";
 import { session } from "@web/session";
 
+// Number formatting helpers outside component scope for general use if needed
+const formatNumberWithCommas = (number) => {
+    if (number === null || number === undefined || number === '') return '';
+    const numStr = String(number).replace(/,/g, '');
+    const num = parseFloat(numStr);
+    if (isNaN(num)) return '';
+    return num.toLocaleString('en-US');
+};
+
+const parseFormattedNumber = (formattedNumber) => {
+    if (!formattedNumber) return 0;
+    const cleaned = String(formattedNumber).replace(/,/g, '');
+    const num = parseFloat(cleaned);
+    return isNaN(num) ? 0 : num;
+};
+
 export class VanMobilePos extends Component {
     setup() {
         this.action = useService("action");
@@ -98,7 +114,15 @@ export class VanMobilePos extends Component {
             sourceSorovId: null,   // set when fulfilling a request via POS flow,
             clientReportClientId: null,
             clientReportExpandedRows: {}, // order_index: true/false
+
+            // Client Report Edit Mode
+            editingTxnId: null,      // tx.id if currently editing
+            editKirimAmount: '',     // bound to input
+            editSotuvLines: {},      // {line_id: {qty, price, price_formatted}}
         });
+
+        // Expose formatting function to template
+        this.formatNumber = formatNumberWithCommas;
 
         // Initialize connection listeners
         useExternalListener(window, "online", this.onOnline.bind(this));
@@ -780,8 +804,93 @@ export class VanMobilePos extends Component {
         }
     }
 
+    // --- Input Handlers for formatting ---
+    setKirimAmountForm(ev) {
+        // Remove trailing commas mapping errors
+        const cursorPosition = ev.target.selectionStart;
+        const oldLength = ev.target.value.length;
+
+        const numericValue = parseFormattedNumber(ev.target.value);
+        if (isNaN(numericValue) || ev.target.value === '') {
+            this.state.kirimAmount = '';
+        } else {
+            this.state.kirimAmount = formatNumberWithCommas(numericValue);
+        }
+
+        // Try to maintain cursor position
+        setTimeout(() => {
+            if (ev.target) {
+                const newLength = ev.target.value.length;
+                let newPos = cursorPosition + (newLength - oldLength);
+                ev.target.setSelectionRange(newPos, newPos);
+            }
+        }, 0);
+    }
+
+    setQuickActionAmountForm(ev) {
+        const cursorPosition = ev.target.selectionStart;
+        const oldLength = ev.target.value.length;
+
+        const numericValue = parseFormattedNumber(ev.target.value);
+        if (isNaN(numericValue) || ev.target.value === '') {
+            this.state.quickActionAmount = '';
+        } else {
+            this.state.quickActionAmount = formatNumberWithCommas(numericValue);
+        }
+
+        setTimeout(() => {
+            if (ev.target) {
+                const newLength = ev.target.value.length;
+                let newPos = cursorPosition + (newLength - oldLength);
+                ev.target.setSelectionRange(newPos, newPos);
+            }
+        }, 0);
+    }
+
+    setEditKirimAmountForm(ev) {
+        const cursorPosition = ev.target.selectionStart;
+        const oldLength = ev.target.value.length;
+
+        const numericValue = parseFormattedNumber(ev.target.value);
+        if (isNaN(numericValue) || ev.target.value === '') {
+            this.state.editKirimAmount = '';
+        } else {
+            this.state.editKirimAmount = formatNumberWithCommas(numericValue);
+        }
+
+        setTimeout(() => {
+            if (ev.target) {
+                const newLength = ev.target.value.length;
+                let newPos = cursorPosition + (newLength - oldLength);
+                ev.target.setSelectionRange(newPos, newPos);
+            }
+        }, 0);
+    }
+
+    setEditSotuvPriceForm(lineId, ev) {
+        const cursorPosition = ev.target.selectionStart;
+        const oldLength = ev.target.value.length;
+
+        const numericValue = parseFormattedNumber(ev.target.value);
+        if (isNaN(numericValue) || ev.target.value === '') {
+            this.state.editSotuvLines[lineId].price_formatted = '';
+            this.state.editSotuvLines[lineId].price = 0;
+        } else {
+            this.state.editSotuvLines[lineId].price_formatted = formatNumberWithCommas(numericValue);
+            this.state.editSotuvLines[lineId].price = numericValue;
+        }
+
+        setTimeout(() => {
+            if (ev.target) {
+                const newLength = ev.target.value.length;
+                let newPos = cursorPosition + (newLength - oldLength);
+                ev.target.setSelectionRange(newPos, newPos);
+            }
+        }, 0);
+    }
+
     setCartPrice(product, ev) {
-        let newPrice = parseFloat(ev.target.value);
+        let newPrice = parseFormattedNumber(ev.target.value);
         if (isNaN(newPrice) || newPrice < 0) {
             newPrice = product.price; // fallback to default
         }
@@ -844,7 +953,7 @@ export class VanMobilePos extends Component {
                         // Nasiya: prompt for partial/full payment.
                         this.state.newNasiyaId = result.nasiya_id;
                         this.state.nasiyaAmount = result.nasiya_amount;
-                        this.state.kirimAmount = result.nasiya_amount;
+                        this.state.kirimAmount = formatNumberWithCommas(result.nasiya_amount);
                         this.state.screen = 'kirim';
                         this.showToast("Nasiya saqlandi. To'lovni kiriting.", "success");
                     }
@@ -889,12 +998,8 @@ export class VanMobilePos extends Component {
         this.state.loading = false;
     }
 
-    setKirimAmount(ev) {
-        this.state.kirimAmount = parseFloat(ev.target.value) || 0;
-    }
-
     async submitKirim(paymentMethod = 'cash') {
-        const amount = this.state.kirimAmount;
+        const amount = parseFormattedNumber(this.state.kirimAmount);
         if (amount >= 0) {
             this.state.loading = true;
             if (this.state.isOnline && this.state.newNasiyaId) {
@@ -948,7 +1053,7 @@ export class VanMobilePos extends Component {
     }
 
     async submitQuickAction() {
-        const amount = parseFloat(this.state.quickActionAmount);
+        const amount = parseFormattedNumber(this.state.quickActionAmount);
         if (isNaN(amount) || amount <= 0) {
             this.state.error = "Iltimos summani to'g'ri kiriting.";
             return;
@@ -1368,6 +1473,7 @@ export class VanMobilePos extends Component {
     async openClientReport(client, event) {
         if (event) event.stopPropagation();
         this.state.clientReportClientId = client.id;
+        this.cancelEdit(event);
         this.state.clientReportDateFrom = '';
         this.state.clientReportDateTo = '';
         this.state.clientReportExpandedRows = {};
@@ -1409,6 +1515,123 @@ export class VanMobilePos extends Component {
 
     toggleReportRow(index) {
         this.state.clientReportExpandedRows[index] = !this.state.clientReportExpandedRows[index];
+    }
+
+    // --- CLIENT HISOB-KITOB EDIT MODE ---
+    cancelEdit(event) {
+        if (event) event.stopPropagation();
+        this.state.editingTxnId = null;
+        this.state.editKirimAmount = '';
+        this.state.editSotuvLines = {};
+    }
+
+    enableEdit(tx, event) {
+        if (event) event.stopPropagation();
+        this.state.editingTxnId = tx.id;
+        if (tx.turi === 'kirim') {
+            this.state.editKirimAmount = formatNumberWithCommas(tx.summa);
+        } else if (tx.turi === 'sotuv') {
+            this.state.editSotuvLines = {};
+            for (const line of tx.lines) {
+                this.state.editSotuvLines[line.id] = {
+                    qty: line.qty,
+                    price: line.price,
+                    price_formatted: formatNumberWithCommas(line.price)
+                };
+            }
+            // Auto expand the row so they can see inputs
+            const idx = this.state.clientReport.transactions.indexOf(tx);
+            if (idx >= 0) {
+                this.state.clientReportExpandedRows[idx] = true;
+            }
+        }
+    }
+
+    async saveChanges(tx, event) {
+        if (event) event.stopPropagation();
+        this.state.clientReportLoading = true;
+
+        try {
+            if (tx.turi === 'kirim') {
+                const amount = parseFormattedNumber(this.state.editKirimAmount);
+                if (amount < 0 || isNaN(amount)) {
+                    this.showToast("Noto'g'ri summa", "error");
+                    this.state.clientReportLoading = false;
+                    return;
+                }
+                const result = await rpc('/van/mijoz/edit-kirim', {
+                    payment_id: tx.id,
+                    new_amount: amount
+                });
+                if (result.success) {
+                    this.showToast("Saqlandi", "success");
+                    this.cancelEdit();
+                    await this._fetchClientReport(this.state.clientReportClientId);
+                } else {
+                    this.showToast(result.error || "Xato", "error");
+                }
+            } else if (tx.turi === 'sotuv') {
+                const linesPayload = [];
+                for (const lid in this.state.editSotuvLines) {
+                    const lData = this.state.editSotuvLines[lid];
+                    if (lData.qty < 0 || lData.price < 0) {
+                        this.showToast("Miqdor/Narx manfiy bo'lmaydi", "error");
+                        this.state.clientReportLoading = false;
+                        return;
+                    }
+                    linesPayload.push({
+                        line_id: lid,
+                        qty: lData.qty,
+                        price: lData.price
+                    });
+                }
+                const result = await rpc('/van/mijoz/edit-sotuv', {
+                    order_id: tx.id,
+                    lines: linesPayload
+                });
+                if (result.success) {
+                    this.showToast("Saqlandi", "success");
+                    this.cancelEdit();
+                    await this._fetchClientReport(this.state.clientReportClientId);
+                    this.loadInventorySilent(); // Update local inventory stock
+                } else {
+                    this.showToast(result.error || "Xato", "error");
+                }
+            }
+        } catch (e) {
+            this.showToast("Tarmoq xatosi", "error");
+        }
+        this.state.clientReportLoading = false;
+    }
+
+    async confirmDelete(tx, event) {
+        if (event) event.stopPropagation();
+        if (!confirm("Haqiqatan ham ushbu yozuvni o'chirmoqchimisiz?")) {
+            return;
+        }
+
+        this.state.clientReportLoading = true;
+        try {
+            let result;
+            if (tx.turi === 'kirim') {
+                result = await rpc('/van/mijoz/delete-kirim', { payment_id: tx.id });
+            } else if (tx.turi === 'sotuv') {
+                result = await rpc('/van/mijoz/delete-sotuv', { order_id: tx.id });
+            }
+
+            if (result && result.success) {
+                this.showToast("O'chirildi", "success");
+                await this._fetchClientReport(this.state.clientReportClientId);
+                if (tx.turi === 'sotuv') {
+                    this.loadInventorySilent(); // Return deleted sale stock to inventory natively
+                }
+            } else {
+                this.showToast(result?.error || "O'chirishda xatolik", "error");
+            }
+        } catch (e) {
+            this.showToast("Tarmoq xatosi", "error");
+        }
+        this.state.clientReportLoading = false;
     }
 
     openAgentSummary() {

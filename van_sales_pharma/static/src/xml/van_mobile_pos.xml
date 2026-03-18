@@ -175,7 +175,7 @@
 
                     <div style="margin-bottom: 15px;">
                         <label style="display: block; font-size: 14px; font-weight: bold; margin-bottom: 5px; color: #374151;">Summa (So'm)</label>
-                        <input type="number" t-model="state.quickActionAmount" placeholder="0" style="width: 100%; padding: 12px; border: 2px solid #d1d5db; border-radius: 8px; font-size: 18px; box-sizing: border-box; outline: none; transition: border-color 0.2s;" t-attf-style="border-color: {{ state.quickActionType === 'kirim' ? '#10b981' : '#ef4444' }};"/>
+                        <input type="text" inputmode="numeric" t-model="state.quickActionAmount" t-on-input="setQuickActionAmountForm" placeholder="0" style="width: 100%; padding: 12px; border: 2px solid #d1d5db; border-radius: 8px; font-size: 18px; box-sizing: border-box; outline: none; transition: border-color 0.2s;" t-attf-style="border-color: {{ state.quickActionType === 'kirim' ? '#10b981' : '#ef4444' }};"/>
                     </div>
 
                     <div style="margin-bottom: 20px;">
@@ -339,9 +339,20 @@
                                     </t>
                                     <t t-else="">
                                         <t t-foreach="state.clientReport.transactions" t-as="tx" t-key="tx_index">
-                                            <tr t-on-click="() => tx.lines?.length > 0 ? this.toggleReportRow(tx_index) : null" 
-                                                t-attf-style="border-bottom: 1px solid #f1f5f9; cursor: {{ tx.lines?.length > 0 ? 'pointer' : 'default' }}; background: {{ tx.is_debt ? 'transparent' : '#f0fdf4' }};">
-                                                <td style="padding: 10px;"><t t-esc="tx.date_label || tx.date"/></td>
+                                            <tr t-on-click="() => (!state.editingTxnId and tx.lines?.length > 0) ? this.toggleReportRow(tx_index) : null" 
+                                                t-attf-style="border-bottom: 1px solid #f1f5f9; cursor: {{ (!state.editingTxnId and tx.lines?.length > 0) ? 'pointer' : 'default' }}; background: {{ tx.is_debt ? 'transparent' : '#f0fdf4' }};">
+                                                <td style="padding: 10px;">
+                                                    <t t-esc="tx.date_label || tx.date"/>
+                                                    <!-- Action Buttons for Kirim and Sotuv -->
+                                                    <div t-if="tx.turi in ['kirim', 'sotuv'] and !state.editingTxnId" style="margin-top: 4px; display: flex; gap: 8px;">
+                                                        <button t-on-click="(ev) => this.enableEdit(tx, ev)" style="background: none; border: none; padding: 2px; color: #3b82f6; font-size: 14px; cursor: pointer;"><i class="fa fa-pencil"></i></button>
+                                                        <button t-on-click="(ev) => this.confirmDelete(tx, ev)" style="background: none; border: none; padding: 2px; color: #ef4444; font-size: 14px; cursor: pointer;"><i class="fa fa-trash"></i></button>
+                                                    </div>
+                                                    <div t-elif="state.editingTxnId === tx.id" style="margin-top: 4px; display: flex; gap: 8px;">
+                                                        <button t-on-click="(ev) => this.saveChanges(tx, ev)" style="background: none; border: none; padding: 2px; color: #10b981; font-size: 14px; cursor: pointer;"><i class="fa fa-check"></i> Saqlash</button>
+                                                        <button t-on-click="(ev) => this.cancelEdit(ev)" style="background: none; border: none; padding: 2px; color: #6b7280; font-size: 14px; cursor: pointer;"><i class="fa fa-times"></i> Bekor</button>
+                                                    </div>
+                                                </td>
                                                 <td style="padding: 10px;">
                                                     <div style="display: flex; align-items: center; gap: 4px;">
                                                         <t t-esc="tx.turi_label"/>
@@ -349,10 +360,15 @@
                                                     </div>
                                                 </td>
                                                 <td style="padding: 10px; text-align: right; font-weight: bold; color: {{ tx.is_debt ? '#e11d48' : '#059669' }};">
-                                                    <t t-if="!tx.is_debt">-</t><t t-esc="tx.summa.toLocaleString()"/>
+                                                    <t t-if="state.editingTxnId === tx.id and tx.turi === 'kirim'">
+                                                        <input type="text" inputmode="numeric" t-model="state.editKirimAmount" t-on-input="setEditKirimAmountForm" style="width: 80px; padding: 4px; text-align: right; border: 1px solid #3b82f6; border-radius: 4px; outline: none;"/>
+                                                    </t>
+                                                    <t t-else="">
+                                                        <t t-if="!tx.is_debt">-</t><t t-esc="formatNumber(tx.summa)"/>
+                                                    </t>
                                                 </td>
                                                 <td style="padding: 10px; text-align: right; font-weight: bold; color: #1e293b;">
-                                                    <t t-esc="tx.balance.toLocaleString()"/>
+                                                    <t t-esc="formatNumber(tx.balance)"/>
                                                 </td>
                                             </tr>
                                             <!-- Expandable rows for product details -->
@@ -361,8 +377,16 @@
                                                     <div style="padding: 10px 15px; border-left: 3px solid #cbd5e1; margin: 5px 10px; background: white; border-radius: 4px; box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);">
                                                         <t t-foreach="tx.lines" t-as="line" t-key="line_index">
                                                             <div style="display: flex; justify-content: space-between; font-size: 12px; padding: 4px 0; border-bottom: 1px dashed #f1f5f9;">
-                                                                <span style="color: #475569;"><t t-esc="line.name"/></span>
-                                                                <span style="font-weight: bold; color: #1e293b;"><t t-esc="line.qty"/> x <t t-esc="line.price.toLocaleString()"/> = <t t-esc="line.subtotal.toLocaleString()"/></span>
+                                                                <span style="color: #475569; flex: 1;"><t t-esc="line.name"/></span>
+                                                                <span style="font-weight: bold; color: #1e293b; display: flex; align-items: center; gap: 4px;">
+                                                                    <t t-if="state.editingTxnId === tx.id">
+                                                                        <input type="number" t-model="state.editSotuvLines[line.id].qty" style="width: 40px; padding: 2px; text-align: center; border: 1px solid #3b82f6; border-radius: 4px; outline: none;"/> x 
+                                                                        <input type="text" inputmode="numeric" t-model="state.editSotuvLines[line.id].price_formatted" t-on-input="(ev) => setEditSotuvPriceForm(line.id, ev)" style="width: 70px; padding: 2px; text-align: right; border: 1px solid #3b82f6; border-radius: 4px; outline: none;"/>
+                                                                    </t>
+                                                                    <t t-else="">
+                                                                        <t t-esc="line.qty"/> x <t t-esc="formatNumber(line.price)"/> = <t t-esc="formatNumber(line.subtotal)"/>
+                                                                    </t>
+                                                                </span>
                                                             </div>
                                                         </t>
                                                     </div>
@@ -476,16 +500,16 @@
                             <div style="padding: 15px; border-bottom: 1px solid #f3f4f6; display: flex; justify-content: space-between;">
                                 <div>
                                     <div style="font-weight: bold;"><t t-esc="item.product.name"/></div>
-                                    <div style="color: #6b7280; font-size: 13px;"><t t-esc="item.qty"/> x <t t-esc="item.custom_price.toLocaleString()"/></div>
+                                    <div style="color: #6b7280; font-size: 13px;"><t t-esc="item.qty"/> x <t t-esc="formatNumber(item.custom_price)"/></div>
                                 </div>
                                 <div style="font-weight: bold; color: #111827;">
-                                    <t t-esc="(item.qty * item.custom_price).toLocaleString()"/>
+                                    <t t-esc="formatNumber(item.qty * item.custom_price)"/>
                                 </div>
                             </div>
                         </t>
                         <div style="padding: 15px; background-color: #f9fafb; display: flex; justify-content: space-between; font-size: 18px; font-weight: bold;">
                             <span>Jami (<t t-esc="!state.selectedClient.id ? 'Naqt' : 'Nasiya'"/>):</span>
-                            <span t-attf-style="color: {{ !state.selectedClient.id ? '#10b981' : '#dc2626' }};"><t t-esc="cartTotal.toLocaleString()"/></span>
+                            <span t-attf-style="color: {{ !state.selectedClient.id ? '#10b981' : '#dc2626' }};"><t t-esc="formatNumber(cartTotal)"/></span>
                         </div>
                     </div>
 
@@ -509,7 +533,7 @@
                             
                             <div style="margin-bottom: 15px; text-align: left;">
                                 <label style="display: block; font-size: 14px; color: #4b5563; margin-bottom: 5px;">To'lov summasi (Kirim):</label>
-                                <input type="number" t-att-value="state.kirimAmount" t-on-change="setKirimAmount" style="width: 100%; padding: 12px; font-size: 20px; font-weight: bold; border: 2px solid #2563eb; border-radius: 8px; box-sizing: border-box; text-align: right;"/>
+                                <input type="text" inputmode="numeric" t-att-value="state.kirimAmount" t-on-input="setKirimAmountForm" style="width: 100%; padding: 12px; font-size: 20px; font-weight: bold; border: 2px solid #2563eb; border-radius: 8px; box-sizing: border-box; text-align: right;"/>
                             </div>
                             
                             <div style="display: flex; gap: 10px;">
@@ -567,7 +591,7 @@
                                     <!-- Total Sum -->
                                     <div style="background: #f8fafc; border-radius: 6px; padding: 10px; border: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
                                         <span style="font-size: 14px; font-weight: bold; color: #475569;">Jami Summa:</span>
-                                        <span style="font-size: 16px; font-weight: bold; color: #1e40af;"><t t-esc="(req.total_amount || 0).toLocaleString()"/> so'm</span>
+                                        <span style="font-size: 16px; font-weight: bold; color: #1e40af;"><t t-esc="formatNumber(req.total_amount || 0)"/> so'm</span>
                                     </div>
                                     
                                     <div t-if="req.notes" style="margin-top: 10px; font-size: 13px; color: #6b7280; font-style: italic; border-top: 1px dashed #e2e8f0; padding-top: 8px; white-space: pre-wrap;">
@@ -1104,7 +1128,7 @@
             <!-- Bottom Cart Summary (Fixed) -->
             <div t-if="state.screen === 'products' and cartItems.length > 0" style="position: fixed; bottom: 0; left: 0; right: 0; background: white; padding: 15px 20px; box-shadow: 0 -4px 6px -1px rgba(0, 0, 0, 0.1); display: flex; justify-content: space-between; align-items: center; z-index: 100;">
                     <div>
-                        <div style="font-weight: bold; font-size: 16px;">Jami: <span style="color: #dc2626;"><t t-esc="cartTotal.toLocaleString()"/></span></div>
+                        <div style="font-weight: bold; font-size: 16px;">Jami: <span style="color: #dc2626;"><t t-esc="formatNumber(cartTotal)"/></span></div>
                         <div style="font-size: 12px; color: #6b7280;"><t t-esc="cartItems.length"/> turdagi mahsulot</div>
                     </div>
                     <button t-on-click="goToCheckout" style="background-color: #2563eb; color: white; font-weight: bold; border: none; padding: 12px 20px; border-radius: 8px;">

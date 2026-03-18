@@ -103,6 +103,7 @@ class VanPosController(http.Controller):
                 for ostatka in partner.x_van_ostatka_ids:
                     if ostatka.amount > 0:
                         transactions.append({
+                            'id': ostatka.id,
                             'date_obj': user_tz.localize(datetime.datetime.combine(ostatka.date or datetime.date.today(), datetime.time.min)),
                             'date_label': (ostatka.date or datetime.date.today()).strftime('%d.%m.%Y'),
                             'turi': "boshlangich_qarz",
@@ -125,12 +126,15 @@ class VanPosController(http.Controller):
                     lines = []
                     for l in order.line_ids:
                         lines.append({
+                            'id': l.id,
+                            'product_id': l.product_id.id,
                             'name': l.product_id.name or '',
                             'qty': l.qty,
                             'price': l.price_unit,
                             'subtotal': l.qty * l.price_unit,
                         })
                     transactions.append({
+                        'id': order.id,
                         'date_obj': local_dt,
                         'date_label': local_dt.strftime('%d.%m.%Y %H:%M:%S'),
                         'turi': 'sotuv',
@@ -151,6 +155,7 @@ class VanPosController(http.Controller):
                 if payment.amount > 0:
                     local_dt = pytz.utc.localize(payment.date).astimezone(user_tz)
                     transactions.append({
+                        'id': payment.id,
                         'date_obj': local_dt,
                         'date_label': local_dt.strftime('%d.%m.%Y %H:%M:%S'),
                         'turi': 'kirim',
@@ -875,3 +880,177 @@ class VanPosController(http.Controller):
             return {'success': True, 'request_id': new_request.id}
         except Exception as e:
             return {'success': False, 'error': str(e)}
+
+    @http.route('/van/mijoz/edit-kirim', type='jsonrpc', auth='user')
+    def edit_kirim(self, payment_id, new_amount):
+        """Edits an existing Kirim payment amount"""
+        try:
+            payment = request.env['van.payment'].sudo().browse(int(payment_id))
+            if not payment.exists() or payment.payment_type != 'in':
+                return {'success': False, 'error': 'To\'lov topilmadi yoki bu kirim emas.'}
+            
+            # Allow admin or the agent who created it
+            agent_id = self._get_agent_id()
+            user = request.env.user
+            is_admin = user.has_group('van_sales_pharma.group_van_admin') or user.has_group('base.group_system')
+            
+            if not is_admin and payment.agent_id.id != agent_id:
+                return {'success': False, 'error': 'Faqat o\'zingizning kiritgan to\'lovingizni tahrirlay olasiz.'}
+
+            try:
+                new_amount = float(new_amount)
+                if new_amount < 0:
+                    raise ValueError
+            except:
+                return {'success': False, 'error': 'Noto\'g\'ri summa kiritildi.'}
+
+            payment.sudo().write({'amount': new_amount})
+            
+            # Recompute balances since payment changed
+            if payment.partner_id:
+                payment.partner_id.sudo()._compute_van_nasiya_stats()
+                
+            return {'success': True}
+        except Exception as e:
+            return {'success': False, 'error': str(e)}
+
+    @http.route('/van/mijoz/delete-kirim', type='jsonrpc', auth='user')
+    def delete_kirim(self, payment_id):
+        """Deletes an existing Kirim payment"""
+        try:
+            payment = request.env['van.payment'].sudo().browse(int(payment_id))
+            if not payment.exists() or payment.payment_type != 'in':
+                return {'success': False, 'error': 'To\'lov topilmadi yoki bu kirim emas.'}
+            
+            # Allow admin or the agent who created it
+            agent_id = self._get_agent_id()
+            user = request.env.user
+            is_admin = user.has_group('van_sales_pharma.group_van_admin') or user.has_group('base.group_system')
+            
+            if not is_admin and payment.agent_id.id != agent_id:
+                return {'success': False, 'error': 'Faqat o\'zingizning kiritgan to\'lovingizni o\'chira olasiz.'}
+
+            partner = payment.partner_id
+            payment.sudo().unlink()
+            
+            # Recompute balances since payment was deleted
+            if partner:
+                partner.sudo()._compute_van_nasiya_stats()
+                
+            return {'success': True}
+        except Exception as e:
+            return {'success': False, 'error': str(e)}
+
+
+    @http.route('/van/mijoz/edit-sotuv', type='jsonrpc', auth='user')
+    def edit_sotuv(self, order_id, lines):
+        """
+        Edits an existing Sotuv.
+        lines = [{'line_id': ID, 'qty': QTY, 'price': PRICE}]
+        Lines not included are assumed unchanged, except we will update lines provided.
+        """
+        try:
+            order = request.env['van.pos.order'].sudo().browse(int(order_id))
+            if not order.exists():
+                return {'success': False, 'error': 'Sotuv topilmadi.'}
+            
+            agent_id = self._get_agent_id()
+            user = request.env.user
+            is_admin = user.has_group('van_sales_pharma.group_van_admin') or user.has_group('base.group_system')
+            
+            if not is_admin and order.agent_id.id != agent_id:
+                return {'success': False, 'error': 'Faqat o\'zingizning sotuvingizni tahrirlay olasiz.'}
+
+            if order.state != 'done':
+                 return {'success': False, 'error': 'Faqat tasdiqlangan sotuvlarni tahrirlash mumkin.'}
+
+            # Group the incoming updates
+            updates = {int(l['line_id']): {'qty': float(l['qty']), 'price': float(l['price'])} for l in lines if 'line_id' in l}
+
+            for line in order.line_ids:
+                if line.id in updates:
+                    new_qty = updates[line.id]['qty']
+                    new_price = updates[line.id]['price']
+                    
+                    if new_qty < 0:
+                        return {'success': False, 'error': 'Miqdor manfiy bo\'lishi mumkin emas.'}
+                    if new_price < 0:
+                        return {'success': False, 'error': 'Narx manfiy bo\'lishi mumkin emas.'}
+
+                    # Diff to adjust stock
+                    qty_diff = new_qty - line.qty
+                    
+                    if qty_diff != 0:
+                        # Check stock if we are increasing quantity
+                        inv = request.env['van.agent.inventory'].sudo().search([
+                            ('agent_id', '=', order.agent_id.id),
+                            ('product_id', '=', line.product_id.id)
+                        ], limit=1)
+                        
+                        if qty_diff > 0:
+                            if not inv or inv.qty < qty_diff:
+                                return {'success': False, 'error': f"Agentda {line.product_id.name} uchun yetarli qoldiq yo'q."}
+
+                        # Adjust stock
+                        if inv:
+                            inv.sudo().write({'qty': inv.qty - qty_diff})
+                        
+                    # Also write cost_price logic to update subtotal cost
+                    if hasattr(line.product_id, 'cost_price'):
+                        cost = line.product_id.cost_price * new_qty
+                        line.sudo().write({'qty': new_qty, 'price_unit': new_price, 'cost_amount': cost})
+                    else:
+                        line.sudo().write({'qty': new_qty, 'price_unit': new_price})
+
+            # Recompute total amount manually and partner balances
+            order.sudo()._compute_amount_total()
+            if order.partner_id:
+                order.partner_id.sudo()._compute_van_nasiya_stats()
+                
+            return {'success': True}
+        except Exception as e:
+            return {'success': False, 'error': str(e)}
+
+    @http.route('/van/mijoz/delete-sotuv', type='jsonrpc', auth='user')
+    def delete_sotuv(self, order_id):
+        """Deletes an existing Sotuv, restoring inventory"""
+        try:
+            order = request.env['van.pos.order'].sudo().browse(int(order_id))
+            if not order.exists():
+                return {'success': False, 'error': 'Sotuv topilmadi.'}
+            
+            agent_id = self._get_agent_id()
+            user = request.env.user
+            is_admin = user.has_group('van_sales_pharma.group_van_admin') or user.has_group('base.group_system')
+            
+            if not is_admin and order.agent_id.id != agent_id:
+                return {'success': False, 'error': 'Faqat o\'zingizning sotuvingizni o\'chira olasiz.'}
+
+            partner = order.partner_id
+            
+            # Restore inventory for each line
+            for line in order.line_ids:
+                if line.qty > 0:
+                    inv = request.env['van.agent.inventory'].sudo().search([
+                        ('agent_id', '=', order.agent_id.id),
+                        ('product_id', '=', line.product_id.id)
+                    ], limit=1)
+                    if inv:
+                        inv.sudo().write({'qty': inv.qty + line.qty})
+                    else:
+                        request.env['van.agent.inventory'].sudo().create({
+                            'agent_id': order.agent_id.id,
+                            'product_id': line.product_id.id,
+                            'qty': line.qty,
+                        })
+
+            order.sudo().unlink()
+            
+            # Recompute balances since sale was deleted
+            if partner:
+                partner.sudo()._compute_van_nasiya_stats()
+                
+            return {'success': True}
+        except Exception as e:
+            return {'success': False, 'error': str(e)}
+
