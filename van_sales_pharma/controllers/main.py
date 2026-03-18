@@ -1054,3 +1054,67 @@ class VanPosController(http.Controller):
         except Exception as e:
             return {'success': False, 'error': str(e)}
 
+    @http.route('/van/debug/check-inventory', type='http', auth='user')
+    def check_agent_inventory(self, agent_id=None):
+        """
+        Diagnose inventory mismatch. Compares reconstructed 'Yuklash' history vs actual loaded_qty.
+        Only accessible by admins.
+        """
+        if not request.env.user.has_group('van_sales_pharma.group_van_admin'):
+            return "Huquq yetarli emas"
+            
+        agent = request.env['res.users'].sudo().browse(int(agent_id)) if agent_id else request.env.user
+        
+        # 1. Calculate Expected from Trips
+        trips = request.env['van.trip'].sudo().search([
+            ('agent_id', '=', agent.id),
+            ('state', '=', 'validated')
+        ])
+        
+        expected_loader = {}
+        for trip in trips:
+            for line in trip.trip_line_ids:
+                pid = line.product_id.id
+                if pid not in expected_loader:
+                    expected_loader[pid] = {'name': line.product_id.name, 'qty': 0}
+                expected_loader[pid]['qty'] += line.loaded_qty
+                
+        # 2. Extract Actual from Inventory Profile
+        summary = request.env['van.agent.summary'].sudo().search([('agent_id', '=', agent.id)], limit=1)
+        actual_loader = {}
+        if summary:
+            for inv_line in summary.inventory_line_ids:
+                actual_loader[inv_line.product_id.id] = inv_line.loaded_qty
+                
+        # 3. Render HTML Table
+        html = f"<html><head><style>table, th, td {{border: 1px solid black; border-collapse: collapse; padding: 5px;}} th {{background-color: #f2f2f2;}} .err {{color: red; font-weight: bold;}}</style></head><body>"
+        html += f"<h2>[{agent.name}] Inventar Diagnostikasi</h2>"
+        html += "<p><b>Diqqat:</b> Ushbu jadval baza tarixi (Sayohatlar) va tizimdagi joriy 'Yuklangan Miqdor' o'rtasidagi farqni ko'rsatadi.</p>"
+        html += "<table><tr><th>ID</th><th>Mahsulot nomi</th><th>Kutilyotgan (Sayohatlardan)</th><th>Haqiqiy (Bazadagi)</th><th>Farq</th></tr>"
+        
+        all_pids = set(expected_loader.keys()).union(set(actual_loader.keys()))
+        has_error = False
+        
+        for pid in sorted(list(all_pids)):
+            exp = expected_loader.get(pid, {}).get('qty', 0.0)
+            name = expected_loader.get(pid, {}).get('name', 'Noma\'lum')
+            if pid not in expected_loader and pid in actual_loader:
+                name = request.env['van.product'].sudo().browse(pid).name
+            
+            act = actual_loader.get(pid, 0.0)
+            diff = exp - act
+            
+            err_class = "err" if diff != 0 else ""
+            if diff != 0:
+                has_error = True
+                
+            html += f"<tr><td>{pid}</td><td>{name}</td><td>{exp}</td><td>{act}</td><td class='{err_class}'>{diff}</td></tr>"
+            
+        html += "</table><br/>"
+        if has_error:
+            html += "<p style='color:red;'><b>DIQQAT: Farq topildi!</b> Buni to'g'irlash uchun 'Sotuvlar' menegeridan Agent sahifasiga o'tib 'Inventarni Qayta Tiklash' tugmasini bosing.</p>"
+        else:
+            html += "<p style='color:green;'><b>Barcha ma'lumotlar to'g'ri!</b> Baza qoldiqlari tarix bilan mos keladi.</p>"
+            
+        html += "</body></html>"
+        return request.make_response(html)

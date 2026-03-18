@@ -112,27 +112,37 @@ class VanTrip(models.Model):
 
             # Inventar satrlarini yangilash
             for p_id, data in product_dict.items():
-                existing_inv_line = self.env['van.agent.inventory.line'].search([
-                    ('summary_id', '=', summary.id),
-                    ('product_id', '=', p_id)
-                ], limit=1)
+                try:
+                    product = self.env['van.product'].browse(p_id)
+                    if not product or not product.active:
+                        _logger.warning(f"Yuklash {trip.name}: Mahsulot {p_id} o'chirilgan yoki topilmadi.")
+                        continue
+                        
+                    existing_inv_line = self.env['van.agent.inventory.line'].search([
+                        ('summary_id', '=', summary.id),
+                        ('product_id', '=', p_id)
+                    ], limit=1)
 
-                if existing_inv_line:
-                    existing_inv_line.loaded_qty += data['qty']
-                    # Don't overwrite existing price_unit/cost_price if they are already set 
-                    # unless they are 0.0 (initial load)
-                    if not existing_inv_line.price_unit:
-                        existing_inv_line.price_unit = data['price']
-                    if not existing_inv_line.cost_price:
-                        existing_inv_line.cost_price = self.env['van.product'].browse(p_id).cost_price
-                else:
-                    self.env['van.agent.inventory.line'].create({
-                        'summary_id': summary.id,
-                        'product_id': p_id,
-                        'price_unit': data['price'] or self.env['van.product'].browse(p_id).list_price,
-                        'cost_price': self.env['van.product'].browse(p_id).cost_price,
-                        'loaded_qty': data['qty'],
-                    })
+                    if existing_inv_line:
+                        existing_inv_line.loaded_qty += data['qty']
+                        # Don't overwrite existing price_unit/cost_price if they are already set 
+                        # unless they are 0.0 (initial load)
+                        if not existing_inv_line.price_unit:
+                            existing_inv_line.price_unit = data['price']
+                        if not existing_inv_line.cost_price:
+                            existing_inv_line.cost_price = product.cost_price
+                    else:
+                        self.env['van.agent.inventory.line'].create({
+                            'summary_id': summary.id,
+                            'product_id': p_id,
+                            'price_unit': data['price'] or product.list_price,
+                            'cost_price': product.cost_price,
+                            'loaded_qty': data['qty'],
+                        })
+                except Exception as e:
+                    _logger.error(f"Yuklash {trip.name}: Mahsulot {p_id} inventarga qo'shishda xatolik yuz berdi - Xatolik: {e}")
+                    # Davom etamiz, bitta mahsulot butun yuklashni to'xtatmasligi kerak
+                    continue
         return True
 
     def action_cancel(self):

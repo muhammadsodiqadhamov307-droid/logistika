@@ -38,6 +38,14 @@
         <field name="model">van.agent.summary</field>
         <field name="arch" type="xml">
             <form string="Agent Hisobot" create="0">
+                <header>
+                    <button name="action_rebuild_inventory" 
+                            string="🔄 Inventarni Qayta Tiklash"
+                            type="object"
+                            class="btn-warning"
+                            help="Sayohat (Yuklash) tarixidan inventarni va qoldiqlarni aniq qayta hisoblash"
+                            groups="van_sales_pharma.group_van_admin"/>
+                </header>
                 <sheet>
                     <div class="oe_button_box" name="button_box">
                         <button class="oe_stat_button" type="object" name="action_view_inventory_kanban" icon="fa-cubes">

@@ -379,6 +379,77 @@ class VanAgentSummary(models.Model):
             'target': 'current',
         }
 
+    def action_rebuild_inventory(self):
+        """
+        Agentning barcha tasdiqlangan 'Yuklash' (Sayohat) hujjatlaridan foydalanib
+        inventardagi 'Yuklangan Miqdor' (loaded_qty) va narxlarni noldan qayta hisoblab chiqadi.
+        Sotilgan va qoldiq miqdorlar Odoo tomonidan avtomatik qayta hisoblanadi.
+        """
+        self.ensure_one()
+        
+        # Tasdiqlangan barcha yuklash (Sayohat) hujjatlarini topamiz
+        trips = self.env['van.trip'].search([
+            ('agent_id', '=', self.agent_id.id),
+            ('state', '=', 'validated')
+        ])
+        
+        # Har bir mahsulot bo'yicha hisob-kitob summarysi
+        product_totals = {}
+        for trip in trips:
+            for line in trip.trip_line_ids:
+                pid = line.product_id.id
+                if pid not in product_totals:
+                    product_totals[pid] = {
+                        'qty': 0.0,
+                        'price': line.price_unit,
+                        'cost': line.product_id.cost_price or 0.0
+                    }
+                # Q'oshilgan miqdorni yig'ib boramiz
+                product_totals[pid]['qty'] += line.loaded_qty
+                # Eng oxirgi narx bilan yangilaymiz (agar yangi yuklashda narx o'zgargan bo'lsa)
+                product_totals[pid]['price'] = line.price_unit
+                product_totals[pid]['cost'] = line.product_id.cost_price or 0.0
+
+        # Eski loaded_qty miqdorlarini tozalaymiz (agar chalkashlik bo'lsa)
+        for inv_line in self.inventory_line_ids:
+            inv_line.loaded_qty = 0.0
+
+        updated_count = 0
+        
+        # Topilgan ma'lumotlarni agent summary_id ga biriktiramiz
+        for pid, data in product_totals.items():
+            if data['qty'] <= 0:
+                continue
+            
+            updated_count += 1
+            inv_line = self.env['van.agent.inventory.line'].search([
+                ('summary_id', '=', self.id),
+                ('product_id', '=', pid)
+            ], limit=1)
+            
+            if inv_line:
+                inv_line.loaded_qty = data['qty']
+                if not inv_line.price_unit:
+                    inv_line.price_unit = data['price']
+            else:
+                self.env['van.agent.inventory.line'].create({
+                    'summary_id': self.id,
+                    'product_id': pid,
+                    'loaded_qty': data['qty'],
+                    'price_unit': data['price'],
+                    'cost_price': data['cost']
+                })
+
+        return {
+            'type': 'ir.actions.client',
+            'tag': 'display_notification',
+            'params': {
+                'message': f"Inventar muvaffaqiyatli qayta tiklandi: jami {updated_count} ta mahsulot turi to'g'rilandi!",
+                'type': 'success',
+                'sticky': False
+            }
+        }
+
 class VanAgentInventoryLine(models.Model):
     """
     Agentning mashina omboridagi mahsulotlar ro'yxati.
