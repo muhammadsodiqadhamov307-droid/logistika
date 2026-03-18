@@ -24,7 +24,7 @@
         <field name="name">van.dashboard.detail.list</field>
         <field name="model">van.dashboard.detail</field>
         <field name="arch" type="xml">
-            <list string="Moliyaviy Amaliyotlar" create="0" edit="0" decoration-success="transaction_type == 'kirim'" decoration-danger="transaction_type == 'chiqim'" decoration-info="transaction_type == 'sale'">
+            <list string="Moliyaviy Amaliyotlar" create="0" edit="1" delete="1" decoration-success="transaction_type == 'kirim'" decoration-danger="transaction_type == 'chiqim'" decoration-info="transaction_type == 'sale'">
                 <field name="date"/>
                 <field name="name" column_invisible="1"/>
                 <field name="partner_name"/>
@@ -45,7 +45,7 @@
         <field name="name">van.dashboard.detail.form</field>
         <field name="model">van.dashboard.detail</field>
         <field name="arch" type="xml">
-            <form string="Amaliyot" create="0" edit="0" delete="0">
+            <form string="Amaliyot" create="0" edit="1" delete="1">
                 <header>
                     <button name="action_open_record" string="Asl Hujjatni Ochish" type="object" class="btn-primary" icon="fa-external-link"/>
                 </header>
