@@ -214,6 +214,7 @@ class VanPosController(http.Controller):
                 'phone': phone,
                 'telegram_chat_id': telegram_chat_id or '',  # This is the correct field name found in res_partner.py
                 'x_is_van_customer': True, # Ensure it gets picked up
+                'van_agent_id': agent_id,
                 'user_id': agent_id, # Optional standard assignment
             })
             
@@ -238,11 +239,7 @@ class VanPosController(http.Controller):
     def get_clients(self):
         agent_id = self._get_agent_id()
         agent = request.env['res.users'].sudo().browse(agent_id)
-        
-        if agent.mijoz_ids:
-            partners = agent.mijoz_ids
-        else:
-            partners = request.env['res.partner'].sudo().search([('x_is_van_customer', '=', True)])
+        partners = agent.mijoz_ids
             
         # recompute balances based on new nasiya
         partners.sudo()._compute_van_nasiya_stats()

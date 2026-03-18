@@ -1242,9 +1242,10 @@ export class VanMobilePos extends Component {
     // Custom Kirim Creation Flow (Redesign)
     // ===========================================
     get filteredKirimClients() {
-        if (!this.state.kirimClientSearch) return this.state.clients;
+        const clientPool = this.state.clients.filter(c => c.id !== 0);
+        if (!this.state.kirimClientSearch) return clientPool;
         const q = this.state.kirimClientSearch.toLowerCase();
-        return this.state.clients.filter(c =>
+        return clientPool.filter(c =>
             (c.name && c.name.toLowerCase().includes(q)) ||
             (c.phone && c.phone.includes(q))
         );
@@ -1267,6 +1268,9 @@ export class VanMobilePos extends Component {
         this.state.showKirimAmountModal = false;
         this.state.showKirimClientModal = true;
         this.state.kirimClientSearch = '';
+        this.state.selectedKirimClientId = null;
+        this.state.selectedKirimClientName = '';
+        this.state.selectedKirimClientDebt = 0;
     }
 
     closeKirimClientModal() {

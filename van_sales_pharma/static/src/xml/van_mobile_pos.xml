@@ -221,8 +221,8 @@
             </div>
 
             <!-- KIRIM CLIENT MODAL (Step 1) -->
-            <div t-if="state.showKirimClientModal" class="kirim-modal-overlay" style="position: fixed; inset: 0; padding:20px; z-index:2200;">
-                <div class="kirim-modal-content">
+            <div t-if="state.showKirimClientModal" class="kirim-modal-overlay" style="position: fixed; inset: 0; padding:20px; z-index:2200;" t-on-click="closeKirimClientModal">
+                <div class="kirim-modal-content" t-on-click.stop="" style="background: white; width: min(520px, 100%); max-height: calc(100vh - 40px); border-radius: 18px; overflow: hidden; border: 1px solid #dbe3f0; box-shadow: 0 32px 80px rgba(15,23,42,0.28);">
                     <div class="kirim-modal-header">
                         <h2>Mijoz Tanlash</h2>
                         <button class="kirim-btn-close" t-on-click="closeKirimClientModal">✕</button>
@@ -232,7 +232,7 @@
                         <input type="text" t-model="state.kirimClientSearch" placeholder="🔍 Mijoz qidirish..." />
                     </div>
                     
-                    <div class="kirim-client-list">
+                    <div class="kirim-client-list" style="background: white;">
                         <div class="kirim-client-option turli-tushum" t-on-click="selectTurliTushum">
                             <div class="kirim-client-info">
                                 <h3>💰 Turli Tushum</h3>
@@ -255,13 +255,16 @@
                                 <div class="kirim-client-arrow">→</div>
                             </div>
                         </t>
+                        <div t-if="filteredKirimClients.length === 0" style="padding: 18px 16px 24px; color: #64748b; text-align: center; font-size: 14px;">
+                            Agentga biriktirilgan mijoz topilmadi.
+                        </div>
                     </div>
                 </div>
             </div>
 
             <!-- KIRIM AMOUNT MODAL (Step 2) -->
-            <div t-if="state.showKirimAmountModal" class="kirim-modal-overlay" style="position: fixed; inset: 0; padding:20px; z-index:2200;">
-                <div class="kirim-modal-content">
+            <div t-if="state.showKirimAmountModal" class="kirim-modal-overlay" style="position: fixed; inset: 0; padding:20px; z-index:2200;" t-on-click="closeKirimAmountModal">
+                <div class="kirim-modal-content" t-on-click.stop="" style="background: white; width: min(520px, 100%); max-height: calc(100vh - 40px); border-radius: 18px; overflow: hidden; border: 1px solid #dbe3f0; box-shadow: 0 32px 80px rgba(15,23,42,0.28);">
                     <div class="kirim-modal-header">
                         <h2>Kirim Qabul Qilish</h2>
                         <button class="kirim-btn-close" t-on-click="closeKirimAmountModal">✕</button>
