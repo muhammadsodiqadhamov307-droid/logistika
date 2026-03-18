@@ -130,7 +130,7 @@
 
             <!-- Quick Action Modal -->
 
-            <div t-if="state.showQuickAction" style="position: absolute; top:0; left:0; right:0; bottom:0; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 1000; padding: 20px;">
+            <div t-if="state.showQuickAction" style="position: fixed; inset: 0; background: rgba(15,23,42,0.55); display: flex; justify-content: center; align-items: center; z-index: 2100; padding: 20px;">
                 <div style="background: white; border-radius: 10px; width: 100%; max-width: 400px; padding: 20px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                         <h3 style="margin: 0;">
@@ -221,7 +221,7 @@
             </div>
 
             <!-- KIRIM CLIENT MODAL (Step 1) -->
-            <div t-if="state.showKirimClientModal" class="kirim-modal-overlay" style="position: absolute; top:0; left:0; right:0; bottom:0; padding:20px; z-index:2000;">
+            <div t-if="state.showKirimClientModal" class="kirim-modal-overlay" style="position: fixed; inset: 0; padding:20px; z-index:2200;">
                 <div class="kirim-modal-content">
                     <div class="kirim-modal-header">
                         <h2>Mijoz Tanlash</h2>
@@ -260,7 +260,7 @@
             </div>
 
             <!-- KIRIM AMOUNT MODAL (Step 2) -->
-            <div t-if="state.showKirimAmountModal" class="kirim-modal-overlay" style="position: absolute; top:0; left:0; right:0; bottom:0; padding:20px; z-index:2000;">
+            <div t-if="state.showKirimAmountModal" class="kirim-modal-overlay" style="position: fixed; inset: 0; padding:20px; z-index:2200;">
                 <div class="kirim-modal-content">
                     <div class="kirim-modal-header">
                         <h2>Kirim Qabul Qilish</h2>
@@ -939,29 +939,29 @@
 
                 <!-- PAYMENT HISTORY SCREEN -->
                 <t t-if="state.screen === 'payment_history'">
-                    <div style="display: flex; align-items: center; margin-bottom: 15px;">
-                        <button t-on-click="() => state.screen = 'products'" style="background: none; border: none; font-size: 20px; color: #4b5563; margin-right: 15px; cursor: pointer;">
+                    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 18px; flex-wrap: wrap;">
+                        <button t-on-click="() => state.screen = 'products'" style="background: white; border: 1px solid #dbe3f0; width: 42px; height: 42px; border-radius: 12px; font-size: 18px; color: #475569; cursor: pointer; box-shadow: 0 6px 16px rgba(15,23,42,0.06); flex-shrink: 0;">
                             <i class="fa fa-arrow-left"></i>
                         </button>
-                        <h2 style="margin: 0; font-size: 22px; color: #111827; flex: 1;">
+                        <h2 style="margin: 0; font-size: 22px; color: #111827; flex: 1; min-width: 180px;">
                             <t t-if="state.paymentHistoryType === 'kirim'">Kirimlar Tarixi</t>
                             <t t-else="">Chiqimlar Tarixi</t>
                         </h2>
-                        <button t-on-click="onNewPaymentClick" style="background-color: #3b82f6; color: white; border: none; border-radius: 8px; padding: 8px 15px; font-weight: bold; cursor: pointer;">
+                        <button t-on-click="onNewPaymentClick" style="background: linear-gradient(135deg, #3b82f6, #2563eb); color: white; border: none; border-radius: 12px; padding: 11px 16px; font-weight: 700; cursor: pointer; box-shadow: 0 12px 24px rgba(37,99,235,0.24); flex-shrink: 0;">
                             <i class="fa fa-plus"></i> Yangi
                         </button>
                     </div>
                     
                     <t t-if="state.paymentHistory.length === 0">
-                        <div style="text-align: center; padding: 30px; color: #6b7280; background: white; border-radius: 10px;">
+                        <div style="text-align: center; padding: 40px 24px; color: #6b7280; background: white; border-radius: 18px; border: 1px solid #e2e8f0; box-shadow: 0 10px 30px rgba(15,23,42,0.05);">
                             Tarix bo'sh. Hech qanday ma'lumot topilmadi.
                         </div>
                     </t>
                     <t t-else="">
-                        <div style="display: flex; flex-direction: column;">
+                        <div style="display: flex; flex-direction: column; gap: 14px; padding-bottom: 24px;">
                             <t t-foreach="state.paymentHistory" t-as="pay" t-key="pay.id">
                                 <t t-if="state.paymentHistoryType === 'kirim'">
-                                    <div class="transaction-card kirim-card">
+                                    <div class="transaction-card kirim-card" style="background: white; border-radius: 18px; padding: 18px; border: 1px solid #d9f99d; box-shadow: 0 12px 30px rgba(16,185,129,0.08);">
                                         <div class="txn-header">
                                             <div class="txn-type-badge kirim">
                                                 <span class="icon">💵</span>
@@ -987,12 +987,12 @@
                                             </div>
                                         </div>
                                         
-                                        <div class="txn-actions">
-                                            <button class="btn-action btn-edit" t-on-click="() => this.editPaymentAction(pay)">
+                                        <div class="txn-actions" style="display: flex; gap: 10px; flex-wrap: wrap;">
+                                            <button class="btn-action btn-edit" t-on-click="() => this.editPaymentAction(pay)" style="flex: 1 1 160px; min-height: 44px;">
                                                 <span class="icon">✏️</span>
                                                 <span class="text">Tahrirlash</span>
                                             </button>
-                                            <button class="btn-action btn-delete" t-on-click="() => this.deletePaymentAction(pay.id)">
+                                            <button class="btn-action btn-delete" t-on-click="() => this.deletePaymentAction(pay.id)" style="flex: 1 1 160px; min-height: 44px;">
                                                 <span class="icon">🗑️</span>
                                                 <span class="text">O'chirish</span>
                                             </button>
@@ -1000,7 +1000,7 @@
                                     </div>
                                 </t>
                                 <t t-else="">
-                                    <div class="transaction-card chiqim-card">
+                                    <div class="transaction-card chiqim-card" style="background: white; border-radius: 18px; padding: 18px; border: 1px solid #fecaca; box-shadow: 0 12px 30px rgba(239,68,68,0.08);">
                                         <div class="txn-header">
                                             <div class="txn-type-badge chiqim">
                                                 <span class="icon">💸</span>
@@ -1026,12 +1026,12 @@
                                             </div>
                                         </div>
                                         
-                                        <div class="txn-actions">
-                                            <button class="btn-action btn-edit" t-on-click="() => this.editPaymentAction(pay)">
+                                        <div class="txn-actions" style="display: flex; gap: 10px; flex-wrap: wrap;">
+                                            <button class="btn-action btn-edit" t-on-click="() => this.editPaymentAction(pay)" style="flex: 1 1 160px; min-height: 44px;">
                                                 <span class="icon">✏️</span>
                                                 <span class="text">Tahrirlash</span>
                                             </button>
-                                            <button class="btn-action btn-delete" t-on-click="() => this.deletePaymentAction(pay.id)">
+                                            <button class="btn-action btn-delete" t-on-click="() => this.deletePaymentAction(pay.id)" style="flex: 1 1 160px; min-height: 44px;">
                                                 <span class="icon">🗑️</span>
                                                 <span class="text">O'chirish</span>
                                             </button>

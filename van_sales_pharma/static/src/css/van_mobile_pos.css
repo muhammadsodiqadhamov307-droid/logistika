@@ -13,13 +13,16 @@
     padding: 16px;
     margin-bottom: 12px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e5e7eb;
 }
 
 .txn-header {
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: flex-start;
+    gap: 12px;
     margin-bottom: 12px;
+    flex-wrap: wrap;
 }
 
 .txn-type-badge {
@@ -45,6 +48,7 @@
 .txn-amount {
     font-size: 20px;
     font-weight: 700;
+    text-align: right;
 }
 
 .txn-amount.kirim {
@@ -93,10 +97,11 @@
 .txn-actions {
     display: flex;
     gap: 8px;
+    flex-wrap: wrap;
 }
 
 .btn-action {
-    flex: 1;
+    flex: 1 1 140px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -135,6 +140,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    backdrop-filter: blur(2px);
 }
 
 .kirim-modal-content {
@@ -146,6 +152,7 @@
     overflow: hidden;
     display: flex;
     flex-direction: column;
+    box-shadow: 0 25px 60px rgba(15, 23, 42, 0.28);
 }
 
 .kirim-modal-header {
@@ -239,6 +246,34 @@
 .kirim-client-list {
     flex: 1;
     overflow-y: auto;
+}
+
+@media (max-width: 768px) {
+    .transaction-card {
+        padding: 14px;
+        border-radius: 16px;
+    }
+
+    .txn-type-badge {
+        font-size: 13px;
+    }
+
+    .txn-amount {
+        font-size: 18px;
+        text-align: left;
+    }
+
+    .btn-action {
+        width: 100%;
+        flex-basis: 100%;
+    }
+
+    .kirim-modal-content {
+        width: 100%;
+        max-width: 100%;
+        max-height: calc(100vh - 40px);
+        border-radius: 18px;
+    }
 }
 
 .kirim-selected-client {

@@ -1251,15 +1251,20 @@ export class VanMobilePos extends Component {
     }
 
     onNewPaymentClick() {
+        this.state.showQuickAction = false;
+        this.state.showKirimClientModal = false;
+        this.state.showKirimAmountModal = false;
+        this.state.editingPaymentId = null;
         if (this.state.paymentHistoryType === 'kirim') {
             this.openKirimClientModal();
         } else {
-            this.state.editingPaymentId = null;
             this.openQuickAction(this.state.paymentHistoryType);
         }
     }
 
     openKirimClientModal() {
+        this.state.showQuickAction = false;
+        this.state.showKirimAmountModal = false;
         this.state.showKirimClientModal = true;
         this.state.kirimClientSearch = '';
     }
@@ -1281,7 +1286,10 @@ export class VanMobilePos extends Component {
         this.state.kirimNotes = '';
 
         this.closeKirimClientModal();
-        this.state.showKirimAmountModal = true;
+        // Let the first modal unmount before opening the next one to avoid overlay stacking.
+        setTimeout(() => {
+            this.state.showKirimAmountModal = true;
+        }, 0);
     }
 
     closeKirimAmountModal() {
@@ -1675,6 +1683,8 @@ export class VanMobilePos extends Component {
     }
 
     editPaymentAction(payment) {
+        this.state.showKirimClientModal = false;
+        this.state.showKirimAmountModal = false;
         this.state.editingPaymentId = payment.id;
         this.state.quickActionType = this.state.paymentHistoryType;
         this.state.quickActionAmount = formatNumberWithCommas(payment.amount);

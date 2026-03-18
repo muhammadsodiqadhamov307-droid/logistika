@@ -1112,17 +1112,26 @@ class VanPosController(http.Controller):
         Returns the history of payments for the current agent.
         """
         try:
+            import pytz
             agent_id = self._get_agent_id()
+            user_tz = pytz.timezone(request.env.user.tz or 'Asia/Tashkent')
             domain = [('agent_id', '=', agent_id), ('payment_type', '=', payment_type)]
             payments = request.env['van.payment'].sudo().search(domain, order='date desc')
             
             res = []
             for p in payments:
+                local_date_str = ''
+                if p.date:
+                    if getattr(p.date, 'tzinfo', None):
+                        local_dt = p.date.astimezone(user_tz)
+                    else:
+                        local_dt = pytz.utc.localize(p.date).astimezone(user_tz)
+                    local_date_str = local_dt.strftime('%Y-%m-%d %H:%M')
                 res.append({
                     'id': p.id,
                     'name': p.name,
                     'amount': p.amount,
-                    'date': p.date.strftime('%Y-%m-%d %H:%M'),
+                    'date': local_date_str,
                     'note': p.note or '',
                     'expense_type': p.expense_type if payment_type == 'out' else False,
                     'partner_id': p.partner_id.id if p.partner_id else False,
