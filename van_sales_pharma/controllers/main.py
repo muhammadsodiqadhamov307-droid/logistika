@@ -500,24 +500,28 @@ class VanPosController(http.Controller):
         try:
             import pytz
             user_tz = pytz.timezone(request.env.user.tz or 'Asia/Tashkent')
-            # Show all requests to all agents as requested by the user
-            requests = request.env['van.request'].sudo().search([], order='date desc', limit=200)
+            # Filter by current agent so each agent sees only their own requests in Mobile POS
+            agent_id = self._get_agent_id()
+            domain = [('agent_id', '=', agent_id)]
+            reqs = request.env['van.request'].sudo().search(domain, order='date desc', limit=200)
             res = []
-            for req in requests:
+            for req in reqs:
                 lines = []
                 total_amount = 0.0
                 for l in req.line_ids:
-                    price = l.product_id.list_price or 0.0
-                    subtotal = price * l.qty
+                    # Use stored price if available, otherwise fall back to list_price
+                    price = l.price if l.price else (l.product_id.list_price or 0.0)
+                    subtotal = l.subtotal if l.subtotal else (price * l.qty)
                     total_amount += subtotal
                     lines.append({
+                        'product_id': l.product_id.id,          # CRITICAL: must be included
                         'product_name': l.product_id.name,
                         'qty': l.qty,
                         'price': price,
                         'subtotal': subtotal,
                         'image_url': f'/web/image?model=van.product&id={l.product_id.id}&field=image_1920'
                     })
-                
+
                 local_date_str = ''
                 if req.date:
                     local_dt = pytz.utc.localize(req.date).astimezone(user_tz)
@@ -526,6 +530,7 @@ class VanPosController(http.Controller):
                 res.append({
                     'id': req.id,
                     'name': req.name,
+                    'agent_id': req.agent_id.id if req.agent_id else False,
                     'date': local_date_str,
                     'partner_name': req.partner_id.name if req.partner_id else '',
                     'state': req.state,
@@ -597,24 +602,26 @@ class VanPosController(http.Controller):
             req = request.env['van.request'].sudo().search([('id', '=', int(request_id))])
             if not req:
                 return {'success': False, 'error': "So'rov topilmadi"}
-                
+
             if req.state != 'draft':
                 return {'success': False, 'error': "Faqat kutilayotgan so'rovlarni o'zgartirish mumkin"}
 
-            # Replace lines entirely or update existing. Simplest is to unlink all and recreate
-            # Or use Odoo's command (5, 0, 0) to clear, then (0, 0, values) to add
+            # Validate all lines have product_id before doing anything
+            for l in lines:
+                pid = l.get('product_id')
+                if not pid:
+                    return {'success': False, 'error': "Barcha qatorlarda mahsulot bo'lishi kerak!"}
+
+            # Rebuild lines via ORM commands: (5,0,0) clears existing, then add new
             line_commands = [(5, 0, 0)]
             for l in lines:
                 line_commands.append((0, 0, {
                     'product_id': int(l['product_id']),
-                    'qty': float(l['qty']),
+                    'qty': float(l.get('qty', 1)),
                     'price': float(l.get('price', 0.0))
                 }))
-                
-            req.sudo().write({
-                'line_ids': line_commands
-            })
-            
+
+            req.sudo().write({'line_ids': line_commands})
             return {'success': True}
         except Exception as e:
             return {'success': False, 'error': str(e)}

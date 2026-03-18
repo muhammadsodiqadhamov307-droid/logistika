@@ -1196,20 +1196,31 @@ export class VanMobilePos extends Component {
         this.state.activeRequest.total_amount = total;
     }
 
-    async saveRequestEdits() {
+    async saveRequestEdits(navigateBack = true) {
         this.state.loading = true;
+        this.state.error = null;
         try {
-            // First we need a backend endpoint to save changes!
-            // Wait, we didn't add saveRequestEdits endpoint to python. We should just call `update_request_lines` RPC that we will write natively or just update the request.
-            // Let's create the RPC call and we'll implement the backend next.
-            const pId = this.state.activeRequest.partner_id ? this.state.activeRequest.partner_id : false;
+            const lines = this.state.activeRequest.lines.map(l => ({
+                product_id: l.product_id,
+                qty: l.qty,
+                price: l.price
+            }));
+            // Guard: ensure all lines have a product_id
+            const missingProduct = lines.find(l => !l.product_id);
+            if (missingProduct) {
+                this.state.error = "Barcha qatorlarda mahsulot bo'lishi kerak!";
+                this.state.loading = false;
+                return;
+            }
             const res = await rpc("/van/pos/update_request", {
                 request_id: this.state.activeRequest.id,
-                lines: this.state.activeRequest.lines.map(l => ({ product_id: l.product_id, qty: l.qty, price: l.price }))
+                lines
             });
             if (res.success) {
-                this.showToast("So'rov o'zgartirildi!");
-                await this.openRequestsList();
+                this.showToast("So'rov saqlandi!");
+                if (navigateBack) {
+                    await this.openRequestsList();
+                }
             } else {
                 this.state.error = res.error || "Xatolik ro'y berdi.";
             }
@@ -1222,27 +1233,20 @@ export class VanMobilePos extends Component {
     async fulfillRequest() {
         if (!confirm("Ushbu so'rovni xarid qilib POS savdosiga o'tkazasizmi?")) return;
 
-        // First save any pending edits
-        await this.saveRequestEdits();
+        const requestId = this.state.activeRequest.id;
+
+        // Save any pending edits first WITHOUT navigating away
+        await this.saveRequestEdits(false);
         if (this.state.error) return; // Stop if save failed
 
         this.state.loading = true;
         try {
-            const res = await rpc("/van/pos/fulfill_request", { request_id: this.state.activeRequest.id });
+            const res = await rpc("/van/pos/fulfill_request", { request_id: requestId });
             if (res.success) {
                 this.loadInventorySilent();
                 this.showToast("Xarid Muvaffaqiyatli Saqlandi!", "success");
-
-                // If it created a nasiya, redirect to kirim screen or show toast
-                if (res.nasiya_id) {
-                    this.state.newNasiyaId = res.nasiya_id;
-                    this.state.nasiyaAmount = res.nasiya_amount;
-                    this.state.kirimAmount = res.nasiya_amount;
-                    this.state.screen = 'kirim';
-                    // We also need to refresh active client if selected, but we might just reset
-                } else {
-                    this.openRequestsList();
-                }
+                // Navigate back to requests list
+                await this.openRequestsList();
             } else {
                 this.state.error = res.error || "Xaridni amalga oshirishda xatolik";
             }
