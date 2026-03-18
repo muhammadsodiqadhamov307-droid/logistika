@@ -1558,9 +1558,9 @@ export class VanMobilePos extends Component {
         try {
             const line_vals = validLines.map(l => {
                 return {
-                    product_id: l.product.product_id,
+                    product_id: l.product_id,
                     qty: l.qty,
-                    price_unit: l.product.price // Default to product's list price
+                    price_unit: l.price
                 };
             });
 

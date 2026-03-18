@@ -49,7 +49,7 @@ class VanPosController(http.Controller):
             del request.session['acting_as_agent_id']
         return request.redirect('/van/mobile-pos')
 
-    @http.route('/van/pos/get_agents', type='jsonrpc', auth='user')
+    @http.route('/van/pos/get_agents', type='json', auth='user')
     def get_agents(self):
         """Returns list of all agent users. Admin only."""
         user = request.env.user
@@ -66,7 +66,7 @@ class VanPosController(http.Controller):
             'image_url': f'/web/image?model=res.users&id={a.id}&field=avatar_128',
         } for a in agents]
 
-    @http.route('/van/pos/set_agent_session', type='jsonrpc', auth='user')
+    @http.route('/van/pos/set_agent_session', type='json', auth='user')
     def set_agent_session(self, agent_id):
         """Sets acting_as_agent_id in session for admin users."""
         user = request.env.user
@@ -77,7 +77,7 @@ class VanPosController(http.Controller):
             request.session['acting_as_agent_id'] = int(agent_id)
         return {'success': True}
 
-    @http.route('/van/pos/get_client_report', type='jsonrpc', auth='user')
+    @http.route('/van/pos/get_client_report', type='json', auth='user')
     def get_client_report(self, client_id, date_from=None, date_to=None):
         """Returns client transaction history with running balance for Mobile POS Hisob-kitob."""
         try:
@@ -190,7 +190,7 @@ class VanPosController(http.Controller):
             _logger.error(f"get_client_report error: {e}")
             return {'success': False, 'error': str(e)}
 
-    @http.route('/van/pos/create_client', type='jsonrpc', auth='user')
+    @http.route('/van/pos/create_client', type='json', auth='user')
     def create_client(self, name, phone, telegram_chat_id=''):
         """Creates a new client directly from Mobile POS and assigns it to current agent."""
         try:
@@ -234,7 +234,7 @@ class VanPosController(http.Controller):
             _logger.error(f"Error creating client: {e}")
             return {'success': False, 'error': str(e)}
 
-    @http.route('/van/pos/get_clients', type='jsonrpc', auth='user')
+    @http.route('/van/pos/get_clients', type='json', auth='user')
     def get_clients(self):
         agent_id = self._get_agent_id()
         agent = request.env['res.users'].sudo().browse(agent_id)
@@ -301,7 +301,7 @@ class VanPosController(http.Controller):
             
         return client_list
 
-    @http.route('/van/pos/get_inventory', type='jsonrpc', auth='user')
+    @http.route('/van/pos/get_inventory', type='json', auth='user')
     def get_inventory(self):
         agent_id = self._get_agent_id()
         summary = request.env['van.agent.summary'].with_context(lang='uz_UZ').search([('agent_id', '=', agent_id)], limit=1)
@@ -319,7 +319,7 @@ class VanPosController(http.Controller):
             })
         return items
 
-    @http.route('/van/pos/get_all_products', type='jsonrpc', auth='user')
+    @http.route('/van/pos/get_all_products', type='json', auth='user')
     def get_all_products(self):
         products = request.env['van.product'].with_context(lang='uz_UZ').sudo().search([('active', '=', True)])
         return [{
@@ -437,7 +437,7 @@ class VanPosController(http.Controller):
             'errors': errors
         }
 
-    @http.route('/van/pos/submit_order', type='jsonrpc', auth='user')
+    @http.route('/van/pos/submit_order', type='json', auth='user')
     def submit_order(self, partner_id, lines):
         """
         lines = [{'product_id': ID, 'qty': QTY, 'price': PRICE}]
@@ -464,7 +464,7 @@ class VanPosController(http.Controller):
         except Exception as e:
             return {'success': False, 'error': str(e)}
 
-    @http.route('/van/pos/submit_kirim', type='jsonrpc', auth='user')
+    @http.route('/van/pos/submit_kirim', type='json', auth='user')
     def submit_kirim(self, nasiya_id, amount, payment_method='cash'):
         nasiya = request.env['van.nasiya'].browse(nasiya_id)
         if not nasiya.exists():
@@ -481,7 +481,7 @@ class VanPosController(http.Controller):
         
         return {'success': True, 'payment_id': payment.id}
 
-    @http.route('/van/pos/submit_quick_action', type='jsonrpc', auth='user')
+    @http.route('/van/pos/submit_quick_action', type='json', auth='user')
     def submit_quick_action(self, type, amount, note='', partner_id=None, expense_type='daily'):
         try:
             payment_vals = {
@@ -500,7 +500,7 @@ class VanPosController(http.Controller):
         except Exception as e:
             return {'success': False, 'error': str(e)}
 
-    @http.route('/van/pos/get_requests', type='jsonrpc', auth='user')
+    @http.route('/van/pos/get_requests', type='json', auth='user')
     def get_requests(self):
         try:
             import pytz
@@ -548,7 +548,7 @@ class VanPosController(http.Controller):
         except Exception as e:
             return {'success': False, 'error': str(e)}
 
-    @http.route('/van/pos/update_request_state', type='jsonrpc', auth='user')
+    @http.route('/van/pos/update_request_state', type='json', auth='user')
     def update_request_state(self, request_id, state):
         try:
             # Sudo allows agents to update any request state, even if they didn't create it
@@ -560,7 +560,7 @@ class VanPosController(http.Controller):
         except Exception as e:
             return {'success': False, 'error': str(e)}
 
-    @http.route('/van/pos/submit_request', type='jsonrpc', auth='user')
+    @http.route('/van/pos/submit_request', type='json', auth='user')
     def submit_request(self, partner_id, lines, notes=''):
         try:
             if not partner_id:
@@ -581,7 +581,7 @@ class VanPosController(http.Controller):
         except Exception as e:
             return {'success': False, 'error': str(e)}
 
-    @http.route('/van/pos/fulfill_request', type='jsonrpc', auth='user')
+    @http.route('/van/pos/fulfill_request', type='json', auth='user')
     def fulfill_request(self, request_id):
         """Mark a So'rov as fulfilled. Called after the sale is already created via submit_order."""
         try:
@@ -598,7 +598,7 @@ class VanPosController(http.Controller):
         except Exception as e:
             return {'success': False, 'error': str(e)}
 
-    @http.route('/van/pos/update_request', type='jsonrpc', auth='user')
+    @http.route('/van/pos/update_request', type='json', auth='user')
     def update_request(self, request_id, lines):
         try:
             req = request.env['van.request'].sudo().search([('id', '=', int(request_id))])
@@ -628,7 +628,7 @@ class VanPosController(http.Controller):
         except Exception as e:
             return {'success': False, 'error': str(e)}
 
-    @http.route('/van/pos/get_current_agent', type='jsonrpc', auth='user')
+    @http.route('/van/pos/get_current_agent', type='json', auth='user')
     def get_current_agent(self):
         try:
             agent_id = self._get_agent_id()
@@ -660,7 +660,7 @@ class VanPosController(http.Controller):
         except Exception as e:
             return None
 
-    @http.route('/van/pos/get_taminotchis', type='jsonrpc', auth='user')
+    @http.route('/van/pos/get_taminotchis', type='json', auth='user')
     def get_taminotchis(self):
         taminotchis = request.env['van.taminotchi'].sudo().search([])
         return [{
@@ -668,7 +668,7 @@ class VanPosController(http.Controller):
             'name': t.name,
         } for t in taminotchis]
 
-    @http.route('/van/pos/submit_trip', type='jsonrpc', auth='user')
+    @http.route('/van/pos/submit_trip', type='json', auth='user')
     def submit_trip(self, agent_id, date, note, lines, taminotchi_id=None):
         try:
             if not agent_id:
@@ -723,7 +723,7 @@ class VanPosController(http.Controller):
         except Exception as e:
             return {'success': False, 'error': str(e)}
 
-    @http.route('/van/pos/get_trips', type='jsonrpc', auth='user')
+    @http.route('/van/pos/get_trips', type='json', auth='user')
     def get_trips(self):
         try:
             import pytz
@@ -832,7 +832,7 @@ class VanPosController(http.Controller):
         ]
         return request.render('van_sales_pharma.client_request_template', values, headers=headers)
 
-    @http.route('/van/client/submit_request', type='jsonrpc', auth='public', csrf=False, cors='*')
+    @http.route('/van/client/submit_request', type='json', auth='public', csrf=False, cors='*')
     def client_submit_request(self, partner_id, lines, notes=''):
         try:
             if not partner_id:
@@ -881,7 +881,7 @@ class VanPosController(http.Controller):
         except Exception as e:
             return {'success': False, 'error': str(e)}
 
-    @http.route('/van/mijoz/edit-kirim', type='jsonrpc', auth='user')
+    @http.route('/van/mijoz/edit-kirim', type='json', auth='user')
     def edit_kirim(self, payment_id, new_amount):
         """Edits an existing Kirim payment amount"""
         try:
@@ -914,7 +914,7 @@ class VanPosController(http.Controller):
         except Exception as e:
             return {'success': False, 'error': str(e)}
 
-    @http.route('/van/mijoz/delete-kirim', type='jsonrpc', auth='user')
+    @http.route('/van/mijoz/delete-kirim', type='json', auth='user')
     def delete_kirim(self, payment_id):
         """Deletes an existing Kirim payment"""
         try:
@@ -942,7 +942,7 @@ class VanPosController(http.Controller):
             return {'success': False, 'error': str(e)}
 
 
-    @http.route('/van/mijoz/edit-sotuv', type='jsonrpc', auth='user')
+    @http.route('/van/mijoz/edit-sotuv', type='json', auth='user')
     def edit_sotuv(self, order_id, lines):
         """
         Edits an existing Sotuv.
@@ -1011,7 +1011,7 @@ class VanPosController(http.Controller):
         except Exception as e:
             return {'success': False, 'error': str(e)}
 
-    @http.route('/van/mijoz/delete-sotuv', type='jsonrpc', auth='user')
+    @http.route('/van/mijoz/delete-sotuv', type='json', auth='user')
     def delete_sotuv(self, order_id):
         """Deletes an existing Sotuv, restoring inventory"""
         try:
