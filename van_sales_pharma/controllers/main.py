@@ -532,6 +532,7 @@ class VanPosController(http.Controller):
                     'name': req.name,
                     'agent_id': req.agent_id.id if req.agent_id else False,
                     'date': local_date_str,
+                    'partner_id': req.partner_id.id if req.partner_id else False,
                     'partner_name': req.partner_id.name if req.partner_id else '',
                     'state': req.state,
                     'total_amount': total_amount,
