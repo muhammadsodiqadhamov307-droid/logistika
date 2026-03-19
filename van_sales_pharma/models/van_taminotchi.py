@@ -58,7 +58,7 @@ class VanTaminotchi(models.Model):
             for trip in rec.trip_ids:
                 if trip.state != 'validated' or trip.amount_cost_total <= 0:
                     continue
-                trip_date = trip.date or fields.Date.today()
+                trip_date = self._ledger_sort_date(trip.date)
                 if date_from and trip_date < date_from:
                     continue
                 if date_to and trip_date > date_to:
@@ -77,7 +77,7 @@ class VanTaminotchi(models.Model):
             for pay in rec.payment_ids:
                 if pay.state != 'received' or pay.payment_type != 'out' or pay.amount <= 0:
                     continue
-                pay_date = pay.date.date() if pay.date else fields.Date.today()
+                pay_date = self._ledger_sort_date(pay.date)
                 if date_from and pay_date < date_from:
                     continue
                 if date_to and pay_date > date_to:
@@ -195,6 +195,25 @@ class VanTaminotchi(models.Model):
             </div>
             """
             rec.hisob_kitob_html = html
+
+    @api.model
+    def _ledger_sort_date(self, value):
+        if not value:
+            return fields.Date.today()
+        if isinstance(value, str):
+            try:
+                value = fields.Datetime.to_datetime(value)
+            except Exception:
+                try:
+                    value = fields.Date.to_date(value)
+                except Exception:
+                    return fields.Date.today()
+        if hasattr(value, 'date'):
+            try:
+                return value.date()
+            except Exception:
+                pass
+        return value
 
     def action_view_ledger(self):
         self.ensure_one()
