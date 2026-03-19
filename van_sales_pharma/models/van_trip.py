@@ -104,11 +104,12 @@ class VanTrip(models.Model):
                 if line.product_id.id not in product_dict:
                     product_dict[line.product_id.id] = {
                         'qty': 0.0,
-                        'price': line.price_unit
+                        'cost_price': line.price_unit,
+                        'sale_price': line.sale_price_unit or line.product_id.list_price,
                     }
                 product_dict[line.product_id.id]['qty'] += line.loaded_qty
-                # Oxirgi narxni saqlaymiz
-                product_dict[line.product_id.id]['price'] = line.price_unit
+                product_dict[line.product_id.id]['cost_price'] = line.price_unit
+                product_dict[line.product_id.id]['sale_price'] = line.sale_price_unit or line.product_id.list_price
 
             # Inventar satrlarini yangilash
             for p_id, data in product_dict.items():
@@ -125,18 +126,16 @@ class VanTrip(models.Model):
 
                     if existing_inv_line:
                         existing_inv_line.loaded_qty += data['qty']
-                        # Don't overwrite existing price_unit/cost_price if they are already set 
-                        # unless they are 0.0 (initial load)
                         if not existing_inv_line.price_unit:
-                            existing_inv_line.price_unit = data['price']
+                            existing_inv_line.price_unit = data['sale_price'] or product.list_price
                         if not existing_inv_line.cost_price:
-                            existing_inv_line.cost_price = product.cost_price
+                            existing_inv_line.cost_price = data['cost_price'] or product.cost_price
                     else:
                         self.env['van.agent.inventory.line'].create({
                             'summary_id': summary.id,
                             'product_id': p_id,
-                            'price_unit': data['price'] or product.list_price,
-                            'cost_price': product.cost_price,
+                            'price_unit': data['sale_price'] or product.list_price,
+                            'cost_price': data['cost_price'] or product.cost_price,
                             'loaded_qty': data['qty'],
                         })
                 except Exception as e:
@@ -208,7 +207,8 @@ class VanTrip(models.Model):
             'trip_line_ids': [(0, 0, {
                 'product_id': line['product_id'],
                 'loaded_qty': line['qty'],
-                'price_unit': self.env['van.product'].sudo().browse(line['product_id']).list_price,
+                'price_unit': self.env['van.product'].sudo().browse(line['product_id']).cost_price,
+                'sale_price_unit': self.env['van.product'].sudo().browse(line['product_id']).list_price,
             }) for line in lines_data]
         }
         

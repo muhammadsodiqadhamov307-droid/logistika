@@ -711,6 +711,7 @@ class VanPosController(http.Controller):
                     'product_id': l['product_id'],
                     'loaded_qty': float(l['qty']),
                     'price_unit': request.env['van.product'].sudo().browse(l['product_id']).cost_price,
+                    'sale_price_unit': request.env['van.product'].sudo().browse(l['product_id']).list_price,
                 }) for l in lines]
             }
             

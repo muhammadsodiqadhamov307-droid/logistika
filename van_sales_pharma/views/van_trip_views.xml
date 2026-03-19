@@ -37,6 +37,7 @@
                                     <field name="loaded_qty"/>
 
                                     <field name="price_unit" string="Narx (Kelish)" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                                    <field name="sale_price_unit" string="Narx (Sotish)" widget="monetary" options="{'currency_field': 'currency_id'}"/>
                                     <field name="price_subtotal" sum="Total" widget="monetary" options="{'currency_field': 'currency_id'}"/>
                                     <field name="currency_id" column_invisible="True"/>
                                 </list>

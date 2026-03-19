@@ -13,7 +13,8 @@ class VanTripLine(models.Model):
     currency_id = fields.Many2one('res.currency', related='trip_id.currency_id', store=True)
 
     product_id = fields.Many2one('van.product', string='Mahsulot', required=True)
-    price_unit = fields.Float(string='Narx', required=True)
+    price_unit = fields.Float(string='Kelish Narxi', required=True)
+    sale_price_unit = fields.Float(string='Sotish Narxi', required=True)
 
     loaded_qty = fields.Float(string='Yuklangan Miqdor', default=0.0, required=True)
     uom_id = fields.Many2one('uom.uom', string='O‘lchov Birligi')
@@ -29,3 +30,4 @@ class VanTripLine(models.Model):
     def _onchange_product_id(self):
         if self.product_id:
             self.price_unit = self.product_id.cost_price
+            self.sale_price_unit = self.product_id.list_price

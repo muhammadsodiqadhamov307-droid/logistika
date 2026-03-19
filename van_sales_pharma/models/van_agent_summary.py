@@ -401,14 +401,14 @@ class VanAgentSummary(models.Model):
                 if pid not in product_totals:
                     product_totals[pid] = {
                         'qty': 0.0,
-                        'price': line.price_unit,
-                        'cost': line.product_id.cost_price or 0.0
+                        'price': line.sale_price_unit or line.product_id.list_price or 0.0,
+                        'cost': line.price_unit or line.product_id.cost_price or 0.0
                     }
                 # Q'oshilgan miqdorni yig'ib boramiz
                 product_totals[pid]['qty'] += line.loaded_qty
                 # Eng oxirgi narx bilan yangilaymiz (agar yangi yuklashda narx o'zgargan bo'lsa)
-                product_totals[pid]['price'] = line.price_unit
-                product_totals[pid]['cost'] = line.product_id.cost_price or 0.0
+                product_totals[pid]['price'] = line.sale_price_unit or line.product_id.list_price or 0.0
+                product_totals[pid]['cost'] = line.price_unit or line.product_id.cost_price or 0.0
 
         # Eski loaded_qty miqdorlarini tozalaymiz (agar chalkashlik bo'lsa)
         for inv_line in self.inventory_line_ids:
@@ -431,6 +431,8 @@ class VanAgentSummary(models.Model):
                 inv_line.loaded_qty = data['qty']
                 if not inv_line.price_unit:
                     inv_line.price_unit = data['price']
+                if not inv_line.cost_price:
+                    inv_line.cost_price = data['cost']
             else:
                 self.env['van.agent.inventory.line'].create({
                     'summary_id': self.id,
