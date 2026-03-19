@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+import datetime
+
 from odoo import models, fields, api
 
 class VanTaminotchi(models.Model):
@@ -49,6 +51,7 @@ class VanTaminotchi(models.Model):
             if rec.ostatka_qarzi and rec.ostatka_qarzi != 0:
                 transactions.append({
                     'date': fields.Date.today(),
+                    'display_date': fields.Date.today(),
                     'turi': "🟠 Boshlang'ich qarz",
                     'summa': rec.ostatka_qarzi,
                     'is_debt': True,
@@ -58,13 +61,15 @@ class VanTaminotchi(models.Model):
             for trip in rec.trip_ids:
                 if trip.state != 'validated' or trip.amount_cost_total <= 0:
                     continue
-                trip_date = self._ledger_sort_date(trip.date)
+                trip_display_date = self._ledger_display_datetime(trip.date)
+                trip_date = self._ledger_sort_date(trip_display_date)
                 if date_from and trip_date < date_from:
                     continue
                 if date_to and trip_date > date_to:
                     continue
                 transactions.append({
                     'date': trip_date,
+                    'display_date': trip_display_date or trip_date,
                     'turi': "📦 Yuklash",
                     'summa': trip.amount_cost_total,
                     'is_debt': True,
@@ -77,13 +82,15 @@ class VanTaminotchi(models.Model):
             for pay in rec.payment_ids:
                 if pay.state != 'received' or pay.payment_type != 'out' or pay.amount <= 0:
                     continue
-                pay_date = self._ledger_sort_date(pay.date)
+                pay_display_date = self._ledger_display_datetime(pay.date)
+                pay_date = self._ledger_sort_date(pay_display_date)
                 if date_from and pay_date < date_from:
                     continue
                 if date_to and pay_date > date_to:
                     continue
                 transactions.append({
                     'date': pay_date,
+                    'display_date': pay_display_date or pay_date,
                     'turi': "💵 Chiqim",
                     'summa': pay.amount,
                     'is_debt': False,
@@ -137,7 +144,7 @@ class VanTaminotchi(models.Model):
                 """
 
             for rx in transactions:
-                d_str = rx['date'].strftime('%d.%m.%Y') if hasattr(rx['date'], 'strftime') else str(rx['date'])
+                d_str = self._ledger_format_display_date(rx.get('display_date') or rx['date'])
                 bal_color = 'text-danger fw-bold' if rx['computed_balance'] > 0 else 'text-success fw-bold'
 
                 if rx['is_debt']:
@@ -214,6 +221,33 @@ class VanTaminotchi(models.Model):
             except Exception:
                 pass
         return value
+
+    @api.model
+    def _ledger_display_datetime(self, value):
+        if not value:
+            return fields.Date.today()
+        if isinstance(value, str):
+            try:
+                return fields.Datetime.to_datetime(value)
+            except Exception:
+                try:
+                    return fields.Date.to_date(value)
+                except Exception:
+                    return fields.Date.today()
+        return value
+
+    @api.model
+    def _ledger_format_display_date(self, value):
+        if not value:
+            return ''
+        if isinstance(value, str):
+            parsed = self._ledger_display_datetime(value)
+            return self._ledger_format_display_date(parsed)
+        if isinstance(value, datetime.datetime):
+            return value.strftime('%d.%m.%Y %H:%M')
+        if isinstance(value, datetime.date):
+            return value.strftime('%d.%m.%Y')
+        return str(value)
 
     def action_view_ledger(self):
         self.ensure_one()
