@@ -87,6 +87,7 @@ class VanPosController(http.Controller):
         try:
             import pytz
             user_tz = pytz.timezone(request.env.user.tz or 'Asia/Tashkent')
+            acting_agent_id = self._get_agent_id()
 
             if int(client_id) == 0:
                 # Support "Naqt Savdo" (virtual client)
@@ -119,6 +120,8 @@ class VanPosController(http.Controller):
 
             # 2. Sotuvlar (POS Orders)
             order_domain = [('partner_id', '=', partner.id if partner else False), ('state', '=', 'done')]
+            if not partner:
+                order_domain.append(('agent_id', '=', acting_agent_id))
             if date_from:
                 order_domain.append(('date', '>=', date_from + ' 00:00:00'))
             if date_to:
@@ -150,6 +153,8 @@ class VanPosController(http.Controller):
 
             # 3. Kirimlar (Payments)
             pay_domain = [('partner_id', '=', partner.id if partner else False), ('payment_type', '=', 'in')]
+            if not partner:
+                pay_domain.append(('agent_id', '=', acting_agent_id))
             if date_from:
                 pay_domain.append(('date', '>=', date_from + ' 00:00:00'))
             if date_to:
