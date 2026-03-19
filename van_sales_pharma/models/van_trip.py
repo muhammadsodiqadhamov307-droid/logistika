@@ -256,10 +256,18 @@ class VanTrip(models.Model):
             domain_foyda.append(('date', '>=', today_start))
             domain_chiqim.append(('date', '>=', today_start))
         
-        # 1. Total Global Nasiya
-        # We find all partners and sum up x_van_total_due (which represents their actual debt)
+        # 1. Total Global Nasiya + Agent Inventory at Cost
+        # Customer debt remains the base, and we additionally include the
+        # current agent inventory value at cost so the dashboard card reflects
+        # both outstanding receivables and loaded stock value.
         partners = self.env['res.partner'].search([('x_is_van_customer', '=', True)])
-        total_global_nasiya = sum(p.x_van_total_due for p in partners)
+        total_customer_nasiya = sum(partners.mapped('x_van_total_due'))
+        inventory_lines = self.env['van.agent.inventory.line'].search([])
+        total_inventory_cost_nasiya = sum(
+            (line.remaining_qty or 0.0) * (line.cost_price or 0.0)
+            for line in inventory_lines
+        )
+        total_global_nasiya = total_customer_nasiya + total_inventory_cost_nasiya
 
         # 2. POS Cash & Card (Filtered by Date or All-Time)
         pos_orders = self.env['van.pos.order'].search(domain_pos)
@@ -376,6 +384,8 @@ class VanTrip(models.Model):
             'total_card': t_card,
             'total_chiqim': t_chiqim_display,
             'total_global_nasiya': total_global_nasiya,
+            'total_customer_nasiya': total_customer_nasiya,
+            'total_inventory_cost_nasiya': total_inventory_cost_nasiya,
             'total_taminotchi_balance': total_taminotchi_balance,
             'jami': jami,
             'sof_foyda': sof_foyda,
