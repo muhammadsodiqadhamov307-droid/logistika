@@ -162,10 +162,14 @@ class VanPosOrder(models.Model):
 class VanPosOrderLine(models.Model):
     _name = 'van.pos.order.line'
     _description = 'Van Sales Mobile POS Order Line'
+    _order = 'sale_date desc, id desc'
 
     order_id = fields.Many2one('van.pos.order', string='Buyurtma', required=True, ondelete='cascade')
     company_id = fields.Many2one('res.company', related='order_id.company_id', store=True)
     currency_id = fields.Many2one('res.currency', related='order_id.currency_id', store=True)
+    sale_date = fields.Datetime(related='order_id.date', string='Sana', store=True, readonly=True)
+    sale_agent_id = fields.Many2one('res.users', related='order_id.agent_id', string='Agent', store=True, readonly=True)
+    sale_partner_id = fields.Many2one('res.partner', related='order_id.partner_id', string='Mijoz', store=True, readonly=True)
 
     product_id = fields.Many2one('van.product', string='Mahsulot', required=True)
     qty = fields.Float(string='Miqdor', required=True, default=1.0)
