@@ -45,32 +45,42 @@ class VanProduct(models.Model):
     def _compute_report_lines(self):
         user_tz = pytz.timezone(self.env.user.tz or self.env.context.get('tz') or 'UTC')
         for rec in self:
-            sale_domain = [('product_id', '=', rec.id), ('order_id.state', '=', 'done')]
+            order_domain = [('state', '=', 'done'), ('line_ids.product_id', '=', rec.id)]
             if rec.sale_report_agent_id:
-                sale_domain.append(('sale_agent_id', '=', rec.sale_report_agent_id.id))
+                order_domain.append(('agent_id', '=', rec.sale_report_agent_id.id))
             if rec.sale_report_partner_id:
-                sale_domain.append(('sale_partner_id', '=', rec.sale_report_partner_id.id))
+                order_domain.append(('partner_id', '=', rec.sale_report_partner_id.id))
             if rec.sale_report_date_from:
                 utc_start = user_tz.localize(datetime.combine(rec.sale_report_date_from, time.min)).astimezone(pytz.UTC).replace(tzinfo=None)
-                sale_domain.append(('sale_date', '>=', utc_start))
+                order_domain.append(('date', '>=', utc_start))
             if rec.sale_report_date_to:
                 utc_end = user_tz.localize(datetime.combine(rec.sale_report_date_to, time.max)).astimezone(pytz.UTC).replace(tzinfo=None)
-                sale_domain.append(('sale_date', '<=', utc_end))
+                order_domain.append(('date', '<=', utc_end))
 
-            trip_domain = [('product_id', '=', rec.id), ('trip_id.state', '=', 'done')]
+            trip_domain = [('state', '=', 'done'), ('trip_line_ids.product_id', '=', rec.id)]
             if rec.trip_report_agent_id:
-                trip_domain.append(('trip_agent_id', '=', rec.trip_report_agent_id.id))
+                trip_domain.append(('agent_id', '=', rec.trip_report_agent_id.id))
             if rec.trip_report_taminotchi_id:
-                trip_domain.append(('trip_taminotchi_id', '=', rec.trip_report_taminotchi_id.id))
+                trip_domain.append(('taminotchi_id', '=', rec.trip_report_taminotchi_id.id))
             if rec.trip_report_date_from:
                 utc_start = user_tz.localize(datetime.combine(rec.trip_report_date_from, time.min)).astimezone(pytz.UTC).replace(tzinfo=None)
-                trip_domain.append(('trip_date', '>=', utc_start))
+                trip_domain.append(('date', '>=', utc_start))
             if rec.trip_report_date_to:
                 utc_end = user_tz.localize(datetime.combine(rec.trip_report_date_to, time.max)).astimezone(pytz.UTC).replace(tzinfo=None)
-                trip_domain.append(('trip_date', '<=', utc_end))
+                trip_domain.append(('date', '<=', utc_end))
 
-            rec.sale_report_line_ids = self.env['van.pos.order.line'].search(sale_domain, order='sale_date desc, id desc')
-            rec.trip_report_line_ids = self.env['van.trip.line'].search(trip_domain, order='trip_date desc, id desc')
+            sale_lines = self.env['van.pos.order.line']
+            sale_orders = self.env['van.pos.order'].search(order_domain, order='date desc, id desc')
+            for order in sale_orders:
+                sale_lines |= order.line_ids.filtered(lambda line: line.product_id.id == rec.id)
+
+            trip_lines = self.env['van.trip.line']
+            trips = self.env['van.trip'].search(trip_domain, order='date desc, id desc')
+            for trip in trips:
+                trip_lines |= trip.trip_line_ids.filtered(lambda line: line.product_id.id == rec.id)
+
+            rec.sale_report_line_ids = sale_lines
+            rec.trip_report_line_ids = trip_lines
 
     def action_clear_sale_report_filters(self):
         for rec in self:
