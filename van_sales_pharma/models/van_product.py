@@ -43,6 +43,16 @@ class VanProduct(models.Model):
         'trip_report_date_from', 'trip_report_date_to', 'trip_report_agent_id', 'trip_report_taminotchi_id'
     )
     def _compute_report_lines(self):
+        self._refresh_report_lines()
+
+    @api.onchange(
+        'sale_report_date_from', 'sale_report_date_to', 'sale_report_agent_id', 'sale_report_partner_id',
+        'trip_report_date_from', 'trip_report_date_to', 'trip_report_agent_id', 'trip_report_taminotchi_id'
+    )
+    def _onchange_report_filters(self):
+        self._refresh_report_lines()
+
+    def _refresh_report_lines(self):
         user_tz = pytz.timezone(self.env.user.tz or self.env.context.get('tz') or 'UTC')
         for rec in self:
             order_domain = [('state', '=', 'done'), ('line_ids.product_id', '=', rec.id)]
@@ -88,6 +98,7 @@ class VanProduct(models.Model):
             rec.sale_report_date_to = False
             rec.sale_report_agent_id = False
             rec.sale_report_partner_id = False
+        self._refresh_report_lines()
         return True
 
     def action_clear_trip_report_filters(self):
@@ -96,4 +107,5 @@ class VanProduct(models.Model):
             rec.trip_report_date_to = False
             rec.trip_report_agent_id = False
             rec.trip_report_taminotchi_id = False
+        self._refresh_report_lines()
         return True
