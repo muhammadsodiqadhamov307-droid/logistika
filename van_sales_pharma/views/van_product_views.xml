@@ -92,6 +92,7 @@
                                 </group>
                             </group>
                             <div class="mb-2">
+                                <button name="action_apply_sale_report_filters" string="Filterlash" type="object" class="btn-primary me-2"/>
                                 <button name="action_clear_sale_report_filters" string="Filtrlarni Tozalash" type="object" class="btn-secondary"/>
                             </div>
                             <field name="sale_report_line_ids" nolabel="1">
@@ -118,6 +119,7 @@
                                 </group>
                             </group>
                             <div class="mb-2">
+                                <button name="action_apply_trip_report_filters" string="Filterlash" type="object" class="btn-primary me-2"/>
                                 <button name="action_clear_trip_report_filters" string="Filtrlarni Tozalash" type="object" class="btn-secondary"/>
                             </div>
                             <field name="trip_report_line_ids" nolabel="1">

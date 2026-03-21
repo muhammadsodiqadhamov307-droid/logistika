@@ -101,11 +101,19 @@ class VanProduct(models.Model):
         self._refresh_report_lines()
         return True
 
+    def action_apply_sale_report_filters(self):
+        self._refresh_report_lines()
+        return True
+
     def action_clear_trip_report_filters(self):
         for rec in self:
             rec.trip_report_date_from = False
             rec.trip_report_date_to = False
             rec.trip_report_agent_id = False
             rec.trip_report_taminotchi_id = False
+        self._refresh_report_lines()
+        return True
+
+    def action_apply_trip_report_filters(self):
         self._refresh_report_lines()
         return True
