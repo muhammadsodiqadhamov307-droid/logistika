@@ -89,8 +89,8 @@ class VanProduct(models.Model):
             for trip in trips:
                 trip_lines |= trip.trip_line_ids.filtered(lambda line: line.product_id.id == rec.id)
 
-            rec.sale_report_line_ids = sale_lines
-            rec.trip_report_line_ids = trip_lines
+            rec.sale_report_line_ids = [(6, 0, sale_lines.ids)]
+            rec.trip_report_line_ids = [(6, 0, trip_lines.ids)]
 
     def action_clear_sale_report_filters(self):
         for rec in self:
