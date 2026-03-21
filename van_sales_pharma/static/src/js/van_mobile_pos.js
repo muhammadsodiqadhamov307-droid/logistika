@@ -118,6 +118,7 @@ export class VanMobilePos extends Component {
             clientReportLoading: false,
             clientReportDateFrom: '',
             clientReportDateTo: '',
+            clientsScrollTop: 0,
 
             // So'rov -> POS integration
             sourceSorovId: null,   // set when fulfilling a request via POS flow,
@@ -1748,6 +1749,7 @@ export class VanMobilePos extends Component {
             this.state.clientReport = null;
             this.state.clientReportExpandedRows = {};
             this.state.screen = 'clients';
+            this.restoreClientsScroll();
         } else if (this.state.screen === 'checkout') {
             this.state.screen = 'products';
         } else if (this.state.screen === 'requests_list') {
@@ -1772,6 +1774,7 @@ export class VanMobilePos extends Component {
     // --- CLIENT HISOB-KITOB (REPORT) ---
     async openClientReport(client, event) {
         if (event) event.stopPropagation();
+        this.captureClientsScroll();
         this.state.clientReportClientId = client.id;
         this.cancelEdit(event);
         this.state.clientReportDateFrom = '';
@@ -1780,6 +1783,27 @@ export class VanMobilePos extends Component {
         this.state.clientReport = null;
         this.state.screen = 'client_report';
         await this._fetchClientReport(client.id);
+    }
+
+    getScrollContainer() {
+        return this.el?.querySelector('.van-pos-content');
+    }
+
+    captureClientsScroll() {
+        const container = this.getScrollContainer();
+        if (container) {
+            this.state.clientsScrollTop = container.scrollTop || 0;
+        }
+    }
+
+    restoreClientsScroll() {
+        const scrollTop = this.state.clientsScrollTop || 0;
+        requestAnimationFrame(() => {
+            const container = this.getScrollContainer();
+            if (container) {
+                container.scrollTop = scrollTop;
+            }
+        });
     }
 
     async _fetchClientReport(clientId) {
