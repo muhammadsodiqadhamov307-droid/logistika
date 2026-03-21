@@ -715,12 +715,12 @@
                                 <input type="text" inputmode="numeric" t-att-value="state.kirimAmount" t-on-input="setNasiyaKirimAmountForm" style="width: 100%; padding: 12px; font-size: 20px; font-weight: bold; border: 2px solid #2563eb; border-radius: 8px; box-sizing: border-box; text-align: right;"/>
                             </div>
                             
-                            <div style="display: flex; gap: 10px;">
-                                <button t-on-click="() => this.submitKirim('cash')" style="width: 100%; padding: 15px; background-color: #10b981; color: white; font-weight: bold; border: none; border-radius: 8px; font-size: 18px;">Naqt Pul Qabul Qilish (Kirim)</button>
+                            <div class="kirim-confirm-actions">
+                                <button t-on-click="() => this.submitKirim('cash')" class="kirim-confirm-btn kirim-confirm-btn-primary">Naqt Pul Qabul Qilish (Kirim)</button>
                             </div>
                         </div>
 
-                        <button t-on-click="resetToStart" style="width: 100%; padding: 15px; background-color: transparent; color: #4b5563; font-weight: bold; border: 1px solid #d1d5db; border-radius: 8px;">
+                        <button t-on-click="resetToStart" class="kirim-confirm-btn kirim-confirm-btn-danger">
                             Ayni vaqtda to'lov yo'q (O'tkazib yuborish)
                         </button>
                     </div>

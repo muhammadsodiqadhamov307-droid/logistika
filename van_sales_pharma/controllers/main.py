@@ -313,15 +313,34 @@ class VanPosController(http.Controller):
         summary = request.env['van.agent.summary'].with_context(lang='uz_UZ').search([('agent_id', '=', agent_id)], limit=1)
         if not summary:
             return []
-            
+
+        sold_qty_by_product = {}
+        sold_lines = request.env['van.pos.order.line'].sudo().search([
+            ('order_id.agent_id', '=', agent_id),
+            ('order_id.state', '=', 'done'),
+        ])
+        for sold_line in sold_lines:
+            product_id = sold_line.product_id.id
+            sold_qty_by_product[product_id] = sold_qty_by_product.get(product_id, 0.0) + (sold_line.qty or 0.0)
+
+        sorted_lines = sorted(
+            summary.active_inventory_line_ids,
+            key=lambda line: (
+                -(sold_qty_by_product.get(line.product_id.id, 0.0)),
+                line.product_id.display_name or ''
+            )
+        )
+
         items = []
-        for line in summary.active_inventory_line_ids:
+        for idx, line in enumerate(sorted_lines):
             items.append({
                 'product_id': line.product_id.id,
                 'name': line.product_id.display_name,
                 'price': line.price_unit,
                 'remaining': line.remaining_qty,
                 'image_url': f'/web/image?model=van.product&id={line.product_id.id}&field=image_1920',
+                'sort_order': idx,
+                'sold_qty': sold_qty_by_product.get(line.product_id.id, 0.0),
             })
         return items
 
@@ -331,7 +350,7 @@ class VanPosController(http.Controller):
         return [{
             'product_id': p.id,
             'name': p.display_name,
-            'price': p.cost_price,
+            'price': p.list_price,
             'image_url': f'/web/image?model=van.product&id={p.id}&field=image_1920',
         } for p in products]
 

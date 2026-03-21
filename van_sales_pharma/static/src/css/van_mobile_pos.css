@@ -623,3 +623,35 @@
     background: linear-gradient(135deg, #10b981 0%, #059669 100%);
     color: white;
 }
+
+.kirim-confirm-actions {
+    display: flex;
+    gap: 12px;
+}
+
+.kirim-confirm-btn {
+    width: 100%;
+    min-height: 56px;
+    padding: 15px 18px;
+    border: none;
+    border-radius: 12px;
+    font-size: 18px;
+    font-weight: 800;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.10);
+}
+
+.kirim-confirm-btn:hover {
+    transform: translateY(-1px);
+}
+
+.kirim-confirm-btn-primary {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: #fff;
+}
+
+.kirim-confirm-btn-danger {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    color: #fff;
+}

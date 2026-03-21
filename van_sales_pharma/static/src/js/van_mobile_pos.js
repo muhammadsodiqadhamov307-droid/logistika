@@ -101,6 +101,7 @@ export class VanMobilePos extends Component {
             tripDate: new Date().toISOString().split('T')[0], // Defaults to today
             tripNote: '',
             tripCart: {},
+            tripSelectionCounter: 0,
             showYuklashPreviewModal: false,
             yuklashPreviewLines: [],
             yuklashPreviewTotal: 0,
@@ -715,12 +716,22 @@ export class VanMobilePos extends Component {
         return Object.values(this.state.tripCart).reduce((sum, item) => sum + ((parseFloat(item.qty) || 0) * item.price), 0);
     }
 
+    nextTripSelectionOrder() {
+        this.state.tripSelectionCounter += 1;
+        return this.state.tripSelectionCounter;
+    }
+
     changeTripLineQty(product, delta) {
         if (!this.state.tripCart) this.state.tripCart = {};
         const pId = product.product_id;
         if (!this.state.tripCart[pId]) {
             if (delta > 0) {
-                this.state.tripCart[pId] = { product_id: pId, qty: delta, price: product.price };
+                this.state.tripCart[pId] = {
+                    product_id: pId,
+                    qty: delta,
+                    price: product.price,
+                    selection_order: this.nextTripSelectionOrder(),
+                };
             }
         } else {
             this.state.tripCart[pId].qty += delta;
@@ -737,7 +748,12 @@ export class VanMobilePos extends Component {
         let val = ev.target.value;
         if (val === '') {
             if (!this.state.tripCart[pId]) {
-                this.state.tripCart[pId] = { product_id: pId, qty: '', price: product.price };
+                this.state.tripCart[pId] = {
+                    product_id: pId,
+                    qty: '',
+                    price: product.price,
+                    selection_order: this.nextTripSelectionOrder(),
+                };
             } else {
                 this.state.tripCart[pId].qty = '';
             }
@@ -750,7 +766,12 @@ export class VanMobilePos extends Component {
             ev.target.value = 0;
         } else {
             if (!this.state.tripCart[pId]) {
-                this.state.tripCart[pId] = { product_id: pId, qty: newQty, price: product.price };
+                this.state.tripCart[pId] = {
+                    product_id: pId,
+                    qty: newQty,
+                    price: product.price,
+                    selection_order: this.nextTripSelectionOrder(),
+                };
             } else {
                 this.state.tripCart[pId].qty = newQty;
             }
@@ -1562,7 +1583,9 @@ export class VanMobilePos extends Component {
             return;
         }
 
-        const validLines = Object.values(this.state.tripCart).filter(l => l.qty > 0);
+        const validLines = Object.values(this.state.tripCart)
+            .filter(l => l.qty > 0)
+            .sort((a, b) => (a.selection_order || 0) - (b.selection_order || 0));
 
         if (validLines.length === 0) {
             this.state.error = "Iltimos kamida bitta mahsulot tanlang.";
