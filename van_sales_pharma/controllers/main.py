@@ -351,6 +351,8 @@ class VanPosController(http.Controller):
             'product_id': p.id,
             'name': p.display_name,
             'price': p.list_price,
+            'sale_price': p.list_price,
+            'cost_price': p.cost_price,
             'image_url': f'/web/image?model=van.product&id={p.id}&field=image_1920',
         } for p in products]
 

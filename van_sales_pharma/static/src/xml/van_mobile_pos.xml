@@ -1230,7 +1230,7 @@
                                             <t t-esc="p.name"/>
                                         </div>
                                         <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 8px;">
-                                            <div style="font-size: 13px; font-weight: bold; color: #16a34a;"><t t-esc="p.price.toLocaleString()"/> UZS</div>
+                                            <div style="font-size: 13px; font-weight: bold; color: #16a34a;"><t t-esc="p.sale_price.toLocaleString()"/> UZS</div>
                                         </div>
                                     </div>
                                     
@@ -1368,7 +1368,7 @@
                                                 <t t-esc="p.name"/>
                                             </div>
                                             <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 8px;">
-                                                <div style="font-size: 13px; font-weight: bold; color: #16a34a;"><t t-esc="p.price.toLocaleString()"/> UZS</div>
+                                                <div style="font-size: 13px; font-weight: bold; color: #16a34a;"><t t-esc="p.cost_price.toLocaleString()"/> UZS</div>
                                             </div>
                                         </div>
                                         

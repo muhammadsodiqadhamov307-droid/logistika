@@ -730,7 +730,7 @@ export class VanMobilePos extends Component {
                 this.state.tripCart[pId] = {
                     product_id: pId,
                     qty: delta,
-                    price: product.price,
+                    price: product.cost_price,
                     selection_order: this.nextTripSelectionOrder(),
                 };
             }
@@ -752,7 +752,7 @@ export class VanMobilePos extends Component {
                 this.state.tripCart[pId] = {
                     product_id: pId,
                     qty: '',
-                    price: product.price,
+                    price: product.cost_price,
                     selection_order: this.nextTripSelectionOrder(),
                 };
             } else {
@@ -770,7 +770,7 @@ export class VanMobilePos extends Component {
                 this.state.tripCart[pId] = {
                     product_id: pId,
                     qty: newQty,
-                    price: product.price,
+                    price: product.cost_price,
                     selection_order: this.nextTripSelectionOrder(),
                 };
             } else {
