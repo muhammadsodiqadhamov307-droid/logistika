@@ -1,7 +1,7 @@
 {
     "name": "Van Sales",
     "short_name": "Van Sales",
-    "start_url": "/van/mobile-pos",
+    "start_url": "/van/app",
     "scope": "/",
     "display": "standalone",
     "orientation": "portrait",

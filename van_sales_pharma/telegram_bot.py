@@ -3,6 +3,7 @@ import sys
 import logging
 import configparser
 import xmlrpc.client
+import time
 from datetime import datetime
 
 from telegram import (
@@ -51,17 +52,59 @@ def get_odoo_models():
         logger.error(f"Odoo XML-RPC Error: {e}")
         return None, None
 
+def read_config_param(models, uid, key):
+    """Read ir.config_parameter robustly across versions."""
+    try:
+        records = models.execute_kw(
+            ODOO_DB, uid, ODOO_PASSWORD,
+            'ir.config_parameter', 'search_read',
+            [[('key', '=', key)]],
+            {'fields': ['value'], 'limit': 1}
+        )
+        if records:
+            return records[0].get('value') or ''
+    except Exception as e:
+        logger.warning(f"search_read failed for config param {key}: {e}")
+
+    try:
+        record_ids = models.execute_kw(
+            ODOO_DB, uid, ODOO_PASSWORD,
+            'ir.config_parameter', 'search',
+            [[('key', '=', key)]],
+            {'limit': 1}
+        )
+        if record_ids:
+            records = models.execute_kw(
+                ODOO_DB, uid, ODOO_PASSWORD,
+                'ir.config_parameter', 'read',
+                [record_ids, ['value']]
+            )
+            if records:
+                return records[0].get('value') or ''
+    except Exception as e:
+        logger.warning(f"search/read failed for config param {key}: {e}")
+
+    return ''
+
 def get_bot_token():
-    """Fetch the Token natively out of Odoo sys parameter via XML-RPC"""
-    models, uid = get_odoo_models()
-    if not models:
-        return None
-    records = models.execute_kw(ODOO_DB, uid, ODOO_PASSWORD, 'ir.config_parameter', 'search_read', 
-        [[('key', '=', 'van.telegram.bot.token')]], 
-        {'fields': ['value'], 'limit': 1}
+    """Fetch the Telegram bot token with startup retries and env fallback."""
+    env_token = (
+        os.environ.get('VAN_TELEGRAM_BOT_TOKEN')
+        or os.environ.get('TELEGRAM_BOT_TOKEN')
     )
-    if records:
-        return records[0].get('value')
+    if env_token:
+        return env_token.strip()
+
+    for attempt in range(1, 6):
+        models, uid = get_odoo_models()
+        if models:
+            token = read_config_param(models, uid, 'van.telegram.bot.token')
+            if token:
+                return token.strip()
+            logger.warning(f"Telegram bot token not found on attempt {attempt}/5")
+        else:
+            logger.warning(f"Could not connect to Odoo on attempt {attempt}/5")
+        time.sleep(3)
     return None
 
 def get_web_app_button(chat_id):
@@ -70,16 +113,11 @@ def get_web_app_button(chat_id):
     if not models:
         return None
         
-    def get_param(key):
-        res = models.execute_kw(ODOO_DB, uid, ODOO_PASSWORD, 'ir.config_parameter', 'search_read',
-            [[('key', '=', key)]],
-            {'fields': ['value'], 'limit': 1}
-        )
-        return res[0]['value'] if res else ''
-
-    base_url = get_param('van.telegram.odoo.url')
+    base_url = read_config_param(models, uid, 'van.telegram.odoo.url')
     if not base_url:
-        base_url = get_param('web.base.url')
+        base_url = read_config_param(models, uid, 'van_telegram_odoo_url')
+    if not base_url:
+        base_url = read_config_param(models, uid, 'web.base.url')
         
     if not base_url.startswith('http'):
         base_url = "https://" + base_url.lstrip('/')
@@ -87,7 +125,6 @@ def get_web_app_button(chat_id):
         base_url = base_url.replace('http://', 'https://')
         
     base_url = base_url.rstrip('/')
-    import time
     web_app_url = f"{base_url}/van/client/request?chat_id={chat_id}&v={int(time.time())}"
     
     return InlineKeyboardButton(text="🛒 Zakaz berish", web_app={"url": web_app_url})
