@@ -4,7 +4,13 @@ import logging
 import configparser
 import xmlrpc.client
 import time
+import getpass
 from datetime import datetime
+
+try:
+    import psycopg2
+except Exception:  # pragma: no cover - optional runtime fallback
+    psycopg2 = None
 
 from telegram import (
     Update, 
@@ -34,6 +40,7 @@ ODOO_URL = "http://localhost:8069"
 ODOO_DB = "default"
 ODOO_USER = "admin"  # Hardcoded per instructions for local script
 ODOO_PASSWORD = os.environ.get('ODOO_PASSWORD', 'admin') # Read from env, fallback to admin
+ODOO_CONFIG = os.environ.get('ODOO_CONFIG', 'odoo.conf')
 
 # State definitions for Registration Conversation
 ASK_NAME, ASK_PHONE = range(2)
@@ -51,6 +58,69 @@ def get_odoo_models():
     except Exception as e:
         logger.error(f"Odoo XML-RPC Error: {e}")
         return None, None
+
+def get_odoo_config():
+    parser = configparser.ConfigParser()
+    if parser.read(ODOO_CONFIG):
+        return parser['options'] if parser.has_section('options') else {}
+    return {}
+
+def _normalize_config_value(value, default=''):
+    if value is None:
+        return default
+    value = str(value).strip()
+    if value.lower() in {'', 'false', 'none'}:
+        return default
+    return value
+
+def get_db_connection():
+    """Connect directly to local PostgreSQL using odoo.conf values."""
+    if psycopg2 is None:
+        return None
+
+    config = get_odoo_config()
+    dbname = _normalize_config_value(config.get('db_name'), ODOO_DB)
+    dbuser = _normalize_config_value(config.get('db_user'), getpass.getuser())
+    dbpassword = _normalize_config_value(config.get('db_password'), '')
+    dbhost = _normalize_config_value(config.get('db_host'), '')
+    dbport = _normalize_config_value(config.get('db_port'), '')
+
+    connect_kwargs = {
+        'dbname': dbname,
+        'user': dbuser,
+    }
+    if dbpassword:
+        connect_kwargs['password'] = dbpassword
+    if dbhost:
+        connect_kwargs['host'] = dbhost
+    if dbport:
+        try:
+            connect_kwargs['port'] = int(dbport)
+        except ValueError:
+            logger.warning(f"Ignoring invalid db_port from config: {dbport}")
+
+    try:
+        return psycopg2.connect(**connect_kwargs)
+    except Exception as e:
+        logger.warning(f"Direct PostgreSQL connection failed: {e}")
+        return None
+
+def read_config_param_db(key):
+    """Read ir_config_parameter directly from PostgreSQL."""
+    conn = get_db_connection()
+    if not conn:
+        return ''
+    try:
+        with conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT value FROM ir_config_parameter WHERE key = %s LIMIT 1", (key,))
+                row = cur.fetchone()
+                return row[0] if row and row[0] else ''
+    except Exception as e:
+        logger.warning(f"Direct DB read failed for config param {key}: {e}")
+        return ''
+    finally:
+        conn.close()
 
 def read_config_param(models, uid, key):
     """Read ir.config_parameter robustly across versions."""
@@ -95,7 +165,14 @@ def get_bot_token():
     if env_token:
         return env_token.strip()
 
+    db_token = read_config_param_db('van.telegram.bot.token')
+    if db_token:
+        return db_token.strip()
+
     for attempt in range(1, 6):
+        db_token = read_config_param_db('van.telegram.bot.token')
+        if db_token:
+            return db_token.strip()
         models, uid = get_odoo_models()
         if models:
             token = read_config_param(models, uid, 'van.telegram.bot.token')
@@ -109,15 +186,21 @@ def get_bot_token():
 
 def get_web_app_button(chat_id):
     """Returns an InlineKeyboardButton for the Telegram Web App, fully resolving the URL"""
+    base_url = read_config_param_db('van.telegram.odoo.url')
+    if not base_url:
+        base_url = read_config_param_db('van_telegram_odoo_url')
+    if not base_url:
+        base_url = read_config_param_db('web.base.url')
+
     models, uid = get_odoo_models()
-    if not models:
+    if not base_url and models:
+        base_url = read_config_param(models, uid, 'van.telegram.odoo.url')
+        if not base_url:
+            base_url = read_config_param(models, uid, 'van_telegram_odoo_url')
+        if not base_url:
+            base_url = read_config_param(models, uid, 'web.base.url')
+    if not base_url:
         return None
-        
-    base_url = read_config_param(models, uid, 'van.telegram.odoo.url')
-    if not base_url:
-        base_url = read_config_param(models, uid, 'van_telegram_odoo_url')
-    if not base_url:
-        base_url = read_config_param(models, uid, 'web.base.url')
         
     if not base_url.startswith('http'):
         base_url = "https://" + base_url.lstrip('/')
