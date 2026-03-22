@@ -107,7 +107,7 @@ def build_main_menu(chat_id=None):
             
     return InlineKeyboardMarkup(keyboard)
 
-# --- REGISTRATION CONVERSATION ---
+# --- START / MENU ---
 
 async def start_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     chat_id = str(update.effective_chat.id)
@@ -126,9 +126,13 @@ async def start_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
             reply_markup=build_main_menu(chat_id)
         )
         return ConversationHandler.END
-        
-    await update.message.reply_text("Assalomu alaykum! Van Sales tizimiga xush kelibsiz.\nIltimos, Apteka yoki korxonangiz nomini kiriting:")
-    return ASK_NAME
+
+    await update.message.reply_text(
+        f"Sizning Telegram Chat ID raqamingiz:\n\n<code>{chat_id}</code>\n\n"
+        "Uni tizimga biriktirish uchun shu raqamni operatorga yoki agentga yuboring.",
+        parse_mode='HTML'
+    )
+    return ConversationHandler.END
 
 async def handle_name(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     context.user_data['partner_name'] = update.message.text
@@ -306,16 +310,7 @@ def main():
     logger.info("Initializing Telegram Bot...")
     application = Application.builder().token(token).build()
 
-    # Registration Conversation handler
-    conv_handler = ConversationHandler(
-        entry_points=[CommandHandler('start', start_cmd)],
-        states={
-            ASK_NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_name)],
-            ASK_PHONE: [MessageHandler(filters.TEXT | filters.CONTACT, handle_phone)]
-        },
-        fallbacks=[CommandHandler('cancel', cancel_registration)]
-    )
-    application.add_handler(conv_handler)
+    application.add_handler(CommandHandler('start', start_cmd))
 
     # Hard Menu command
     application.add_handler(CommandHandler('menu', menu_cmd))

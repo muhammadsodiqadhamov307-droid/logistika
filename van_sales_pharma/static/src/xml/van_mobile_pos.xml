@@ -488,6 +488,29 @@
                                     <t t-esc="state.clientReport?.total_due?.toLocaleString()"/> so'm
                                 </div>
                             </div>
+                            <t t-if="state.clientReportClientId">
+                                <div style="background: #f8fafc; border: 1px solid #dbeafe; border-radius: 8px; padding: 15px;">
+                                    <div style="font-size: 13px; font-weight: bold; color: #1e3a8a; margin-bottom: 10px;">Telegram Chat ID</div>
+                                    <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+                                        <input
+                                            type="text"
+                                            t-model="state.clientReportTelegramChatId"
+                                            placeholder="Masalan: 123456789"
+                                            style="flex: 1; min-width: 180px; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px; outline: none; box-sizing: border-box;"
+                                        />
+                                        <button
+                                            t-on-click="saveClientTelegramChatId"
+                                            t-att-disabled="state.clientReportTelegramSaving"
+                                            style="padding: 10px 16px; background: #2563eb; color: white; border: none; border-radius: 8px; font-weight: bold; font-size: 13px; min-width: 110px;">
+                                            <t t-if="state.clientReportTelegramSaving">Saqlanmoqda...</t>
+                                            <t t-else="">Saqlash</t>
+                                        </button>
+                                    </div>
+                                    <div style="margin-top: 8px; font-size: 12px; color: #64748b;">
+                                        Agar chat ID hali biriktirilmagan bo'lsa, foydalanuvchi Telegram botda <b>/start</b> bosadi va bot uning chat ID sini yuboradi.
+                                    </div>
+                                </div>
+                            </t>
                         </div>
 
                         <!-- Transactions Table -->

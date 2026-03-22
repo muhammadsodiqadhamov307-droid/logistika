@@ -118,6 +118,8 @@ export class VanMobilePos extends Component {
             clientReportLoading: false,
             clientReportDateFrom: '',
             clientReportDateTo: '',
+            clientReportTelegramChatId: '',
+            clientReportTelegramSaving: false,
             clientsScrollTop: 0,
 
             // So'rov -> POS integration
@@ -1816,6 +1818,7 @@ export class VanMobilePos extends Component {
             });
             if (result.success) {
                 this.state.clientReport = result;
+                this.state.clientReportTelegramChatId = result.telegram_chat_id || '';
             } else {
                 this.showToast(result.error || "Hisobot yuklanmadi", "error");
             }
@@ -1835,6 +1838,31 @@ export class VanMobilePos extends Component {
         this.state.clientReportDateFrom = '';
         this.state.clientReportDateTo = '';
         this.filterClientReport();
+    }
+
+    async saveClientTelegramChatId() {
+        if (!this.state.clientReportClientId) {
+            return;
+        }
+        this.state.clientReportTelegramSaving = true;
+        try {
+            const result = await rpc('/van/pos/update_client_telegram_chat_id', {
+                client_id: this.state.clientReportClientId,
+                telegram_chat_id: this.state.clientReportTelegramChatId || '',
+            });
+            if (result.success) {
+                if (this.state.clientReport) {
+                    this.state.clientReport.telegram_chat_id = result.telegram_chat_id || '';
+                }
+                this.state.clientReportTelegramChatId = result.telegram_chat_id || '';
+                this.showToast(result.message || "Telegram Chat ID saqlandi", "success");
+            } else {
+                this.showToast(result.error || "Telegram Chat ID saqlanmadi", "error");
+            }
+        } catch (e) {
+            this.showToast("Tarmoqda xatolik: Telegram Chat ID saqlanmadi", "error");
+        }
+        this.state.clientReportTelegramSaving = false;
     }
 
     toggleReportRow(index) {

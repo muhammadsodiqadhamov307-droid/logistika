@@ -193,10 +193,35 @@ class VanPosController(http.Controller):
                 'success': True,
                 'client_name': client_name,
                 'total_due': total_due,
+                'telegram_chat_id': partner.telegram_chat_id if partner else '',
                 'transactions': transactions,
             }
         except Exception as e:
             _logger.error(f"get_client_report error: {e}")
+            return {'success': False, 'error': str(e)}
+
+    @http.route('/van/pos/update_client_telegram_chat_id', type='jsonrpc', auth='user')
+    def update_client_telegram_chat_id(self, client_id, telegram_chat_id=''):
+        """Updates Telegram Chat ID for a real client from Mobile POS."""
+        try:
+            client_id = int(client_id or 0)
+            if not client_id:
+                return {'success': False, 'error': "Naqt savdo uchun Telegram Chat ID saqlanmaydi"}
+
+            partner = request.env['res.partner'].sudo().browse(client_id)
+            if not partner.exists():
+                return {'success': False, 'error': 'Mijoz topilmadi'}
+
+            chat_id = (telegram_chat_id or '').strip()
+            partner.write({'telegram_chat_id': chat_id})
+
+            return {
+                'success': True,
+                'telegram_chat_id': partner.telegram_chat_id or '',
+                'message': "Telegram Chat ID saqlandi",
+            }
+        except Exception as e:
+            _logger.error(f"update_client_telegram_chat_id error: {e}")
             return {'success': False, 'error': str(e)}
 
     @http.route('/van/pos/create_client', type='jsonrpc', auth='user')
