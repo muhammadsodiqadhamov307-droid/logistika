@@ -5,6 +5,7 @@ import configparser
 import xmlrpc.client
 import time
 import getpass
+import subprocess
 from datetime import datetime
 
 try:
@@ -122,6 +123,34 @@ def read_config_param_db(key):
     finally:
         conn.close()
 
+def read_config_param_psql(key):
+    """Fallback to local psql command when psycopg2 is unavailable or unsuitable."""
+    config = get_odoo_config()
+    dbname = _normalize_config_value(config.get('db_name'), ODOO_DB)
+    dbuser = _normalize_config_value(config.get('db_user'), getpass.getuser())
+    dbhost = _normalize_config_value(config.get('db_host'), '')
+    dbport = _normalize_config_value(config.get('db_port'), '')
+
+    cmd = ['psql', '-At', '-d', dbname, '-U', dbuser, '-c', f"SELECT value FROM ir_config_parameter WHERE key = '{key}' LIMIT 1;"]
+    if dbhost:
+        cmd.extend(['-h', dbhost])
+    if dbport:
+        cmd.extend(['-p', dbport])
+
+    env = os.environ.copy()
+    dbpassword = _normalize_config_value(config.get('db_password'), '')
+    if dbpassword:
+        env['PGPASSWORD'] = dbpassword
+
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, check=False, env=env)
+        if result.returncode == 0:
+            return (result.stdout or '').strip()
+        logger.warning(f"psql fallback failed for config param {key}: {result.stderr.strip()}")
+    except Exception as e:
+        logger.warning(f"psql execution failed for config param {key}: {e}")
+    return ''
+
 def read_config_param(models, uid, key):
     """Read ir.config_parameter robustly across versions."""
     try:
@@ -169,10 +198,17 @@ def get_bot_token():
     if db_token:
         return db_token.strip()
 
+    psql_token = read_config_param_psql('van.telegram.bot.token')
+    if psql_token:
+        return psql_token.strip()
+
     for attempt in range(1, 6):
         db_token = read_config_param_db('van.telegram.bot.token')
         if db_token:
             return db_token.strip()
+        psql_token = read_config_param_psql('van.telegram.bot.token')
+        if psql_token:
+            return psql_token.strip()
         models, uid = get_odoo_models()
         if models:
             token = read_config_param(models, uid, 'van.telegram.bot.token')
@@ -191,6 +227,12 @@ def get_web_app_button(chat_id):
         base_url = read_config_param_db('van_telegram_odoo_url')
     if not base_url:
         base_url = read_config_param_db('web.base.url')
+    if not base_url:
+        base_url = read_config_param_psql('van.telegram.odoo.url')
+    if not base_url:
+        base_url = read_config_param_psql('van_telegram_odoo_url')
+    if not base_url:
+        base_url = read_config_param_psql('web.base.url')
 
     models, uid = get_odoo_models()
     if not base_url and models:
