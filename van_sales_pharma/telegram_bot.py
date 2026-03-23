@@ -308,6 +308,20 @@ def get_web_app_button(chat_id):
     
     return InlineKeyboardButton(text="🛒 Zakaz berish", web_app={"url": web_app_url})
 
+def partner_field_exists(models, uid, field_name):
+    """Check whether a field exists on res.partner in the live Odoo registry."""
+    try:
+        fields_info = models.execute_kw(
+            get_odoo_db(), uid, ODOO_PASSWORD,
+            'res.partner', 'fields_get',
+            [[field_name]],
+            {'attributes': ['string', 'type']}
+        )
+        return field_name in (fields_info or {})
+    except Exception as e:
+        logger.warning(f"Unable to inspect res.partner field {field_name}: {e}")
+        return False
+
 def build_main_menu(chat_id=None):
     keyboard = [
         [InlineKeyboardButton("💰 Balans (Qarz)", callback_data='menu_balans')],
@@ -331,6 +345,19 @@ async def start_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     odoo_db = get_odoo_db()
     if not models:
         await update.message.reply_text("Tizim bilan bog'lanishda xatolik yuz berdi. Iltimos keyinroq urinib ko'ring.")
+        return ConversationHandler.END
+
+    if not partner_field_exists(models, uid, 'telegram_chat_id'):
+        logger.error(
+            "res.partner.telegram_chat_id is missing in database %s. "
+            "Bot will return chat id only until van_sales_pharma is upgraded on the live DB.",
+            odoo_db,
+        )
+        await update.message.reply_text(
+            f"Sizning Telegram Chat ID raqamingiz:\n\n<code>{chat_id}</code>\n\n"
+            "Tizimda telegram maydoni hali tayyor emas. Shu raqamni vaqtincha operatorga yuboring.",
+            parse_mode='HTML'
+        )
         return ConversationHandler.END
 
     # Check if client already exists by telegram_chat_id
@@ -381,6 +408,12 @@ async def handle_phone(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
     odoo_db = get_odoo_db()
     if not models:
         await update.message.reply_text("Tizim xatoligi.")
+        return ConversationHandler.END
+
+    if not partner_field_exists(models, uid, 'telegram_chat_id'):
+        await update.message.reply_text(
+            "Tizimda telegram maydoni hali tayyor emas. Iltimos admin bilan tekshirib ko'ring."
+        )
         return ConversationHandler.END
 
     # 1. Search existing partner by phone to link instead of duplicate
@@ -437,6 +470,12 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     odoo_db = get_odoo_db()
     if not models:
         await query.edit_message_text("Ma'lumotlarni olishda xatolik yuz berdi.")
+        return
+
+    if not partner_field_exists(models, uid, 'telegram_chat_id'):
+        await query.edit_message_text(
+            "Telegram maydoni bu bazada hali tayyor emas. Iltimos admin bilan tekshirib ko'ring."
+        )
         return
 
     # Find the partner
