@@ -38,7 +38,7 @@ logger = logging.getLogger(__name__)
 # The actual public URL that gets sent to Telegram (for Web Apps) is pulled dynamically
 # from Odoo's System Settings (web.base.url or van_telegram_odoo_url) in get_web_app_button.
 ODOO_URL = "http://localhost:8069"
-ODOO_DB = "default"
+DEFAULT_ODOO_DB = "default"
 ODOO_USER = "admin"  # Hardcoded per instructions for local script
 ODOO_PASSWORD = os.environ.get('ODOO_PASSWORD', 'admin') # Read from env, fallback to admin
 ODOO_CONFIG = os.environ.get('ODOO_CONFIG', 'odoo.conf')
@@ -49,10 +49,11 @@ ASK_NAME, ASK_PHONE = range(2)
 def get_odoo_models():
     """Authenticates and returns the xmlrpc models proxy, plus the uid"""
     try:
+        odoo_db = get_odoo_db()
         common = xmlrpc.client.ServerProxy(f'{ODOO_URL}/xmlrpc/2/common')
-        uid = common.authenticate(ODOO_DB, ODOO_USER, ODOO_PASSWORD, {})
+        uid = common.authenticate(odoo_db, ODOO_USER, ODOO_PASSWORD, {})
         if not uid:
-            logger.error("Authentication to Odoo Failed.")
+            logger.error(f"Authentication to Odoo failed for database: {odoo_db}")
             return None, None
         models = xmlrpc.client.ServerProxy(f'{ODOO_URL}/xmlrpc/2/object')
         return models, uid
@@ -74,6 +75,42 @@ def _normalize_config_value(value, default=''):
         return default
     return value
 
+def get_odoo_db():
+    """Resolve the database from env/config, or auto-pick a single live DB."""
+    env_db = _normalize_config_value(os.environ.get('ODOO_DB'), '')
+    if env_db:
+        return env_db
+
+    config = get_odoo_config()
+    config_db = _normalize_config_value(config.get('db_name'), '')
+    if config_db:
+        return config_db
+
+    conn = get_db_connection()
+    if conn:
+        try:
+            with conn:
+                with conn.cursor() as cur:
+                    cur.execute(
+                        """
+                        SELECT datname
+                        FROM pg_database
+                        WHERE datistemplate = false
+                          AND datallowconn = true
+                          AND datname NOT IN ('postgres')
+                        ORDER BY datname
+                        """
+                    )
+                    db_names = [row[0] for row in cur.fetchall() if row and row[0]]
+                    if len(db_names) == 1:
+                        return db_names[0]
+        except Exception as e:
+            logger.warning(f"Automatic DB discovery failed: {e}")
+        finally:
+            conn.close()
+
+    return DEFAULT_ODOO_DB
+
 def read_config_file_value(*keys, default=''):
     """Read one of the given keys directly from odoo.conf [options]."""
     config = get_odoo_config()
@@ -89,7 +126,7 @@ def get_db_connection():
         return None
 
     config = get_odoo_config()
-    dbname = _normalize_config_value(config.get('db_name'), ODOO_DB)
+    dbname = get_odoo_db()
     dbuser = _normalize_config_value(config.get('db_user'), getpass.getuser())
     dbpassword = _normalize_config_value(config.get('db_password'), '')
     dbhost = _normalize_config_value(config.get('db_host'), '')
@@ -135,7 +172,7 @@ def read_config_param_db(key):
 def read_config_param_psql(key):
     """Fallback to local psql command when psycopg2 is unavailable or unsuitable."""
     config = get_odoo_config()
-    dbname = _normalize_config_value(config.get('db_name'), ODOO_DB)
+    dbname = get_odoo_db()
     dbuser = _normalize_config_value(config.get('db_user'), getpass.getuser())
     dbhost = _normalize_config_value(config.get('db_host'), '')
     dbport = _normalize_config_value(config.get('db_port'), '')
@@ -162,9 +199,10 @@ def read_config_param_psql(key):
 
 def read_config_param(models, uid, key):
     """Read ir.config_parameter robustly across versions."""
+    odoo_db = get_odoo_db()
     try:
         records = models.execute_kw(
-            ODOO_DB, uid, ODOO_PASSWORD,
+            odoo_db, uid, ODOO_PASSWORD,
             'ir.config_parameter', 'search_read',
             [[('key', '=', key)]],
             {'fields': ['value'], 'limit': 1}
@@ -176,14 +214,14 @@ def read_config_param(models, uid, key):
 
     try:
         record_ids = models.execute_kw(
-            ODOO_DB, uid, ODOO_PASSWORD,
+            odoo_db, uid, ODOO_PASSWORD,
             'ir.config_parameter', 'search',
             [[('key', '=', key)]],
             {'limit': 1}
         )
         if record_ids:
             records = models.execute_kw(
-                ODOO_DB, uid, ODOO_PASSWORD,
+                odoo_db, uid, ODOO_PASSWORD,
                 'ir.config_parameter', 'read',
                 [record_ids, ['value']]
             )
@@ -290,12 +328,13 @@ def build_main_menu(chat_id=None):
 async def start_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     chat_id = str(update.effective_chat.id)
     models, uid = get_odoo_models()
+    odoo_db = get_odoo_db()
     if not models:
         await update.message.reply_text("Tizim bilan bog'lanishda xatolik yuz berdi. Iltimos keyinroq urinib ko'ring.")
         return ConversationHandler.END
 
     # Check if client already exists by telegram_chat_id
-    partner_ids = models.execute_kw(ODOO_DB, uid, ODOO_PASSWORD, 'res.partner', 'search', [[('telegram_chat_id', '=', chat_id)]])
+    partner_ids = models.execute_kw(odoo_db, uid, ODOO_PASSWORD, 'res.partner', 'search', [[('telegram_chat_id', '=', chat_id)]])
     
     if partner_ids:
         # Already registered
@@ -339,6 +378,7 @@ async def handle_phone(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
     name = context.user_data.get('partner_name', 'Noma\'lum')
     
     models, uid = get_odoo_models()
+    odoo_db = get_odoo_db()
     if not models:
         await update.message.reply_text("Tizim xatoligi.")
         return ConversationHandler.END
@@ -350,16 +390,16 @@ async def handle_phone(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
         search_phone = '+' + phone.lstrip('0')
         
     # Simple search (can be enhanced for format variations)
-    existing_ids = models.execute_kw(ODOO_DB, uid, ODOO_PASSWORD, 'res.partner', 'search', [[('phone', 'ilike', phone[-9:])]])
+    existing_ids = models.execute_kw(odoo_db, uid, ODOO_PASSWORD, 'res.partner', 'search', [[('phone', 'ilike', phone[-9:])]])
     
     if existing_ids:
         # Link to existing
-        models.execute_kw(ODOO_DB, uid, ODOO_PASSWORD, 'res.partner', 'write', [existing_ids[0], {
+        models.execute_kw(odoo_db, uid, ODOO_PASSWORD, 'res.partner', 'write', [existing_ids[0], {
             'telegram_chat_id': chat_id
         }])
     else:
         # Create new
-        models.execute_kw(ODOO_DB, uid, ODOO_PASSWORD, 'res.partner', 'create', [{
+        models.execute_kw(odoo_db, uid, ODOO_PASSWORD, 'res.partner', 'create', [{
             'name': name,
             'phone': phone,
             'telegram_chat_id': chat_id,
@@ -394,12 +434,13 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     data = query.data
     
     models, uid = get_odoo_models()
+    odoo_db = get_odoo_db()
     if not models:
         await query.edit_message_text("Ma'lumotlarni olishda xatolik yuz berdi.")
         return
 
     # Find the partner
-    partner_ids = models.execute_kw(ODOO_DB, uid, ODOO_PASSWORD, 'res.partner', 'search', [[('telegram_chat_id', '=', chat_id)]])
+    partner_ids = models.execute_kw(odoo_db, uid, ODOO_PASSWORD, 'res.partner', 'search', [[('telegram_chat_id', '=', chat_id)]])
     if not partner_ids:
         await query.edit_message_text("Sizning hisobingiz topilmadi. Iltimos /start ni bosing.")
         return
@@ -408,8 +449,8 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if data == 'menu_balans':
         # Refresh the compute field before reading
-        models.execute_kw(ODOO_DB, uid, ODOO_PASSWORD, 'res.partner', 'get_partner_van_debt', [partner_id])
-        partner_data = models.execute_kw(ODOO_DB, uid, ODOO_PASSWORD, 'res.partner', 'read', [[partner_id], ['x_van_total_due']])
+        models.execute_kw(odoo_db, uid, ODOO_PASSWORD, 'res.partner', 'get_partner_van_debt', [partner_id])
+        partner_data = models.execute_kw(odoo_db, uid, ODOO_PASSWORD, 'res.partner', 'read', [[partner_id], ['x_van_total_due']])
         if partner_data:
             debt = partner_data[0].get('x_van_total_due', 0.0)
             await query.edit_message_text(
@@ -420,7 +461,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             
     elif data == 'menu_tranzaksiyalar':
         # Fetch van.dashboard.detail for this partner
-        records = models.execute_kw(ODOO_DB, uid, ODOO_PASSWORD, 'van.dashboard.detail', 'search_read', [
+        records = models.execute_kw(odoo_db, uid, ODOO_PASSWORD, 'van.dashboard.detail', 'search_read', [
             [('partner_id', '=', partner_id)]
         ], {'fields': ['date', 'transaction_type', 'amount'], 'order': 'date desc', 'limit': 15})
         
@@ -439,7 +480,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     elif data == 'menu_savdo_cheklari':
         # Fetch last 5 van.pos.order list
-        orders = models.execute_kw(ODOO_DB, uid, ODOO_PASSWORD, 'van.pos.order', 'search_read', [
+        orders = models.execute_kw(odoo_db, uid, ODOO_PASSWORD, 'van.pos.order', 'search_read', [
             [('partner_id', '=', partner_id), ('state', '=', 'done')]
         ], {'fields': ['name', 'date', 'amount_total', 'line_ids'], 'order': 'date desc', 'limit': 5})
         
@@ -453,7 +494,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             msg += f"📄 <b>{o['name']}</b> | 📅 {dt}\n"
             
             # Fetch lines for this order
-            lines = models.execute_kw(ODOO_DB, uid, ODOO_PASSWORD, 'van.pos.order.line', 'read', [
+            lines = models.execute_kw(odoo_db, uid, ODOO_PASSWORD, 'van.pos.order.line', 'read', [
                 o['line_ids'], ['product_id', 'qty', 'price_unit', 'subtotal']
             ])
             
