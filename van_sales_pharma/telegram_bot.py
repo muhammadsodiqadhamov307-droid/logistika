@@ -74,6 +74,15 @@ def _normalize_config_value(value, default=''):
         return default
     return value
 
+def read_config_file_value(*keys, default=''):
+    """Read one of the given keys directly from odoo.conf [options]."""
+    config = get_odoo_config()
+    for key in keys:
+        value = _normalize_config_value(config.get(key), '')
+        if value:
+            return value
+    return default
+
 def get_db_connection():
     """Connect directly to local PostgreSQL using odoo.conf values."""
     if psycopg2 is None:
@@ -186,13 +195,17 @@ def read_config_param(models, uid, key):
     return ''
 
 def get_bot_token():
-    """Fetch the Telegram bot token with startup retries and env fallback."""
+    """Fetch the Telegram bot token with env/config/database fallbacks."""
     env_token = (
         os.environ.get('VAN_TELEGRAM_BOT_TOKEN')
         or os.environ.get('TELEGRAM_BOT_TOKEN')
     )
     if env_token:
         return env_token.strip()
+
+    config_token = read_config_file_value('van_telegram_bot_token', 'telegram_bot_token')
+    if config_token:
+        return config_token.strip()
 
     db_token = read_config_param_db('van.telegram.bot.token')
     if db_token:
@@ -203,6 +216,9 @@ def get_bot_token():
         return psql_token.strip()
 
     for attempt in range(1, 6):
+        config_token = read_config_file_value('van_telegram_bot_token', 'telegram_bot_token')
+        if config_token:
+            return config_token.strip()
         db_token = read_config_param_db('van.telegram.bot.token')
         if db_token:
             return db_token.strip()
