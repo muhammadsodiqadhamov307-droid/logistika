@@ -354,8 +354,7 @@ async def start_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
             odoo_db,
         )
         await update.message.reply_text(
-            f"Sizning Telegram Chat ID raqamingiz:\n\n<code>{chat_id}</code>\n\n"
-            "Tizimda telegram maydoni hali tayyor emas. Shu raqamni vaqtincha operatorga yuboring.",
+            f"Sizning Telegram Chat ID raqamingiz:\n\n<code>{chat_id}</code>",
             parse_mode='HTML'
         )
         return ConversationHandler.END
