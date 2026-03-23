@@ -328,13 +328,6 @@ def build_main_menu(chat_id=None):
         [InlineKeyboardButton("📋 Barcha tranzaksiyalar", callback_data='menu_tranzaksiyalar')],
         [InlineKeyboardButton("🧾 Savdo cheklari (Batafsil)", callback_data='menu_savdo_cheklari')]
     ]
-    
-    # Append the Zakaz Berish button to the top if chat_id is provided
-    if chat_id:
-        req_button = get_web_app_button(chat_id)
-        if req_button:
-            keyboard.insert(0, [req_button])
-            
     return InlineKeyboardMarkup(keyboard)
 
 # --- START / MENU ---

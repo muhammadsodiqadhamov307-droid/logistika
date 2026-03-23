@@ -506,9 +506,6 @@
                                             <t t-else="">Saqlash</t>
                                         </button>
                                     </div>
-                                    <div style="margin-top: 8px; font-size: 12px; color: #64748b;">
-                                        Agar chat ID hali biriktirilmagan bo'lsa, foydalanuvchi Telegram botda <b>/start</b> bosadi va bot uning chat ID sini yuboradi.
-                                    </div>
                                 </div>
                             </t>
                         </div>
