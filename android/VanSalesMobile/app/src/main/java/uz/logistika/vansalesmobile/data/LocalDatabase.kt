@@ -302,6 +302,15 @@ class LocalDatabase(context: Context) : SQLiteOpenHelper(context, DB_NAME, null,
         }
     }
 
+    fun agent(): JSONObject? {
+        readableDatabase.rawQuery(
+            "SELECT raw_json FROM agent ORDER BY updated_at DESC LIMIT 1",
+            emptyArray()
+        ).use { cursor ->
+            return if (cursor.moveToFirst()) JSONObject(cursor.getString(0)) else null
+        }
+    }
+
     fun reduceInventory(productId: Long, qty: Double) {
         writableDatabase.use { db ->
             db.beginTransaction()

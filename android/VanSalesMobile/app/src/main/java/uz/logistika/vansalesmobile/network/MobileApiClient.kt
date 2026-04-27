@@ -10,7 +10,8 @@ import java.net.URLEncoder
 
 class MobileApiClient(
     private val baseUrl: String,
-    private val database: String = ""
+    private val database: String = "",
+    private val actingAgentId: Long = 0L
 ) {
     fun login(database: String, login: String, password: String): JSONObject {
         return call(
@@ -172,6 +173,12 @@ class MobileApiClient(
             doOutput = true
             setRequestProperty("Content-Type", "application/json")
             setRequestProperty("Accept", "application/json")
+            if (database.isNotBlank()) {
+                setRequestProperty("X-Odoo-Database", database)
+            }
+            if (actingAgentId > 0L) {
+                setRequestProperty("X-Acting-Agent-Id", actingAgentId.toString())
+            }
             if (!token.isNullOrBlank()) {
                 setRequestProperty("Authorization", "Bearer $token")
             }
@@ -190,7 +197,11 @@ class MobileApiClient(
         val responseCode = connection.responseCode
         val stream = if (responseCode in 200..299) connection.inputStream else connection.errorStream
         val responseText = BufferedReader(stream.reader(Charsets.UTF_8)).use { it.readText() }
-        val envelope = JSONObject(responseText)
+        val trimmed = responseText.trim()
+        if (!trimmed.startsWith("{")) {
+            throw IllegalStateException(parseNonJsonError(responseCode, trimmed))
+        }
+        val envelope = JSONObject(trimmed)
 
         if (envelope.has("error")) {
             throw IllegalStateException(envelope.getJSONObject("error").toString())
@@ -204,5 +215,25 @@ class MobileApiClient(
         }
 
         return result
+    }
+
+    private fun parseNonJsonError(responseCode: Int, responseText: String): String {
+        val compact = responseText
+            .replace(Regex("<[^>]+>"), " ")
+            .replace(Regex("\\s+"), " ")
+            .trim()
+
+        return when {
+            compact.contains("No database is selected", ignoreCase = true) ->
+                "Database tanlanmadi. URL, database nomi va server sozlamalarini tekshiring."
+            compact.contains("404 Not Found", ignoreCase = true) ->
+                "Mobile API topilmadi. Server URL noto'g'ri bo'lishi mumkin."
+            compact.contains("Internal Server Error", ignoreCase = true) ->
+                "Server ichki xatolik qaytardi. Odoo logini tekshirish kerak."
+            compact.isNotBlank() ->
+                "Server xatosi ($responseCode): $compact"
+            else ->
+                "Server xatosi ($responseCode)"
+        }
     }
 }

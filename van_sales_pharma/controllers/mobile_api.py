@@ -2,12 +2,26 @@ from odoo import http, fields
 from odoo.http import request
 import datetime
 import logging
+import base64
 
 _logger = logging.getLogger(__name__)
 
 
 class VanMobileApiController(http.Controller):
     """Token-based API for the native offline-first Android client."""
+
+    def _mobile_base_url(self):
+        base_url = request.env['ir.config_parameter'].sudo().get_param('web.base.url', '')
+        if not base_url.startswith('http'):
+            base_url = "https://" + base_url.lstrip('/')
+        elif base_url.startswith('http://') and not ('localhost' in base_url or '127.0.0.1' in base_url):
+            base_url = base_url.replace('http://', 'https://')
+        return base_url.rstrip('/')
+
+    def _product_image_url(self, product):
+        if not product or not product.image_1920:
+            return ''
+        return f"{self._mobile_base_url()}/van/mobile/api/product-image/{product.id}"
 
     def _mobile_partner_balance(self, partner):
         if not partner:
@@ -56,12 +70,50 @@ class VanMobileApiController(http.Controller):
             return None, {'success': False, 'error': 'User is not allowed to use Mobile POS'}
         return user, None
 
-    def _client_report_payload(self, user, partner=None):
+    def _is_mobile_admin(self, user):
+        return bool(
+            user.has_group('van_sales_pharma.group_van_admin')
+            or user.has_group('base.group_system')
+        )
+
+    def _mobile_agent_candidates(self):
+        agent_group = request.env.ref('van_sales_pharma.group_van_agent')
+        request.env.cr.execute("SELECT uid FROM res_groups_users_rel WHERE gid = %s", (agent_group.id,))
+        user_ids = [row[0] for row in request.env.cr.fetchall()]
+        return request.env['res.users'].sudo().browse(user_ids).sorted(lambda u: (u.name or '').lower())
+
+    def _acting_agent_for_user(self, user, requested_agent_id=None):
+        if not self._is_mobile_admin(user):
+            return user
+
+        candidate_agents = self._mobile_agent_candidates()
+        candidate_ids = set(candidate_agents.ids)
+
+        header_value = requested_agent_id
+        if header_value in (None, '', False):
+            header_value = request.httprequest.headers.get('X-Acting-Agent-Id')
+        try:
+            selected_id = int(header_value or 0)
+        except (TypeError, ValueError):
+            selected_id = 0
+
+        if selected_id and selected_id in candidate_ids:
+            acting_agent = request.env['res.users'].sudo().browse(selected_id)
+            if acting_agent.exists():
+                return acting_agent
+
+        if user.id in candidate_ids:
+            return user
+
+        return candidate_agents[:1] if candidate_agents else user
+
+    def _client_report_payload(self, user, partner=None, acting_agent=None):
         """Build the same client ledger used by the web Mobile POS report."""
         import pytz
 
         user_tz = pytz.timezone(user.tz or 'Asia/Tashkent')
-        agent_id = user.id
+        acting_agent = acting_agent or self._acting_agent_for_user(user)
+        agent_id = acting_agent.id
         is_cash_sale = not partner
         client_name = "Naqt savdo (Mijozisiz)" if is_cash_sale else partner.name
         total_due = 0.0 if is_cash_sale else self._mobile_partner_balance(partner)['total_due']
@@ -160,14 +212,17 @@ class VanMobileApiController(http.Controller):
             'transactions': transactions,
         }
 
-    def _payment_history_payload(self, user, payment_type='out'):
+    def _payment_history_payload(self, user, payment_type=None, acting_agent=None):
         import pytz
 
         user_tz = pytz.timezone(user.tz or 'Asia/Tashkent')
-        payments = request.env['van.payment'].sudo().search([
-            ('agent_id', '=', user.id),
-            ('payment_type', '=', payment_type),
-        ], order='date desc')
+        acting_agent = acting_agent or self._acting_agent_for_user(user)
+        domain = [
+            ('agent_id', '=', acting_agent.id),
+        ]
+        if payment_type:
+            domain.append(('payment_type', '=', payment_type))
+        payments = request.env['van.payment'].sudo().search(domain, order='date desc')
         result = []
         for payment in payments:
             local_date_str = ''
@@ -195,13 +250,14 @@ class VanMobileApiController(http.Controller):
     def _bootstrap_payload(self, user):
         import pytz
 
-        agent_id = user.id
+        acting_agent = self._acting_agent_for_user(user)
+        agent_id = acting_agent.id
         user_tz = pytz.timezone(user.tz or 'Asia/Tashkent')
         summary = request.env['van.agent.summary'].sudo().search([('agent_id', '=', agent_id)], limit=1)
         if not summary:
             summary = request.env['van.agent.summary'].sudo().create({'agent_id': agent_id})
 
-        partners = user.sudo().mijoz_ids
+        partners = acting_agent.sudo().mijoz_ids
         hidden_partners = partners.filtered(lambda p: not p.x_is_van_customer or p.customer_rank < 1)
         if hidden_partners:
             hidden_partners.write({'x_is_van_customer': True, 'customer_rank': 1})
@@ -252,10 +308,10 @@ class VanMobileApiController(http.Controller):
                 'last_transaction_date': last_tx_str,
                 'sort_order': index,
             })
-        client_reports = [self._client_report_payload(user)]
+        client_reports = [self._client_report_payload(user, acting_agent=acting_agent)]
         for partner in partners:
-            client_reports.append(self._client_report_payload(user, partner))
-        payments = self._payment_history_payload(user, 'out')
+            client_reports.append(self._client_report_payload(user, partner, acting_agent=acting_agent))
+        payments = self._payment_history_payload(user, acting_agent=acting_agent)
 
         inventory = []
         for index, line in enumerate(summary.active_inventory_line_ids):
@@ -264,7 +320,7 @@ class VanMobileApiController(http.Controller):
                 'name': line.product_id.display_name,
                 'price': line.price_unit,
                 'remaining': line.remaining_qty,
-                'image_url': f'/web/image?model=van.product&id={line.product_id.id}&field=image_1920',
+                'image_url': self._product_image_url(line.product_id),
                 'sort_order': index,
                 'sold_qty': line.sold_qty,
             })
@@ -277,7 +333,7 @@ class VanMobileApiController(http.Controller):
                 'price': product.list_price,
                 'sale_price': product.list_price,
                 'cost_price': product.cost_price,
-                'image_url': f'/web/image?model=van.product&id={product.id}&field=image_1920',
+                'image_url': self._product_image_url(product),
             })
 
         taminotchis = [{
@@ -300,7 +356,7 @@ class VanMobileApiController(http.Controller):
                     'qty': line.qty,
                     'price': price,
                     'subtotal': subtotal,
-                    'image_url': f'/web/image?model=van.product&id={line.product_id.id}&field=image_1920',
+                    'image_url': self._product_image_url(line.product_id),
                 })
             local_date_str = ''
             if req.date:
@@ -337,27 +393,38 @@ class VanMobileApiController(http.Controller):
                     'qty': line.loaded_qty,
                     'price': line.price_unit,
                     'subtotal': line.loaded_qty * line.product_id.cost_price,
-                    'image_url': f'/web/image?model=van.product&id={line.product_id.id}&field=image_1920',
+                    'image_url': self._product_image_url(line.product_id),
                 } for line in trip.trip_line_ids],
             })
+
+        available_agents = []
+        if self._is_mobile_admin(user):
+            for agent in self._mobile_agent_candidates():
+                available_agents.append({
+                    'id': agent.id,
+                    'name': agent.name,
+                    'image_url': f'/web/image?model=res.users&id={agent.id}&field=avatar_128',
+                })
 
         return {
             'success': True,
             'server_time': fields.Datetime.to_string(fields.Datetime.now()),
             'agent': {
-                'id': user.id,
+                'auth_user_id': user.id,
+                'auth_user_name': user.name,
+                'id': acting_agent.id,
                 'summary_id': summary.id,
-                'name': user.name,
-                'phone': user.phone or user.x_phone or '',
-                'oylik_balansi': user.oylik_balansi,
-                'komissiya_foizi': user.komissiya_foizi or 0.0,
-                'is_admin': bool(
-                    user.has_group('van_sales_pharma.group_van_admin')
-                    or user.has_group('base.group_system')
-                ),
-                'default_taminotchi_id': user.default_taminotchi_id.id if user.default_taminotchi_id else False,
-                'default_taminotchi_name': user.default_taminotchi_id.name if user.default_taminotchi_id else '',
-                'image_url': f'/web/image?model=res.users&id={user.id}&field=avatar_128',
+                'name': acting_agent.name,
+                'acting_agent_id': acting_agent.id,
+                'acting_agent_name': acting_agent.name,
+                'phone': acting_agent.phone or acting_agent.x_phone or '',
+                'oylik_balansi': acting_agent.oylik_balansi,
+                'komissiya_foizi': acting_agent.komissiya_foizi or 0.0,
+                'is_admin': self._is_mobile_admin(user),
+                'default_taminotchi_id': acting_agent.default_taminotchi_id.id if acting_agent.default_taminotchi_id else False,
+                'default_taminotchi_name': acting_agent.default_taminotchi_id.name if acting_agent.default_taminotchi_id else '',
+                'image_url': f'/web/image?model=res.users&id={acting_agent.id}&field=avatar_128',
+                'available_agents': available_agents,
             },
             'clients': clients,
             'client_reports': client_reports,
@@ -375,14 +442,37 @@ class VanMobileApiController(http.Controller):
         if error:
             return error
         try:
-            summary = request.env['van.agent.summary'].sudo().search([('agent_id', '=', user.id)], limit=1)
+            acting_agent = self._acting_agent_for_user(user)
+            summary = request.env['van.agent.summary'].sudo().search([('agent_id', '=', acting_agent.id)], limit=1)
             if not summary:
-                summary = request.env['van.agent.summary'].sudo().create({'agent_id': user.id})
+                summary = request.env['van.agent.summary'].sudo().create({'agent_id': acting_agent.id})
             summary.sudo().action_rebuild_inventory()
             return {'success': True, 'bootstrap': self._bootstrap_payload(user)}
         except Exception as e:
             _logger.exception("mobile_rebuild_inventory failed")
             return {'success': False, 'error': str(e)}
+
+    @http.route('/van/mobile/api/product-image/<int:product_id>', type='http', auth='public', csrf=False, cors='*')
+    def mobile_product_image(self, product_id, **kwargs):
+        user, error = self._ensure_mobile_user()
+        if error:
+            return request.make_response(b'', [('Content-Type', 'image/jpeg')], status=401)
+        product = request.env['van.product'].sudo().browse(product_id)
+        if not product.exists() or not product.image_1920:
+            return request.not_found()
+        raw_value = product.image_1920
+        if isinstance(raw_value, str):
+            raw_value = raw_value.encode()
+        try:
+            image_bytes = base64.b64decode(raw_value)
+        except Exception:
+            image_bytes = raw_value if isinstance(raw_value, (bytes, bytearray)) else bytes(raw_value or b'')
+        headers = [
+            ('Content-Type', 'image/jpeg'),
+            ('Content-Length', str(len(image_bytes))),
+            ('Cache-Control', 'public, max-age=86400'),
+        ]
+        return request.make_response(image_bytes, headers)
 
     @http.route('/van/mobile/api/login', type='jsonrpc', auth='public', csrf=False)
     def mobile_login(self, db=None, login=None, password=None):
@@ -452,11 +542,12 @@ class VanMobileApiController(http.Controller):
         if error:
             return error
         try:
+            acting_agent = self._acting_agent_for_user(user)
             client_id = int(client_id or 0)
             if not client_id:
                 return {'success': False, 'error': "Naqt savdo uchun Telegram Chat ID saqlanmaydi"}
             partner = request.env['res.partner'].sudo().browse(client_id)
-            if not partner.exists() or partner not in user.sudo().mijoz_ids:
+            if not partner.exists() or partner not in acting_agent.sudo().mijoz_ids:
                 return {'success': False, 'error': 'Mijoz topilmadi'}
             chat_id = (telegram_chat_id or '').strip()
             partner.sudo().write({'telegram_chat_id': chat_id})
@@ -471,6 +562,7 @@ class VanMobileApiController(http.Controller):
         if error:
             return error
         try:
+            acting_agent = self._acting_agent_for_user(user)
             name = (name or '').strip()
             phone = (phone or '').strip()
             telegram_chat_id = (telegram_chat_id or '').strip()
@@ -489,8 +581,8 @@ class VanMobileApiController(http.Controller):
                 'phone': phone,
                 'telegram_chat_id': telegram_chat_id,
                 'x_is_van_customer': True,
-                'van_agent_id': user.id,
-                'user_id': user.id,
+                'van_agent_id': acting_agent.id,
+                'user_id': acting_agent.id,
             })
             return {
                 'success': True,
@@ -508,6 +600,7 @@ class VanMobileApiController(http.Controller):
         if error:
             return error
         try:
+            acting_agent = self._acting_agent_for_user(user)
             partner = request.env['res.partner'].sudo().browse(int(partner_id or 0))
             if not partner.exists():
                 return {'success': False, 'error': "Mijoz tanlanmagan."}
@@ -533,7 +626,7 @@ class VanMobileApiController(http.Controller):
                 return {'success': False, 'error': "Iltimos mahsulot tanlang yoki izoh kiriting."}
 
             new_request = request.env['van.request'].sudo().create({
-                'agent_id': user.id,
+                'agent_id': acting_agent.id,
                 'partner_id': partner.id,
                 'notes': (notes or '').strip(),
                 'line_ids': prepared_lines,
@@ -553,8 +646,9 @@ class VanMobileApiController(http.Controller):
         if error:
             return error
         try:
+            acting_agent = self._acting_agent_for_user(user)
             req = request.env['van.request'].sudo().browse(int(request_id or 0))
-            if not req.exists() or req.agent_id.id != user.id:
+            if not req.exists() or req.agent_id.id != acting_agent.id:
                 return {'success': False, 'error': "So'rov topilmadi."}
             if state not in ('draft', 'done', 'cancel'):
                 return {'success': False, 'error': "Noto'g'ri holat."}
@@ -573,8 +667,9 @@ class VanMobileApiController(http.Controller):
         if error:
             return error
         try:
+            acting_agent = self._acting_agent_for_user(user)
             req = request.env['van.request'].sudo().browse(int(request_id or 0))
-            if not req.exists() or req.agent_id.id != user.id:
+            if not req.exists() or req.agent_id.id != acting_agent.id:
                 return {'success': False, 'error': "So'rov topilmadi."}
             if req.state != 'draft':
                 return {'success': False, 'error': "Faqat kutilayotgan so'rovlarni o'zgartirish mumkin."}
@@ -606,6 +701,7 @@ class VanMobileApiController(http.Controller):
         if error:
             return error
         try:
+            acting_agent = self._acting_agent_for_user(user)
             trip_lines = lines or []
             if not isinstance(trip_lines, list):
                 return {'success': False, 'error': "Mahsulotlar ro'yxati noto'g'ri"}
@@ -622,7 +718,7 @@ class VanMobileApiController(http.Controller):
             if taminotchi_id:
                 taminotchi = request.env['van.taminotchi'].sudo().browse(int(taminotchi_id))
             else:
-                taminotchi = user.default_taminotchi_id
+                taminotchi = acting_agent.default_taminotchi_id
 
             if not taminotchi or not taminotchi.exists():
                 return {'success': False, 'error': "Sizga taminotchi biriktirilmagan. Iltimos, administratorga murojaat qiling."}
@@ -656,7 +752,7 @@ class VanMobileApiController(http.Controller):
 
             trip_vals = {
                 'taminotchi_id': taminotchi.id,
-                'agent_id': user.id,
+                'agent_id': acting_agent.id,
                 'location_id': location.id,
                 'date': trip_date,
                 'note': (note or '').strip(),
@@ -860,6 +956,7 @@ class VanMobileApiController(http.Controller):
 
             try:
                 if tx_type == 'sale':
+                    sync_agent = self._acting_agent_for_user(user, data.get('acting_agent_id'))
                     existing = env['van.pos.order'].sudo().search([('offline_id', '=', offline_id)], limit=1)
                     if existing:
                         synced.append(offline_id)
@@ -872,7 +969,7 @@ class VanMobileApiController(http.Controller):
                         partner_id = False
                     vals = {
                         'partner_id': partner_id,
-                        'agent_id': user.id,
+                        'agent_id': sync_agent.id,
                         'offline_id': offline_id,
                         'line_ids': [(0, 0, {
                             'product_id': line['product_id'],
@@ -893,6 +990,7 @@ class VanMobileApiController(http.Controller):
                             })
                     synced.append(offline_id)
                 elif tx_type in ('kirim', 'chiqim'):
+                    sync_agent = self._acting_agent_for_user(user, data.get('acting_agent_id'))
                     existing = env['van.payment'].sudo().search([('offline_id', '=', offline_id)], limit=1)
                     if existing:
                         synced.append(offline_id)
@@ -903,7 +1001,7 @@ class VanMobileApiController(http.Controller):
                         partner_id = False
                     vals = {
                         'payment_type': payment_type,
-                        'agent_id': user.id,
+                        'agent_id': sync_agent.id,
                         'offline_id': offline_id,
                         'amount': float(data.get('amount') or 0),
                         'note': data.get('note') or '',

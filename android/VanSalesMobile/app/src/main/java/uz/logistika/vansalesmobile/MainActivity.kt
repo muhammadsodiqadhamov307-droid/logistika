@@ -3,6 +3,8 @@ package uz.logistika.vansalesmobile
 import android.app.Activity
 import android.app.AlertDialog
 import android.app.DatePickerDialog
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.net.ConnectivityManager
 import android.net.Network
 import android.graphics.Color
@@ -12,12 +14,16 @@ import android.os.Bundle
 import android.text.Editable
 import android.text.InputType
 import android.text.TextWatcher
+import android.util.Log
+import android.util.LruCache
 import android.view.Gravity
 import android.view.View
 import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.EditText
+import android.widget.FrameLayout
 import android.widget.GridLayout
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.PopupWindow
 import android.widget.ScrollView
@@ -28,13 +34,20 @@ import org.json.JSONObject
 import uz.logistika.vansalesmobile.data.LocalDatabase
 import uz.logistika.vansalesmobile.data.SessionStore
 import uz.logistika.vansalesmobile.sync.SyncRepository
+import java.io.File
+import java.security.MessageDigest
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 import java.util.UUID
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.Executors
 
 class MainActivity : Activity() {
+    companion object {
+        private const val TAG = "VanSalesMobile"
+    }
     private enum class ScreenState {
         LOGIN,
         POS,
@@ -64,7 +77,9 @@ class MainActivity : Activity() {
     private var clientSearchQuery: String = ""
     private var currentScreenState: ScreenState = ScreenState.LOGIN
     private var refreshInFlight = false
+    private var syncInFlight = false
     private var lastAutoRefreshAt = 0L
+    private var serverOnline = false
     private var editingReportTxnKey: String? = null
     private var editKirimAmountText = ""
     private var reportDateFrom: String = ""
@@ -77,6 +92,8 @@ class MainActivity : Activity() {
     private var agentReportTab: String = "sales"
     private var agentReportScrollY: Int = 0
     private var clientReportScrollY: Int = 0
+    private var clientSelectionScrollY: Int = 0
+    private var clientSelectionVisibleCount: Int = 12
     private var networkCallback: ConnectivityManager.NetworkCallback? = null
     private var activeTripId: Long = 0L
     private var tripDate: String = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
@@ -101,6 +118,10 @@ class MainActivity : Activity() {
     private val expandedReportTxnKeys = mutableSetOf<String>()
     private val editSaleQty = mutableMapOf<Long, Double>()
     private val editSalePrice = mutableMapOf<Long, Double>()
+    private val imageCache = object : LruCache<String, Bitmap>(48) {}
+    private val imageLoader = Executors.newFixedThreadPool(4)
+    private val imageRequestsInFlight = ConcurrentHashMap.newKeySet<String>()
+    private var onlineBadgeView: TextView? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -129,13 +150,14 @@ class MainActivity : Activity() {
 
     override fun onResume() {
         super.onResume()
-        if (::session.isInitialized && session.token.isNotBlank()) {
+        if (::session.isInitialized && session.token.isNotBlank() && currentScreenState == ScreenState.POS) {
             refreshOfflineData()
         }
     }
 
     override fun onDestroy() {
         unregisterNetworkCallback()
+        imageLoader.shutdownNow()
         db.close()
         super.onDestroy()
     }
@@ -147,7 +169,7 @@ class MainActivity : Activity() {
             ScreenState.POS -> moveTaskToBack(true)
             ScreenState.MENU -> renderPos()
             ScreenState.CLIENT_SELECTION -> renderPos()
-            ScreenState.CLIENT_REPORT -> renderClientSelection()
+            ScreenState.CLIENT_REPORT -> renderClientSelection(preserveState = true)
             ScreenState.AGENT_REPORT -> renderPos()
             ScreenState.REQUEST_LIST -> renderPos()
             ScreenState.REQUEST_FORM -> renderRequestsList()
@@ -178,13 +200,23 @@ class MainActivity : Activity() {
             addView(loginInput)
             addView(passwordInput)
             addView(button("Enter Mobile POS") {
+                val normalizedUrl = normalizeServerUrl(baseUrlInput.text.toString())
+                val database = databaseInput.text.toString().trim()
+                val login = loginInput.text.toString().trim()
+                val password = passwordInput.text.toString()
+                baseUrlInput.setText(normalizedUrl)
+                if (normalizedUrl.isBlank() || database.isBlank() || login.isBlank() || password.isBlank()) {
+                    status.text = "URL, database, login va password maydonlarini to'ldiring."
+                    return@button
+                }
                 runNetwork("Logging in and downloading offline data...") {
                     repository.login(
-                        baseUrlInput.text.toString(),
-                        databaseInput.text.toString(),
-                        loginInput.text.toString(),
-                        passwordInput.text.toString()
+                        normalizedUrl,
+                        database,
+                        login,
+                        password
                     )
+                    setServerOnlineState(true)
                     runOnUiThread { renderPos() }
                     "Mobile POS ready"
                 }
@@ -195,13 +227,31 @@ class MainActivity : Activity() {
         setContentView(ScrollView(this).apply { addView(root) })
     }
 
+    private fun normalizeServerUrl(rawValue: String): String {
+        var normalized = rawValue.trim()
+        if (normalized.isBlank()) {
+            return ""
+        }
+        if (!normalized.startsWith("http://", ignoreCase = true)
+            && !normalized.startsWith("https://", ignoreCase = true)
+        ) {
+            normalized = "https://$normalized"
+        }
+        normalized = normalized.trimEnd('/')
+        val lower = normalized.lowercase(Locale.US)
+        return when {
+            lower.endsWith("/web/login") -> normalized.dropLast("/web/login".length)
+            lower.endsWith("/web") -> normalized.dropLast("/web".length)
+            lower.endsWith("/odoo") -> normalized.dropLast("/odoo".length)
+            else -> normalized
+        }.trimEnd('/')
+    }
+
     private fun renderPos() {
         rememberNavigation(ScreenState.POS)
         val clients = db.rows("clients", "is_cash_sale DESC, name ASC")
         val inventory = db.rows("inventory", "name ASC")
-        if (session.token.isNotBlank()) {
-            refreshOfflineData()
-        }
+        val agent = db.agent()
         val page = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setBackgroundColor(color("#f1f3f6"))
@@ -225,37 +275,15 @@ class MainActivity : Activity() {
             selectedClientName = "Naqt savdo"
         }
         status = text("", 12).apply { setTextColor(color("#64748b")) }
-        page.addView(posNavbar("POS", clientItems))
-        root.addView(searchBox())
+        page.addView(posNavbar("POS", clientItems, agent))
+        val inventoryContainer = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        root.addView(searchBox(productSearchQuery) { next ->
+            productSearchQuery = next
+            renderPosInventory(inventoryContainer, inventory)
+        })
         root.addView(status)
-
-        if (inventory.length() == 0) {
-            root.addView(emptyCard("Hozircha mahsulot topilmadi. Internet bo'lganda yangilang."))
-        } else {
-            val grid = GridLayout(this).apply {
-                columnCount = 2
-                useDefaultMargins = false
-                layoutParams = LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.MATCH_PARENT,
-                    LinearLayout.LayoutParams.WRAP_CONTENT
-                )
-            }
-            for (i in 0 until inventory.length()) {
-                val product = inventory.getJSONObject(i)
-                if (productSearchQuery.isNotBlank() && !product.optString("name").contains(productSearchQuery, ignoreCase = true)) {
-                    continue
-                }
-                grid.addView(productCard(product) {
-                    addProduct(product)
-                    renderPos()
-                })
-            }
-            if (grid.childCount == 0) {
-                root.addView(emptyCard("Qidiruv bo'yicha mahsulot topilmadi."))
-            } else {
-                root.addView(grid)
-            }
-        }
+        root.addView(inventoryContainer)
+        renderPosInventory(inventoryContainer, inventory)
 
         page.addView(ScrollView(this).apply { addView(root) }, LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT,
@@ -266,6 +294,37 @@ class MainActivity : Activity() {
             page.addView(bottomCartBar())
         }
         setContentView(page)
+    }
+
+    private fun renderPosInventory(container: LinearLayout, inventory: JSONArray) {
+        container.removeAllViews()
+        if (inventory.length() == 0) {
+            container.addView(emptyCard("Hozircha mahsulot topilmadi. Internet bo'lganda yangilang."))
+            return
+        }
+        val grid = GridLayout(this).apply {
+            columnCount = 2
+            useDefaultMargins = false
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+        }
+        for (i in 0 until inventory.length()) {
+            val product = inventory.getJSONObject(i)
+            if (productSearchQuery.isNotBlank() && !product.optString("name").contains(productSearchQuery, ignoreCase = true)) {
+                continue
+            }
+            grid.addView(productCard(product) {
+                addProduct(product)
+                renderPos()
+            })
+        }
+        if (grid.childCount == 0) {
+            container.addView(emptyCard("Qidiruv bo'yicha mahsulot topilmadi."))
+        } else {
+            container.addView(grid)
+        }
     }
 
     private fun renderPayment(type: String) {
@@ -307,6 +366,7 @@ class MainActivity : Activity() {
                     .put("amount", amount)
                     .put("note", noteInput.text.toString())
                     .put("payment_method", "cash")
+                    .put("acting_agent_id", currentActingAgentId())
                 if (type == "kirim") {
                     payload.put("partner_id", selected?.id ?: false)
                 } else {
@@ -1989,7 +2049,9 @@ class MainActivity : Activity() {
         rememberNavigation(ScreenState.KIRIM_HISTORY)
         val page = screenPage("Kirimlar Tarixi")
         val body = page.findViewWithTag<LinearLayout>("body")
-        val items = loadKirimHistory()
+        val content = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+        }
 
         body.addView(row {
             addView(View(this@MainActivity).apply {
@@ -1999,38 +2061,56 @@ class MainActivity : Activity() {
                 layoutParams = LinearLayout.LayoutParams(dp(86), dp(42))
             })
         })
-
-        if (items.isEmpty()) {
-            body.addView(emptyCard("Tarix bo'sh. Hech qanday ma'lumot topilmadi."))
-        } else {
-            items.forEach { item ->
-                body.addView(kirimHistoryCard(item))
-            }
-        }
-
+        body.addView(content)
         setContentView(page)
+        renderKirimHistoryContent(content, null)
+
+        Thread {
+            val items = loadKirimHistory()
+            runOnUiThread {
+                if (currentScreenState == ScreenState.KIRIM_HISTORY) {
+                    renderKirimHistoryContent(content, items)
+                }
+            }
+        }.start()
     }
 
     private fun loadKirimHistory(): List<KirimHistoryItem> {
-        val reports = db.rows("client_reports", "updated_at DESC")
         val result = mutableListOf<KirimHistoryItem>()
-        for (i in 0 until reports.length()) {
-            val report = reports.getJSONObject(i)
-            val clientId = report.optLong("client_id")
-            val clientName = report.optString("client_name").ifBlank { "Turli Tushum" }
-            val txs = report.optJSONArray("transactions") ?: JSONArray()
-            for (j in 0 until txs.length()) {
-                val tx = txs.getJSONObject(j)
-                if (tx.optString("turi") != "kirim") continue
-                result += KirimHistoryItem(
-                    id = tx.optLong("id"),
-                    clientId = clientId,
-                    clientName = clientName,
-                    dateLabel = tx.optString("date_label"),
-                    amount = tx.optDouble("summa"),
-                    balance = tx.optDouble("balance"),
-                    sortTime = parseTransactionDate(tx.optString("date_label"))?.time ?: 0L,
-                )
+        val paymentRows = db.rows("payments", "updated_at DESC")
+        for (i in 0 until paymentRows.length()) {
+            val payment = paymentRows.getJSONObject(i)
+            if (payment.optString("payment_type") != "in") continue
+            result += KirimHistoryItem(
+                id = payment.optLong("id"),
+                clientId = payment.optLong("partner_id"),
+                clientName = payment.optString("partner_name").ifBlank { "Turli Tushum" },
+                dateLabel = payment.optString("date"),
+                amount = payment.optDouble("amount"),
+                balance = 0.0,
+                sortTime = parseTransactionDate(payment.optString("date"))?.time ?: 0L,
+            )
+        }
+        if (result.isEmpty()) {
+            val reports = db.rows("client_reports", "updated_at DESC")
+            for (i in 0 until reports.length()) {
+                val report = reports.getJSONObject(i)
+                val clientId = report.optLong("client_id")
+                val clientName = report.optString("client_name").ifBlank { "Turli Tushum" }
+                val txs = report.optJSONArray("transactions") ?: JSONArray()
+                for (j in 0 until txs.length()) {
+                    val tx = txs.getJSONObject(j)
+                    if (tx.optString("turi") != "kirim") continue
+                    result += KirimHistoryItem(
+                        id = tx.optLong("id"),
+                        clientId = clientId,
+                        clientName = clientName,
+                        dateLabel = tx.optString("date_label"),
+                        amount = tx.optDouble("summa"),
+                        balance = tx.optDouble("balance"),
+                        sortTime = parseTransactionDate(tx.optString("date_label"))?.time ?: 0L,
+                    )
+                }
             }
         }
         val pending = db.pendingTransactions()
@@ -2056,6 +2136,17 @@ class MainActivity : Activity() {
             )
         }
         return result.sortedByDescending { it.sortTime }
+    }
+
+    private fun renderKirimHistoryContent(content: LinearLayout, items: List<KirimHistoryItem>?) {
+        content.removeAllViews()
+        when {
+            items == null -> content.addView(loadingCard("Kirimlar yuklanmoqda..."))
+            items.isEmpty() -> content.addView(emptyCard("Tarix bo'sh. Hech qanday ma'lumot topilmadi."))
+            else -> appendHistoryCardsIncrementally(content, items, ScreenState.KIRIM_HISTORY, initialVisible = 24) { item ->
+                kirimHistoryCard(item)
+            }
+        }
     }
 
     private fun kirimHistoryCard(item: KirimHistoryItem): LinearLayout {
@@ -2291,6 +2382,7 @@ class MainActivity : Activity() {
                     .put("note", noteInput.text.toString().trim())
                     .put("payment_method", "cash")
                     .put("partner_id", if (clientId == 0L) false else clientId)
+                    .put("acting_agent_id", currentActingAgentId())
                 db.enqueueTransaction("kirim", UUID.randomUUID().toString(), payload)
                 dialog.dismiss()
                 syncPendingInBackground(refreshPosAfterSync = false)
@@ -2388,7 +2480,9 @@ class MainActivity : Activity() {
         rememberNavigation(ScreenState.CHIQIM_HISTORY)
         val page = screenPage("Chiqimlar Tarixi")
         val body = page.findViewWithTag<LinearLayout>("body")
-        val items = loadChiqimHistory()
+        val content = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+        }
 
         body.addView(row {
             addView(View(this@MainActivity).apply {
@@ -2398,16 +2492,18 @@ class MainActivity : Activity() {
                 layoutParams = LinearLayout.LayoutParams(dp(86), dp(42))
             })
         })
-
-        if (items.isEmpty()) {
-            body.addView(emptyCard("Tarix bo'sh. Hech qanday ma'lumot topilmadi."))
-        } else {
-            items.forEach { item ->
-                body.addView(chiqimHistoryCard(item))
-            }
-        }
-
+        body.addView(content)
         setContentView(page)
+        renderChiqimHistoryContent(content, null)
+
+        Thread {
+            val items = loadChiqimHistory()
+            runOnUiThread {
+                if (currentScreenState == ScreenState.CHIQIM_HISTORY) {
+                    renderChiqimHistoryContent(content, items)
+                }
+            }
+        }.start()
     }
 
     private fun loadChiqimHistory(): List<ChiqimHistoryItem> {
@@ -2442,6 +2538,17 @@ class MainActivity : Activity() {
             )
         }
         return result.sortedByDescending { it.sortTime }
+    }
+
+    private fun renderChiqimHistoryContent(content: LinearLayout, items: List<ChiqimHistoryItem>?) {
+        content.removeAllViews()
+        when {
+            items == null -> content.addView(loadingCard("Chiqimlar yuklanmoqda..."))
+            items.isEmpty() -> content.addView(emptyCard("Tarix bo'sh. Hech qanday ma'lumot topilmadi."))
+            else -> appendHistoryCardsIncrementally(content, items, ScreenState.CHIQIM_HISTORY, initialVisible = 24) { item ->
+                chiqimHistoryCard(item)
+            }
+        }
     }
 
     private fun chiqimHistoryCard(item: ChiqimHistoryItem): LinearLayout {
@@ -2585,6 +2692,7 @@ class MainActivity : Activity() {
                     .put("note", noteInput.text.toString().trim())
                     .put("payment_method", "cash")
                     .put("expense_type", if (salaryRadio.isChecked) "salary" else "daily")
+                    .put("acting_agent_id", currentActingAgentId())
                 db.enqueueTransaction("chiqim", UUID.randomUUID().toString(), payload)
                 dialog.dismiss()
                 syncPendingInBackground(refreshPosAfterSync = false)
@@ -3225,6 +3333,14 @@ class MainActivity : Activity() {
         }
     }
 
+    private fun captureClientSelectionScroll() {
+        val rootView = window?.decorView?.findViewById<View>(android.R.id.content) ?: return
+        val scroll = findTaggedScrollView(rootView)
+        if (scroll != null) {
+            clientSelectionScrollY = scroll.scrollY
+        }
+    }
+
     private fun captureClientReportScroll() {
         val rootView = window?.decorView?.findViewById<View>(android.R.id.content) ?: return
         val scroll = findTaggedScrollView(rootView)
@@ -3291,6 +3407,7 @@ class MainActivity : Activity() {
         val payload = JSONObject()
             .put("partner_id", if (selectedClientId == 0L) false else selectedClientId)
             .put("lines", lines)
+            .put("acting_agent_id", currentActingAgentId())
 
         db.enqueueTransaction("sale", UUID.randomUUID().toString(), payload)
         cart.clear()
@@ -3313,8 +3430,7 @@ class MainActivity : Activity() {
             layoutParams = lp
             minimumHeight = dp(208)
 
-            addView(View(this@MainActivity).apply {
-                background = rounded("#eef2ff", dp(12))
+            addView(productImage(product.optString("image_url")).apply {
                 layoutParams = LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT,
                     dp(86)
@@ -3464,26 +3580,31 @@ class MainActivity : Activity() {
         }.start()
     }
 
-    private fun refreshOfflineData() {
+    private fun refreshOfflineData(force: Boolean = false) {
         val now = System.currentTimeMillis()
-        if (refreshInFlight || now - lastAutoRefreshAt < 3000) return
+        if (refreshInFlight || (!force && now - lastAutoRefreshAt < 3000)) return
         lastAutoRefreshAt = now
         refreshInFlight = true
+        setSyncState(true)
         Thread {
             try {
                 repository.syncPending()
                 repository.bootstrap()
                 runOnUiThread {
-                    if (cart.isEmpty()) {
+                    setServerOnlineState(true)
+                    if (cart.isEmpty() && currentScreenState !in setOf(ScreenState.KIRIM_HISTORY, ScreenState.CHIQIM_HISTORY)) {
                         rerenderCurrentScreen()
                     } else if (::status.isInitialized) {
                         status.text = "Server data refreshed. Cart is kept offline."
                     }
                 }
-            } catch (_: Exception) {
+            } catch (e: Exception) {
+                Log.e(TAG, "refreshOfflineData failed", e)
+                runOnUiThread { setServerOnlineState(false) }
                 // Offline-first: keep showing cached data if the server is unavailable.
             } finally {
                 refreshInFlight = false
+                runOnUiThread { setSyncState(false) }
             }
         }.start()
     }
@@ -3494,8 +3615,12 @@ class MainActivity : Activity() {
         val callback = object : ConnectivityManager.NetworkCallback() {
             override fun onAvailable(network: Network) {
                 if (::session.isInitialized && session.token.isNotBlank()) {
-                    runOnUiThread { refreshOfflineData() }
+                    runOnUiThread { refreshOfflineData(true) }
                 }
+            }
+
+            override fun onLost(network: Network) {
+                runOnUiThread { setServerOnlineState(false) }
             }
         }
         networkCallback = callback
@@ -3547,6 +3672,7 @@ class MainActivity : Activity() {
             ScreenState.CLIENT_REPORT -> {
                 val client = db.client(activeReportClientId)
                 if (client != null && activeReportClientId != 0L) {
+                    captureClientSelectionScroll()
                     renderClientReport(client)
                 } else {
                     renderClientSelection()
@@ -3573,7 +3699,9 @@ class MainActivity : Activity() {
         }
     }
 
-    private fun posNavbar(title: String, clientItems: List<ClientItem>): LinearLayout {
+    private fun posNavbar(title: String, clientItems: List<ClientItem>, agent: JSONObject?): LinearLayout {
+        val showAgentPicker = agent?.optBoolean("is_admin") == true &&
+            (agent.optJSONArray("available_agents")?.length() ?: 0) > 0
         return LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
@@ -3583,8 +3711,24 @@ class MainActivity : Activity() {
                 setTextColor(Color.WHITE)
                 layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT)
             })
+            if (showAgentPicker) {
+                addView(Button(this@MainActivity).apply {
+                    text = "${currentActingAgentName(agent)} v"
+                    textSize = 13f
+                    isAllCaps = false
+                    setTextColor(Color.WHITE)
+                    background = rounded("#3b82f6", dp(5), strokeColor = "#fde68a")
+                    setPadding(dp(8), 0, dp(8), 0)
+                    minHeight = dp(34)
+                    minimumHeight = dp(34)
+                    setOnClickListener { openAdminAgentPicker(agent) }
+                    layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, dp(38)).apply {
+                        setMargins(dp(10), 0, 0, 0)
+                    }
+                })
+            }
             addView(Button(this@MainActivity).apply {
-                text = "$selectedClientName ▾"
+                text = "$selectedClientName v"
                 textSize = 13f
                 isAllCaps = false
                 setTextColor(Color.WHITE)
@@ -3592,14 +3736,14 @@ class MainActivity : Activity() {
                 setPadding(dp(8), 0, dp(8), 0)
                 minHeight = dp(34)
                 minimumHeight = dp(34)
-                setOnClickListener { renderClientSelection() }
+                setOnClickListener { renderClientSelection(preserveState = false) }
                 layoutParams = LinearLayout.LayoutParams(0, dp(38), 1f).apply {
                     setMargins(dp(10), 0, dp(8), 0)
                 }
             })
-            addView(navBadge("● Online", "#dcfce7", "#16a34a"))
+            addView(navBadge("Online", "#dcfce7", "#16a34a"))
             addView(Button(this@MainActivity).apply {
-                text = "⋮"
+                text = "..."
                 textSize = 24f
                 setTextColor(Color.WHITE)
                 background = transparent()
@@ -3614,7 +3758,70 @@ class MainActivity : Activity() {
         }
     }
 
-    private fun renderClientSelection() {
+    private fun currentAgentPayload(): JSONObject? = db.agent()
+
+    private fun currentActingAgentId(): Long {
+        val agent = currentAgentPayload()
+        return agent?.optLong("acting_agent_id", agent.optLong("id"))?.takeIf { it > 0L }
+            ?: session.selectedAgentId
+    }
+
+    private fun currentActingAgentName(agent: JSONObject? = currentAgentPayload()): String {
+        return agent?.optString("acting_agent_name").orEmpty()
+            .ifBlank { agent?.optString("name").orEmpty() }
+            .ifBlank { session.selectedAgentName }
+            .ifBlank { "Agent" }
+    }
+
+    private fun openAdminAgentPicker(agent: JSONObject?) {
+        val availableAgents = agent?.optJSONArray("available_agents") ?: JSONArray()
+        if (availableAgents.length() == 0) {
+            if (::status.isInitialized) status.text = "Agentlar ro'yxati topilmadi."
+            return
+        }
+        if (db.pendingTransactions().length() > 0) {
+            if (::status.isInitialized) {
+                status.text = "Avval pending ma'lumotlarni sinxronlang, keyin agentni almashtiring."
+            }
+            return
+        }
+        val names = Array(availableAgents.length()) { index ->
+            availableAgents.getJSONObject(index).optString("name")
+        }
+        val currentId = currentActingAgentId()
+        val checkedIndex = (0 until availableAgents.length())
+            .firstOrNull { availableAgents.getJSONObject(it).optLong("id") == currentId } ?: -1
+
+        AlertDialog.Builder(this)
+            .setTitle("Agentni tanlang")
+            .setSingleChoiceItems(names, checkedIndex) { dialog, which ->
+                val selected = availableAgents.getJSONObject(which)
+                val nextAgentId = selected.optLong("id")
+                if (nextAgentId == currentId) {
+                    dialog.dismiss()
+                    return@setSingleChoiceItems
+                }
+                dialog.dismiss()
+                runNetwork("Agent ma'lumotlari yuklanmoqda...") {
+                    repository.switchActingAgent(nextAgentId)
+                    cart.clear()
+                    resetSelectedClientToCash()
+                    activeReportClientId = 0L
+                    clientSearchQuery = ""
+                    productSearchQuery = ""
+                    clientSelectionScrollY = 0
+                    clientSelectionVisibleCount = 12
+                    clientReportScrollY = 0
+                    agentReportScrollY = 0
+                    runOnUiThread { renderPos() }
+                    "${selected.optString("name")} agenti ochildi"
+                }
+            }
+            .setNegativeButton("Bekor qilish", null)
+            .show()
+    }
+
+    private fun renderClientSelection(preserveState: Boolean = false) {
         rememberNavigation(ScreenState.CLIENT_SELECTION)
         val clientRows = db.rows("clients", "updated_at DESC")
         val clients = mutableListOf<JSONObject>()
@@ -3628,28 +3835,25 @@ class MainActivity : Activity() {
         )
         val page = screenPage("Mijoz Tanlash", showMenu = true)
         val body = page.findViewWithTag<LinearLayout>("body")
+        val scrollView = page.findViewWithTag<ScrollView>("scroll_container")
+
+        val clientListContainer = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
 
         body.addView(row {
-            addView(EditText(this@MainActivity).apply {
-                hint = "Mijozni qidirish..."
-                setText(clientSearchQuery)
-                setSingleLine(true)
-                textSize = 14f
-                setHintTextColor(color("#94a3b8"))
-                background = rounded("#ffffff", dp(7), strokeColor = "#d1d5db")
-                setPadding(dp(12), 0, dp(12), 0)
+            addView(searchBox(
+                initialValue = clientSearchQuery,
+                hintText = "Mijozni qidirish...",
+                textSizeSp = 14f,
+                heightDp = 48
+            ) { next ->
+                clientSearchQuery = next
+                clientSelectionScrollY = 0
+                clientSelectionVisibleCount = 12
+                renderClientSelectionList(clientListContainer, clients) {
+                    scrollView?.post { scrollView.scrollTo(0, clientSelectionScrollY) }
+                }
+            }.apply {
                 layoutParams = LinearLayout.LayoutParams(0, dp(48), 1f)
-                addTextChangedListener(object : TextWatcher {
-                    override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
-                    override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-                        val next = s?.toString().orEmpty()
-                        if (next != clientSearchQuery) {
-                            clientSearchQuery = next
-                            renderClientSelection()
-                        }
-                    }
-                    override fun afterTextChanged(s: Editable?) = Unit
-                })
             })
             addView(Button(this@MainActivity).apply {
                 text = "+"
@@ -3665,8 +3869,24 @@ class MainActivity : Activity() {
                 }
             })
         })
+        body.addView(clientListContainer)
+        renderClientSelectionList(clientListContainer, clients) {
+            scrollView?.post { scrollView.scrollTo(0, clientSelectionScrollY) }
+        }
 
-        var visibleClients = 0
+        setContentView(page)
+        scrollView?.setOnScrollChangeListener { _, _, scrollY, _, _ ->
+            clientSelectionScrollY = scrollY
+        }
+    }
+
+    private fun renderClientSelectionList(
+        container: LinearLayout,
+        clients: List<JSONObject>,
+        onRendered: (() -> Unit)? = null
+    ) {
+        container.removeAllViews()
+        val filteredClients = mutableListOf<JSONObject>()
         for (client in clients) {
             if (clientSearchQuery.isNotBlank()) {
                 val q = clientSearchQuery.trim()
@@ -3679,14 +3899,32 @@ class MainActivity : Activity() {
                     continue
                 }
             }
-            visibleClients += 1
-            body.addView(clientRow(client))
+            filteredClients += client
         }
-        if (visibleClients == 0) {
-            body.addView(emptyCard("Qidiruv bo'yicha mijoz topilmadi."))
+        if (filteredClients.isEmpty()) {
+            container.addView(emptyCard("Qidiruv bo'yicha mijoz topilmadi."))
+            onRendered?.invoke()
+            return
         }
-
-        setContentView(page)
+        if (clientSearchQuery.isNotBlank()) {
+            for (client in filteredClients) {
+                container.addView(clientRow(client))
+            }
+            onRendered?.invoke()
+            return
+        }
+        appendHistoryCardsIncrementally(
+            container = container,
+            items = filteredClients,
+            owner = ScreenState.CLIENT_SELECTION,
+            initialVisible = clientSelectionVisibleCount,
+            onRenderedCountChanged = { rendered ->
+                clientSelectionVisibleCount = rendered
+            },
+            onInitialRenderFinished = onRendered
+        ) { client ->
+            clientRow(client)
+        }
     }
 
     private fun clientRow(client: JSONObject): LinearLayout {
@@ -3737,6 +3975,7 @@ class MainActivity : Activity() {
                 setTextColor(color("#334155"))
                 background = rounded("#f3f4f6", dp(6))
                 setOnClickListener {
+                    captureClientSelectionScroll()
                     renderClientReport(client)
                 }
                 layoutParams = LinearLayout.LayoutParams(dp(104), dp(42)).apply {
@@ -3860,11 +4099,17 @@ class MainActivity : Activity() {
         }
     }
 
-    private fun searchBox(): EditText {
+    private fun searchBox(
+        initialValue: String = "",
+        hintText: String = "Tovarni qidirish...",
+        textSizeSp: Float = 16f,
+        heightDp: Int = 50,
+        onQueryChanged: (String) -> Unit
+    ): EditText {
         return EditText(this).apply {
-            hint = "Tovarni qidirish..."
-            setText(productSearchQuery)
-            textSize = 16f
+            hint = hintText
+            setText(initialValue)
+            textSize = textSizeSp
             setSingleLine(true)
             setTextColor(color("#0f172a"))
             setHintTextColor(color("#94a3b8"))
@@ -3872,16 +4117,12 @@ class MainActivity : Activity() {
             setPadding(dp(12), 0, dp(12), 0)
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
-                dp(50)
+                dp(heightDp)
             ).apply { setMargins(0, 0, 0, dp(14)) }
             addTextChangedListener(object : TextWatcher {
                 override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
                 override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-                    val next = s?.toString().orEmpty()
-                    if (next != productSearchQuery) {
-                        productSearchQuery = next
-                        renderPos()
-                    }
+                    onQueryChanged(s?.toString().orEmpty())
                 }
                 override fun afterTextChanged(s: Editable?) = Unit
             })
@@ -4072,6 +4313,7 @@ class MainActivity : Activity() {
                                 .put("partner_id", selectedClientId)
                                 .put("payment_method", "cash")
                                 .put("note", "Nasiya savdodan keyingi kirim")
+                                .put("acting_agent_id", currentActingAgentId())
                         )
                     }
                     resetSelectedClientToCash()
@@ -4119,6 +4361,7 @@ class MainActivity : Activity() {
             .put("partner_id", if (selectedClientId == 0L) false else selectedClientId)
             .put("lines", lines)
             .put("source_request_id", if (sourceRequestId > 0L) sourceRequestId else false)
+            .put("acting_agent_id", currentActingAgentId())
 
         db.enqueueTransaction("sale", UUID.randomUUID().toString(), payload)
         cart.clear()
@@ -4127,6 +4370,7 @@ class MainActivity : Activity() {
 
     private fun syncPendingInBackground(refreshPosAfterSync: Boolean) {
         if (session.token.isBlank()) return
+        setSyncState(true)
         Thread {
             val error = try {
                 repository.syncPending()
@@ -4136,14 +4380,17 @@ class MainActivity : Activity() {
             }
             runOnUiThread {
                 if (error == null) {
+                    setServerOnlineState(true)
                     if (refreshPosAfterSync) {
                         renderPos()
                     } else if (::status.isInitialized) {
                         status.text = "Sinxronlandi"
                     }
                 } else if (::status.isInitialized) {
+                    setServerOnlineState(false)
                     status.text = "Offline saqlandi. Sinxronlash: $error"
                 }
+                setSyncState(false)
             }
         }.start()
     }
@@ -4633,6 +4880,90 @@ class MainActivity : Activity() {
         }
     }
 
+    private fun loadingCard(message: String): TextView {
+        return text(message, 14, bold = true).apply {
+            gravity = Gravity.CENTER
+            setTextColor(color("#2563eb"))
+            background = rounded("#eff6ff", dp(8), strokeColor = "#bfdbfe")
+            setPadding(dp(10), dp(24), dp(10), dp(24))
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+        }
+    }
+
+    private fun <T> appendHistoryCardsIncrementally(
+        container: LinearLayout,
+        items: List<T>,
+        owner: ScreenState,
+        initialVisible: Int = Int.MAX_VALUE,
+        onRenderedCountChanged: ((Int) -> Unit)? = null,
+        onInitialRenderFinished: (() -> Unit)? = null,
+        renderer: (T) -> View
+    ) {
+        val chunkSize = 12
+        var rendered = 0
+        var loadMoreButton: Button? = null
+        var appendUntil: ((Int, Boolean) -> Unit)? = null
+        var initialRenderCallback = onInitialRenderFinished
+
+        fun syncLoadMoreButton() {
+            if (currentScreenState != owner) return
+            if (rendered >= items.size) {
+                loadMoreButton?.let { container.removeView(it) }
+                loadMoreButton = null
+                return
+            }
+            val button = loadMoreButton ?: Button(this).apply {
+                textSize = 14f
+                typeface = Typeface.DEFAULT_BOLD
+                setTextColor(Color.WHITE)
+                background = rounded("#2563eb", dp(8))
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    dp(46)
+                ).apply { setMargins(0, 0, 0, dp(12)) }
+                setOnClickListener {
+                    container.removeView(this)
+                    loadMoreButton = null
+                    appendUntil?.invoke(minOf(rendered + chunkSize, items.size), true)
+                }
+            }
+            button.text = "Ko'proq yuklash (${items.size - rendered})"
+            if (button.parent == null) {
+                container.addView(button)
+            }
+            loadMoreButton = button
+        }
+
+        appendUntil = fun(target: Int, eager: Boolean) {
+            if (currentScreenState != owner) return
+            val end = minOf(target, items.size)
+            val limit = minOf(rendered + chunkSize, end)
+            for (index in rendered until limit) {
+                container.addView(renderer(items[index]))
+            }
+            rendered = limit
+            onRenderedCountChanged?.invoke(rendered)
+            if (rendered < end) {
+                container.post { appendUntil?.invoke(end, eager) }
+            } else if (eager && rendered < items.size) {
+                syncLoadMoreButton()
+            } else if (!eager && rendered < items.size) {
+                syncLoadMoreButton()
+            }
+            if (rendered >= end) {
+                initialRenderCallback?.let { callback ->
+                    initialRenderCallback = null
+                    container.post { callback() }
+                }
+            }
+        }
+
+        appendUntil?.invoke(minOf(initialVisible, items.size), true)
+    }
+
     private fun menuItem(label: String, onClick: () -> Unit): TextView {
         return text(label, 15, bold = true).apply {
             setTextColor(color("#1f2937"))
@@ -4923,6 +5254,130 @@ class MainActivity : Activity() {
         return String.format(Locale.US, "%,.0f", value)
     }
 
+    private fun productImage(imageUrl: String): FrameLayout {
+        val holder = FrameLayout(this).apply {
+            background = rounded("#eef2ff", dp(12))
+            clipToOutline = true
+        }
+        val imageView = ImageView(this).apply {
+            scaleType = ImageView.ScaleType.CENTER_CROP
+            visibility = View.GONE
+        }
+        val placeholder = text("No Image", 12, bold = true).apply {
+            gravity = Gravity.CENTER
+            setTextColor(color("#94a3b8"))
+            layoutParams = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT
+            )
+        }
+        holder.addView(
+            imageView,
+            FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT
+            )
+        )
+        holder.addView(placeholder)
+        loadImageInto(imageView, placeholder, imageUrl)
+        return holder
+    }
+
+    private fun loadImageInto(imageView: ImageView, placeholder: TextView, imageUrl: String) {
+        val absoluteUrl = absoluteImageUrl(imageUrl)
+        if (absoluteUrl.isBlank()) {
+            imageView.visibility = View.GONE
+            placeholder.visibility = View.VISIBLE
+            return
+        }
+        imageView.tag = absoluteUrl
+        val cached = imageCache.get(absoluteUrl)
+        if (cached != null) {
+            imageView.setImageBitmap(cached)
+            imageView.visibility = View.VISIBLE
+            placeholder.visibility = View.GONE
+            return
+        }
+        val cachedFile = imageCacheFile(absoluteUrl)
+        if (cachedFile.exists()) {
+            val diskBitmap = BitmapFactory.decodeFile(cachedFile.absolutePath)
+            if (diskBitmap != null) {
+                imageCache.put(absoluteUrl, diskBitmap)
+                imageView.setImageBitmap(diskBitmap)
+                imageView.visibility = View.VISIBLE
+                placeholder.visibility = View.GONE
+                return
+            }
+        }
+        imageView.visibility = View.GONE
+        placeholder.visibility = View.VISIBLE
+        if (!imageRequestsInFlight.add(absoluteUrl)) {
+            return
+        }
+        imageLoader.execute {
+            try {
+                val connection = (java.net.URL(absoluteUrl).openConnection() as java.net.HttpURLConnection).apply {
+                    connectTimeout = 12000
+                    readTimeout = 20000
+                    doInput = true
+                    setRequestProperty("Accept", "image/*,*/*")
+                    if (session.database.isNotBlank()) {
+                        setRequestProperty("X-Odoo-Database", session.database)
+                    }
+                    if (session.token.isNotBlank()) {
+                        setRequestProperty("Authorization", "Bearer ${session.token}")
+                    }
+                }
+                val responseCode = connection.responseCode
+                if (responseCode !in 200..299) {
+                    throw IllegalStateException("Image request failed: HTTP $responseCode for $absoluteUrl")
+                }
+                val bytes = connection.inputStream.use { it.readBytes() }
+                val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+                if (bitmap != null) {
+                    runCatching {
+                        cachedFile.parentFile?.mkdirs()
+                        cachedFile.writeBytes(bytes)
+                    }
+                    imageCache.put(absoluteUrl, bitmap)
+                    runOnUiThread {
+                        if (imageView.tag == absoluteUrl) {
+                            imageView.setImageBitmap(bitmap)
+                            imageView.visibility = View.VISIBLE
+                            placeholder.visibility = View.GONE
+                        }
+                    }
+                } else {
+                    Log.e(TAG, "Bitmap decode returned null for $absoluteUrl (bytes=${bytes.size})")
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Image load failed for $absoluteUrl", e)
+                // Keep placeholder visible if image download fails.
+            } finally {
+                imageRequestsInFlight.remove(absoluteUrl)
+            }
+        }
+    }
+
+    private fun absoluteImageUrl(imageUrl: String): String {
+        val raw = imageUrl.trim()
+        if (raw.isBlank()) return ""
+        if (raw.startsWith("http://", ignoreCase = true) || raw.startsWith("https://", ignoreCase = true)) {
+            return raw
+        }
+        val base = session.baseUrl.trimEnd('/')
+        if (base.isBlank()) return ""
+        return "$base/${raw.trimStart('/')}"
+    }
+
+    private fun imageCacheFile(url: String): File {
+        val cacheFolder = File(cacheDir, "product_images")
+        val key = MessageDigest.getInstance("MD5")
+            .digest(url.toByteArray(Charsets.UTF_8))
+            .joinToString("") { "%02x".format(it) }
+        return File(cacheFolder, "$key.img")
+    }
+
     private fun formatTripDateLabel(value: String): String {
         return parseTransactionDate(value)?.let {
             SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.US).format(it)
@@ -5020,10 +5475,45 @@ class MainActivity : Activity() {
         }
     }
 
+    private fun currentOnlineBadgeLabel(): String {
+        return when {
+            syncInFlight -> "● Syncing"
+            serverOnline -> "● Online"
+            else -> "● Offline"
+        }
+    }
+
+    private fun applyOnlineBadgeState(badge: TextView) {
+        val (bg, fg) = when {
+            syncInFlight -> "#dbeafe" to "#2563eb"
+            serverOnline -> "#dcfce7" to "#16a34a"
+            else -> "#fee2e2" to "#dc2626"
+        }
+        badge.text = currentOnlineBadgeLabel()
+        badge.setTextColor(color(fg))
+        badge.background = rounded(bg, dp(12))
+        onlineBadgeView = badge
+    }
+
+    private fun setServerOnlineState(online: Boolean) {
+        serverOnline = online
+        onlineBadgeView?.let { applyOnlineBadgeState(it) }
+    }
+
+    private fun setSyncState(syncing: Boolean) {
+        syncInFlight = syncing
+        onlineBadgeView?.let { applyOnlineBadgeState(it) }
+    }
+
     private fun navBadge(label: String, bg: String, fg: String): TextView {
         return text(label, 11, bold = true).apply {
-            setTextColor(color(fg))
-            background = rounded(bg, dp(12))
+            val onlineBadge = label.contains("Online", ignoreCase = true) || label.contains("Offline", ignoreCase = true)
+            if (onlineBadge) {
+                applyOnlineBadgeState(this)
+            } else {
+                setTextColor(color(fg))
+                background = rounded(bg, dp(12))
+            }
             setPadding(dp(8), dp(4), dp(8), dp(4))
         }
     }

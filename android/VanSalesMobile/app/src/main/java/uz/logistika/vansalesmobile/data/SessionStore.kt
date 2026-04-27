@@ -29,6 +29,14 @@ class SessionStore(context: Context) {
         get() = prefs.getString("selected_client_name", "Naqt savdo") ?: "Naqt savdo"
         set(value) = prefs.edit().putString("selected_client_name", value).apply()
 
+    var selectedAgentId: Long
+        get() = prefs.getLong("selected_agent_id", 0L)
+        set(value) = prefs.edit().putLong("selected_agent_id", value).apply()
+
+    var selectedAgentName: String
+        get() = prefs.getString("selected_agent_name", "") ?: ""
+        set(value) = prefs.edit().putString("selected_agent_name", value).apply()
+
     var lastScreen: String
         get() = prefs.getString("last_screen", "POS") ?: "POS"
         set(value) = prefs.edit().putString("last_screen", value).apply()
@@ -62,6 +70,8 @@ class SessionStore(context: Context) {
             .remove("token")
             .remove("selected_client_id")
             .remove("selected_client_name")
+            .remove("selected_agent_id")
+            .remove("selected_agent_name")
             .remove("last_screen")
             .remove("last_report_client_id")
             .remove("last_report_date_from")
