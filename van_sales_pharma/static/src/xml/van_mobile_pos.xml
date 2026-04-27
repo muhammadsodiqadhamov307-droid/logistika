@@ -461,7 +461,7 @@
                         
                         <!-- Header with Client Name -->
                         <div style="background: #f8fafc; padding: 15px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
-                            <div style="font-weight: bold; font-size: 16px; color: #1e293b;"><t t-esc="state.clientReport?.client_name"/></div>
+                            <div style="font-weight: bold; font-size: 16px; color: #1e293b;"><t t-esc="state.clientReport ? state.clientReport.client_name : ''"/></div>
                             <div style="font-size: 14px; color: #64748b;">Hisob-kitob</div>
                         </div>
 
@@ -485,11 +485,15 @@
                             <div style="background: #fff9db; border: 1px solid #ffec99; border-radius: 8px; padding: 15px; text-align: center;">
                                 <div style="font-size: 14px; color: #856404; margin-bottom: 5px;">Jami Qarz:</div>
                                 <div style="font-size: 22px; font-weight: bold; color: #e67700;">
-                                    <t t-esc="state.clientReport?.total_due?.toLocaleString()"/> so'm
+                                    <t t-esc="state.clientReport ? formatNumber(state.clientReport.total_due || 0) : '0'"/> so'm
                                 </div>
                             </div>
-                            <t t-if="state.clientReportClientId">
+                            <t t-if="state.clientReportClientId and state.clientReport">
                                 <div style="background: #f8fafc; border: 1px solid #dbeafe; border-radius: 8px; padding: 15px;">
+                                    <div style="font-size: 13px; font-weight: bold; color: #1e3a8a; margin-bottom: 6px;">Telefon Raqami</div>
+                                    <div style="padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px; color: #0f172a; background: white; margin-bottom: 12px;">
+                                        <t t-esc="state.clientReport.phone || '-'"/>
+                                    </div>
                                     <div style="font-size: 13px; font-weight: bold; color: #1e3a8a; margin-bottom: 10px;">Telegram Chat ID</div>
                                     <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
                                         <input

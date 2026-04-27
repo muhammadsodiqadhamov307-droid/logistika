@@ -1,3 +1,5 @@
+import secrets
+
 from odoo import models, fields, api
 class ResUsers(models.Model):
     _inherit = 'res.users'
@@ -16,6 +18,8 @@ class ResUsers(models.Model):
     ostatka_ids = fields.One2many('van.agent.ostatka', 'agent_id', string='Boshlang\'ich qoldiq (Ostatka)')
     salary_payout_ids = fields.One2many('van.salary.payout', 'agent_id', string='Oylik Yopishlar Tarixi')
     default_taminotchi_id = fields.Many2one('van.taminotchi', string="Asosiy Taminotchi", help="Yangi Yuklash qilishda avtomatik tanlanuvchi Taminotchi")
+    van_mobile_api_token = fields.Char(string='Mobile API Token', copy=False, index=True, groups='base.group_system')
+    van_mobile_api_token_created_at = fields.Datetime(string='Mobile API Token Created At', copy=False, groups='base.group_system')
 
     agent_oyligi = fields.Monetary(
         string='Agent Oyligi', 
@@ -152,6 +156,12 @@ class ResUsers(models.Model):
                 'default_notes': f"Oylik qoldig'ini yopish. Komissiya foizi: {self.komissiya_foizi}%"
             }
         }
+
+    def _van_mobile_reset_api_token(self):
+        for user in self.sudo():
+            user.van_mobile_api_token = secrets.token_urlsafe(48)
+            user.van_mobile_api_token_created_at = fields.Datetime.now()
+        return self.van_mobile_api_token
 
     @api.model_create_multi
     def create(self, vals_list):

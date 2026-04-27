@@ -1919,6 +1919,7 @@ export class VanMobilePos extends Component {
                     this.showToast("Saqlandi", "success");
                     this.cancelEdit();
                     await this._fetchClientReport(this.state.clientReportClientId);
+                    await this.loadClients();
                 } else {
                     this.showToast(result.error || "Xato", "error");
                 }
@@ -1945,6 +1946,7 @@ export class VanMobilePos extends Component {
                     this.showToast("Saqlandi", "success");
                     this.cancelEdit();
                     await this._fetchClientReport(this.state.clientReportClientId);
+                    await this.loadClients();
                     this.loadInventorySilent(); // Update local inventory stock
                 } else {
                     this.showToast(result.error || "Xato", "error");
@@ -1974,6 +1976,7 @@ export class VanMobilePos extends Component {
             if (result && result.success) {
                 this.showToast("O'chirildi", "success");
                 await this._fetchClientReport(this.state.clientReportClientId);
+                await this.loadClients();
                 if (tx.turi === 'sotuv') {
                     this.loadInventorySilent(); // Return deleted sale stock to inventory natively
                 }

@@ -2,3 +2,12 @@
 *.pyc
 __pycache__/
 CREDENTIALS.md
+
+# Android local build output and downloaded tooling
+android/**/.gradle/
+android/**/.gradle-local/
+android/**/.kotlin/
+android/**/build/
+android/**/local.properties
+android/**/*.apk
+android/**/build-*.log

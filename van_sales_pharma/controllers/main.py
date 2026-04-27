@@ -7,6 +7,44 @@ import datetime
 _logger = logging.getLogger(__name__)
 
 class VanPosController(http.Controller):
+    def _mobile_partner_balance(self, partner):
+        """Compute current client balance from actual Mobile POS transactions."""
+        if not partner:
+            return {
+                'wallet_balance': 0.0,
+                'total_due': 0.0,
+                'total_sales': 0.0,
+                'total_kirim': 0.0,
+                'total_chiqim': 0.0,
+                'total_ostatka': 0.0,
+            }
+
+        orders = request.env['van.pos.order'].sudo().search([
+            ('partner_id', '=', partner.id),
+            ('state', '=', 'done'),
+        ])
+        payments = request.env['van.payment'].sudo().search([
+            ('partner_id', '=', partner.id),
+        ])
+        total_sales = sum(orders.mapped('amount_total'))
+        total_kirim = sum(payments.filtered(lambda p: p.payment_type == 'in').mapped('amount'))
+        total_chiqim = sum(payments.filtered(lambda p: p.payment_type == 'out').mapped('amount'))
+        total_ostatka = sum(partner.x_van_ostatka_ids.mapped('amount'))
+        wallet_balance = total_kirim - total_chiqim - total_sales - total_ostatka
+        return {
+            'wallet_balance': wallet_balance,
+            'total_due': abs(wallet_balance) if wallet_balance < 0 else 0.0,
+            'total_sales': total_sales,
+            'total_kirim': total_kirim,
+            'total_chiqim': total_chiqim,
+            'total_ostatka': total_ostatka,
+        }
+
+    def _web_action_url(self, xmlid):
+        action = request.env.ref(xmlid, raise_if_not_found=False)
+        if action:
+            return f'/web#action={action.id}'
+        return '/web'
 
     def _get_agent_id(self):
         """Returns the acting agent ID if an admin has selected one, otherwise the actual user ID."""
@@ -35,7 +73,7 @@ class VanPosController(http.Controller):
                 return request.render('van_sales_pharma.agent_select_template', {'agents': agents})
                 
         # If normal agent, or admin with an already selected agent session, boot the OWL app
-        return request.redirect('/web#action=van_sales_pharma.action_van_mobile_pos_app')
+        return request.redirect(self._web_action_url('van_sales_pharma.action_van_mobile_pos_app'))
 
     @http.route('/van/mobile-pos/select-agent', type='http', auth='user', methods=['GET'], csrf=False)
     def select_agent(self, agent_id=None, **kwargs):
@@ -99,7 +137,7 @@ class VanPosController(http.Controller):
                 if not partner.exists():
                     return {'success': False, 'error': 'Mijoz topilmadi'}
                 client_name = partner.name
-                total_due = partner.x_van_total_due or 0.0
+                total_due = self._mobile_partner_balance(partner)['total_due']
 
             transactions = []
 
@@ -193,6 +231,7 @@ class VanPosController(http.Controller):
                 'success': True,
                 'client_name': client_name,
                 'total_due': total_due,
+                'phone': partner.phone if partner else '',
                 'telegram_chat_id': partner.telegram_chat_id if partner else '',
                 'transactions': transactions,
             }
@@ -274,6 +313,10 @@ class VanPosController(http.Controller):
         agent_id = self._get_agent_id()
         agent = request.env['res.users'].sudo().browse(agent_id)
         partners = agent.mijoz_ids
+
+        hidden_partners = partners.filtered(lambda p: not p.x_is_van_customer or p.customer_rank < 1)
+        if hidden_partners:
+            hidden_partners.write({'x_is_van_customer': True, 'customer_rank': 1})
             
         # recompute balances based on new nasiya
         partners.sudo()._compute_van_nasiya_stats()
@@ -306,11 +349,13 @@ class VanPosController(http.Controller):
                     if last_tx:
                         if hasattr(last_tx, 'strftime'):
                             last_tx_str = pytz.utc.localize(last_tx).astimezone(user_tz).strftime('%Y-%m-%d %H:%M')
+                    fresh_balance = self._mobile_partner_balance(p)
                     client_list.append({
                         'id': p.id,
                         'name': p.name,
-                        'balance': p.x_van_balance,
-                        'total_due': p.x_van_total_due,
+                        'balance': fresh_balance['wallet_balance'],
+                        'total_due': fresh_balance['total_due'],
+                        'phone': p.phone or '',
                         'last_transaction_date': last_tx_str
                     })
         else:

@@ -229,7 +229,7 @@ class VanAgentSummary(models.Model):
             
             # Keep original total_balance matching sof_balans
             rec.total_balance = rec.sof_balans
-            rec.total_nasiya = nasiya_sales - kirim_total
+            rec.total_nasiya = max(0.0, nasiya_sales - kirim_total)
             
             margin = 0.0
             for order in g1_orders:
@@ -263,12 +263,19 @@ class VanAgentSummary(models.Model):
         }
 
     # === Dastlabki/Oxirgi Sana Dashboard Button Actions ===
+    def _reload_form_action(self):
+        self.ensure_one()
+        self.invalidate_recordset()
+        self.env.invalidate_all()
+        return {'type': 'ir.actions.client', 'tag': 'reload'}
+
     def action_apply_filter(self):
         """
-        Standard NO-OP. Odoo implicitly saves the form data (dates) before triggering this method, 
-        so the @api.depends compute block automatically re-runs.
+        Re-open the form so the freshly saved date range is re-read and all
+        non-stored computed fields are rendered from a clean record cache.
         """
-        return True
+        self.ensure_one()
+        return self._reload_form_action()
         
     def action_clear_filter(self):
         """
@@ -278,7 +285,7 @@ class VanAgentSummary(models.Model):
         for rec in self:
             rec.date_from = today
             rec.date_to = today
-        return True
+        return self._reload_form_action()
         
     @api.model
     def action_setup_summary(self):
@@ -316,9 +323,11 @@ class VanAgentSummary(models.Model):
 
     def action_refresh_data(self):
         """
-        Acts exactly like a hard page reload for the compute fields.
+        Acts like a hard refresh for the form so computed widgets pick up the
+        latest payments, sales, and balances.
         """
-        return True
+        self.ensure_one()
+        return self._reload_form_action()
 
     def action_view_chiqimlar(self):
         self.ensure_one()

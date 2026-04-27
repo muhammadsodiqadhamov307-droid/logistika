@@ -3,6 +3,11 @@ from odoo import http
 from odoo.http import request
 
 class VanSalesPWA(http.Controller):
+    def _web_action_url(self, xmlid):
+        action = request.env.ref(xmlid, raise_if_not_found=False)
+        if action:
+            return f'/web#action={action.id}'
+        return '/web'
 
 
     @http.route('/van/app', type='http', auth='public')
@@ -17,8 +22,7 @@ class VanSalesPWA(http.Controller):
         
         # Agents go strictly to Mobile POS
         if is_agent and not is_admin:
-            return request.redirect('/web#action=van_sales_pharma.action_van_mobile_pos_app')
+            return request.redirect(self._web_action_url('van_sales_pharma.action_van_mobile_pos_app'))
             
         # Admins or others go to the Van Sales Dashboard
-        return request.redirect('/web#action=van_sales_pharma.action_van_sales_dashboard')
-
+        return request.redirect(self._web_action_url('van_sales_pharma.action_van_sales_dashboard'))

@@ -48,6 +48,15 @@ class ResPartnerVanCustomer(models.Model):
     def create(self, vals_list):
         """Van Sales Mijozlar doimo 'customer_rank' = 1 bo'lishi kerak."""
         for vals in vals_list:
-            if vals.get('x_is_van_customer'):
+            if vals.get('x_is_van_customer') or vals.get('van_agent_id'):
+                vals['x_is_van_customer'] = True
                 vals['customer_rank'] = max(vals.get('customer_rank', 0), 1)
         return super().create(vals_list)
+
+    def write(self, vals):
+        """Assigning a partner to a Van Sales agent makes it a Van Sales customer."""
+        if vals.get('van_agent_id') and not vals.get('x_is_van_customer'):
+            vals = dict(vals)
+            vals['x_is_van_customer'] = True
+            vals['customer_rank'] = max(vals.get('customer_rank', 0), 1)
+        return super().write(vals)

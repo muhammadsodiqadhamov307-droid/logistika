@@ -1,4 +1,7 @@
 import logging
+from datetime import datetime, time
+
+import pytz
 from odoo import models, fields, api, _
 
 _logger = logging.getLogger(__name__)
@@ -96,12 +99,26 @@ class ResPartner(models.Model):
             date_from = partner.hk_date_from
             date_to = partner.hk_date_to
             transactions = []
+            user_tz = pytz.timezone(self.env.user.tz or self.env.context.get('tz') or 'Asia/Tashkent')
+
+            def to_local_dt(value, is_date_only=False):
+                if not value:
+                    value = fields.Date.today() if is_date_only else fields.Datetime.now()
+                if is_date_only:
+                    return user_tz.localize(datetime.combine(value, time.min))
+                if isinstance(value, str):
+                    value = fields.Datetime.from_string(value)
+                if getattr(value, 'tzinfo', None):
+                    return value.astimezone(user_tz)
+                return pytz.utc.localize(value).astimezone(user_tz)
             
             # 1. Boshlang'ich qarz (Ostatka)
             for ostatka in partner.x_van_ostatka_ids:
                 if ostatka.amount > 0:
+                    local_dt = to_local_dt(ostatka.date or fields.Date.today(), is_date_only=True)
                     transactions.append({
-                        'date': ostatka.date or fields.Date.today(),
+                        'sort_date': local_dt,
+                        'display_date': local_dt.strftime('%d.%m.%Y %H:%M'),
                         'hujjat': 'Ostatka Qarzi',
                         'turi': "🟠 Boshlang'ich qarz",
                         'summa': ostatka.amount,
@@ -120,8 +137,10 @@ class ResPartner(models.Model):
             pos_orders = self.env['van.pos.order'].search(order_domain)
             for order in pos_orders:
                 if order.amount_total > 0:
+                    local_dt = to_local_dt(order.date)
                     transactions.append({
-                        'date': order.date.date() if order.date else fields.Date.today(),
+                        'sort_date': local_dt,
+                        'display_date': local_dt.strftime('%d.%m.%Y %H:%M'),
                         'hujjat': order.name,
                         'turi': "🛒 Sotuv",
                         'summa': order.amount_total,
@@ -142,16 +161,18 @@ class ResPartner(models.Model):
             payments = self.env['van.payment'].search(payment_domain)
             for payment in payments:
                 if payment.amount > 0:
+                    local_dt = to_local_dt(payment.date)
                     transactions.append({
-                        'date': payment.date.date() if payment.date else fields.Date.today(),
+                        'sort_date': local_dt,
+                        'display_date': local_dt.strftime('%d.%m.%Y %H:%M'),
                         'hujjat': payment.name,
                         'turi': "💵 Kirim",
                         'summa': payment.amount,
                         'is_debt': False,
                     })
                     
-            # Sort all transactions chronologically by date ascending to calculate running balance
-            transactions.sort(key=lambda x: x['date'])
+            # Sort using the full timestamp so newest rows are correct even within the same day.
+            transactions.sort(key=lambda x: x['sort_date'])
             
             # Pre-calculate chronological running balance exactly
             running_balance = 0.0
@@ -198,7 +219,7 @@ class ResPartner(models.Model):
                 """
             
             for rx in transactions:
-                d_str = rx['date'].strftime('%d.%m.%Y')
+                d_str = rx['display_date']
                 turi_badge = f'<span class="badge rounded-pill bg-success">{rx["turi"]}</span>' if rx['turi'] == "🛒 Sotuv" else (f'<span class="badge rounded-pill bg-info text-dark">{rx["turi"]}</span>' if rx['turi'] == "💵 Kirim" else f'<span class="badge rounded-pill bg-warning text-dark">{rx["turi"]}</span>')
                 
                 if rx['is_debt']:
